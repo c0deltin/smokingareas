@@ -72,8 +72,12 @@ class SmokingAreaRepository {
       final mem = _memory[city.id];
       if (mem != null && !_isStale(mem.fetchedAt)) return Future.value(mem);
     }
-    return _inFlight[city.id] ??= _load(city, forceRefresh)
-        .whenComplete(() => _inFlight.remove(city.id));
+    return _inFlight[city.id] ??=
+        _load(city, forceRefresh).whenComplete(() {
+      // Block body on purpose: returning the removed future would make
+      // whenComplete wait on itself.
+      _inFlight.remove(city.id);
+    });
   }
 
   /// Loads all cities whose area contains [position].
