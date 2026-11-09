@@ -2,12 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Dein Standort wird verwendet, um Raucherbereiche in deiner Nähe anzuzeigen.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Mit Standortzugriff „Immer“ benachrichtigt dich die App auch im Hintergrund, sobald ein Raucherbereich weniger als 30 m entfernt ist.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Mit Standortzugriff „Immer“ benachrichtigt dich die App auch im Hintergrund, sobald ein Raucherbereich weniger als 30 m entfernt ist.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Smoking Areas</string>
+	<string>Raucherzonen</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
