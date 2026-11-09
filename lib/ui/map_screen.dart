@@ -48,6 +48,7 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _monitor.addListener(_onMonitorChanged);
+    _repo.addListener(_onRepoChanged);
     NotificationService.instance.onTap = _openAreaById;
     _loadCity(_city);
     WidgetsBinding.instance.addPostFrameCallback((_) => _askPermissions());
@@ -56,8 +57,29 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _monitor.removeListener(_onMonitorChanged);
+    _repo.removeListener(_onRepoChanged);
     NotificationService.instance.onTap = null;
     super.dispose();
+  }
+
+  /// New data from any source/city: redraw the (single, merged) map.
+  void _onRepoChanged() {
+    if (mounted) setState(() {});
+  }
+
+  // Markers are rebuilt only when the merged data set changes, not on every
+  // position update.
+  List<SmokingArea>? _markerSource;
+  List<Marker> _markerCache = const [];
+  Map<Key, SmokingArea> _markerAreas = const {};
+
+  List<Marker> _markersFor(List<SmokingArea> areas) {
+    if (!identical(areas, _markerSource)) {
+      _markerSource = areas;
+      _markerCache = _markers(areas);
+      _markerAreas = {for (final a in areas) ValueKey(a.id): a};
+    }
+    return _markerCache;
   }
 
   Future<void> _askPermissions() async {
@@ -180,8 +202,9 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final areas = _data?.areas ?? const <SmokingArea>[];
-    final byKey = {for (final a in areas) ValueKey(a.id): a};
+    // One merged data set for all of Japan – every source, every city.
+    final markers = _markersFor(_repo.allVisible);
+    final byKey = _markerAreas;
     final userPos = _monitor.position;
 
     return Scaffold(
@@ -250,7 +273,7 @@ class _MapScreenState extends State<MapScreen> {
                 ]),
               MarkerClusterLayerWidget(
                 options: MarkerClusterLayerOptions(
-                  markers: _markers(areas),
+                  markers: markers,
                   maxClusterRadius: 60,
                   disableClusteringAtZoom: 17,
                   size: const Size(42, 42),
@@ -321,6 +344,7 @@ class _MapScreenState extends State<MapScreen> {
             right: 12,
             child: _StatusBanner(
               data: _data,
+              cityCount: _repo.areasIn(_city.bounds).length,
               error: _error,
               loading: _loading,
               monitor: _monitor,
@@ -404,6 +428,7 @@ class _AreaMarker extends StatelessWidget {
 class _StatusBanner extends StatelessWidget {
   const _StatusBanner({
     required this.data,
+    required this.cityCount,
     required this.error,
     required this.loading,
     required this.monitor,
@@ -413,6 +438,7 @@ class _StatusBanner extends StatelessWidget {
   });
 
   final CityAreas? data;
+  final int cityCount;
   final String? error;
   final bool loading;
   final ProximityMonitor monitor;
@@ -468,7 +494,7 @@ class _StatusBanner extends StatelessWidget {
     }
 
     final nearest = monitor.nearest();
-    final count = data?.areas.length;
+    final int? count = cityCount == 0 && loading ? null : cityCount;
     return card(
       InkWell(
         onTap: nearest == null ? null : () => onNearestTap(nearest.area),

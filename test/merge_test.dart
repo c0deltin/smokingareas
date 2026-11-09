@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -187,6 +188,62 @@ void main() {
       final offline = await repo2.load(city, forceRefresh: true);
       expect(offline.areas, hasLength(2));
       expect(offline.fromCache, isTrue);
+    });
+  });
+
+  group('one merged data set, visible immediately', () {
+    late Directory tmp;
+    setUp(() => tmp = Directory.systemTemp.createTempSync('sa_all'));
+    tearDown(() => tmp.deleteSync(recursive: true));
+
+    final off = OfficialOpenDataSource(
+      loader: () async => '''
+{"generated":"2026-11-09","sources":[{"id":"kyoto","name":"x","url":"https://example.org","license":"CC BY"}],
+ "areas":[{"id":"kyoto:1","source":"kyoto","name":"京都駅","lat":34.9858,"lon":135.7588}]}''',
+    );
+
+    test('warmUp shows official data and every cached city without network',
+        () async {
+      // A previous app run cached OSM data for Tokyo.
+      final live = _FakeSource('osm', [osm('1', const LatLng(35.70, 139.70))]);
+      final repo1 = SmokingAreaRepository(
+          sources: [off, live], cacheDirectory: () async => tmp);
+      await repo1.load(cityById('tokyo')!);
+
+      live.calls = 0;
+      final repo2 = SmokingAreaRepository(
+          sources: [off, live], cacheDirectory: () async => tmp);
+      await repo2.warmUp();
+      expect(live.calls, 0);
+      expect(repo2.allVisible.map((a) => a.id),
+          unorderedEquals(['kyoto:1', 'osm:node/1']),
+          reason: 'Kyoto (official) and Tokyo (cached OSM) at the same time');
+    });
+
+    test('loading one city adds to the data set instead of replacing it',
+        () async {
+      final live = _FakeSource('osm', [osm('1', const LatLng(35.70, 139.70))]);
+      final repo = SmokingAreaRepository(
+          sources: [off, live], cacheDirectory: () async => tmp);
+      await repo.warmUp();
+      await repo.load(cityById('tokyo')!);
+      live.result = [osm('2', const LatLng(34.69, 135.50))];
+      await repo.load(cityById('osaka')!);
+      expect(repo.allVisible.map((a) => a.id),
+          unorderedEquals(['kyoto:1', 'osm:node/1', 'osm:node/2']));
+    });
+
+    test('cache of app version 1.0 is migrated, not lost', () async {
+      final dir = Directory('${tmp.path}/smoking_areas')..createSync();
+      File('${dir.path}/tokyo.json').writeAsStringSync(jsonEncode({
+        'fetchedAt': DateTime.now().toIso8601String(),
+        'areas': [osm('7', const LatLng(35.69, 139.70)).toJson()],
+      }));
+      final live = _FakeSource('osm', [])..fail = true;
+      final repo = SmokingAreaRepository(
+          sources: [off, live], cacheDirectory: () async => tmp);
+      await repo.warmUp();
+      expect(repo.allVisible.map((a) => a.id), contains('osm:node/7'));
     });
   });
 }

@@ -60,6 +60,9 @@ class OfficialOpenDataSource extends SmokingAreaSource {
   String get displayName => 'Offizielle Daten der Städte';
 
   @override
+  bool get isBundled => true;
+
+  @override
   String get attribution =>
       'Stadt Kyoto, Stadt Osaka, Tokioter Bezirke Chiyoda, Kōtō, Shibuya, '
       'Shinjuku, Taitō, Toshima (Open Data CC BY 4.0 bzw. Angaben der '
@@ -69,7 +72,7 @@ class OfficialOpenDataSource extends SmokingAreaSource {
 
   Future<List<OfficialDataset>> datasets() async => (await _load()).datasets;
 
-  /// Snapshot date – used to invalidate cached city data on app updates.
+  /// Date the snapshot was generated.
   Future<String> version() async => (await _load()).generated;
 
   @override

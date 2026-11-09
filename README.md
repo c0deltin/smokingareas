@@ -60,6 +60,14 @@ Fällt eine Quelle aus, bleiben ihre bisherigen Einträge erhalten. Adressen
 ohne Koordinaten werden über die GSI-Adresssuche verortet (Cache:
 `tool/opendata/geocode_cache.json`) und in der App als „ungefähr“ markiert.
 
+### Eine Karte, alle Daten
+
+Der Nutzer wählt keine Datenquelle: Alle Quellen werden zu einem Datenbestand
+für ganz Japan zusammengeführt. Beim Start sind die offiziellen Daten und alle
+bereits auf dem Gerät gespeicherten Städte sofort sichtbar; OSM-Daten der
+aktuellen Stadt werden im Hintergrund ergänzt. Die Stadt-/Viertelauswahl
+steuert nur den Kartenausschnitt (Zoom).
+
 ### Keine doppelten Marker
 
 - Mehrere Raucherräume im selben Gebäude (gleiche Adresse) werden schon im
