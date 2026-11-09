@@ -18,7 +18,8 @@ if (hasReleaseKey) {
 
 android {
     namespace = "de.c0deltin.smoking_areas"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_local_notifications 23 requires compileSdk 37.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
