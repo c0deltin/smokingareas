@@ -66,6 +66,34 @@ flutter run            # Android-Gerät oder iOS-Simulator/Gerät
 iOS: `cd ios && pod install` wird von `flutter run` automatisch ausgeführt.
 Für ein echtes iPhone muss in Xcode ein Signing-Team gesetzt werden.
 
+## APK-Download & CI
+
+Bei jedem Push auf `main` baut die GitHub-Actions-Pipeline
+(`.github/workflows/android-release.yml`) die App, führt Analyse und Tests aus
+und veröffentlicht das APK als **GitHub Release** (`v1.0.<Build-Nummer>`).
+Download: *Releases* → neueste Version → `raucherzonen-japan-….apk` auf dem
+Android-Gerät öffnen und die Installation aus unbekannten Quellen erlauben.
+Die Pipeline kann auch manuell gestartet werden (*Actions* → *Run workflow*).
+
+**Fester Signaturschlüssel (empfohlen):** Ohne ihn wird jedes APK mit einem
+anderen Debug-Schlüssel signiert, sodass ein Update erst nach Deinstallation
+der alten Version möglich ist. Einmalig anlegen:
+
+```bash
+keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 \
+  -validity 10000 -alias raucherzonen
+base64 -w0 release.jks   # Ausgabe als Secret speichern
+```
+
+und unter *Settings → Secrets and variables → Actions* hinterlegen:
+
+| Secret | Inhalt |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | base64-kodierte `release.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore-Passwort |
+| `ANDROID_KEY_ALIAS` | z. B. `raucherzonen` |
+| `ANDROID_KEY_PASSWORD` | Schlüssel-Passwort (leer = Keystore-Passwort) |
+
 ## Berechtigungen & Hintergrundbetrieb
 
 - **Android**: Standort (fein + Hintergrund), Foreground-Service (Typ
