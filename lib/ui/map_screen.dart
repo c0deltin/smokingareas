@@ -38,6 +38,9 @@ class _MapScreenState extends State<MapScreen> {
   bool _centeredOnUser = false;
   String? _lastAutoCity;
 
+  /// Label of a selected district (Viertel), shown instead of the city name.
+  String? _placeLabel;
+
   SmokingAreaRepository get _repo => widget.repository;
   ProximityMonitor get _monitor => widget.monitor;
 
@@ -109,6 +112,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _selectCity(City city, {bool moveMap = true}) {
     setState(() {
+      if (city.id != _city.id || moveMap) _placeLabel = null;
       _city = city;
       _data = _repo.cached(city.id);
     });
@@ -117,10 +121,13 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _pickCity() async {
-    final city = await showCityPicker(context, selected: _city);
-    if (city == null) return;
+    final place = await showCityPicker(context, selected: _city);
+    if (place == null) return;
     _userPickedCity = true;
-    _selectCity(city);
+    _selectCity(place.city, moveMap: false);
+    setState(() =>
+        _placeLabel = place.district == null ? null : place.label);
+    _mapController.move(place.center, place.zoom);
   }
 
   void _openAreaById(String id) {
@@ -185,7 +192,8 @@ class _MapScreenState extends State<MapScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: Text(_city.name, overflow: TextOverflow.ellipsis),
+                child: Text(_placeLabel ?? _city.name,
+                    overflow: TextOverflow.ellipsis),
               ),
               const Icon(Icons.arrow_drop_down),
             ],
@@ -353,6 +361,14 @@ class _MapScreenState extends State<MapScreen> {
           Text('• ${s.displayName}: ${s.attribution}'),
         const SizedBox(height: 8),
         const Text(
+          'Offizielle Einträge (blau umrandet) stammen aus Listen der Städte '
+          'und Bezirke; liegt ein OSM-Eintrag am selben Ort, werden beide zu '
+          'einem Marker zusammengeführt. Ohne Koordinaten veröffentlichte '
+          'Adressen wurden über die GSI-Adresssuche verortet und sind als '
+          '„ungefähr“ gekennzeichnet.',
+        ),
+        const SizedBox(height: 8),
+        const Text(
           'Kartenkacheln: © OpenStreetMap-Mitwirkende.\n'
           'Angaben ohne Gewähr – fehlende oder falsche Einträge kannst du '
           'direkt auf openstreetmap.org korrigieren (amenity=smoking_area).',
@@ -373,7 +389,11 @@ class _AreaMarker extends StatelessWidget {
       decoration: BoxDecoration(
         color: indoor ? Colors.deepPurple : Colors.teal,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
+        // Official entries get a blue ring.
+        border: Border.all(
+          color: area.isOfficial ? Colors.lightBlueAccent : Colors.white,
+          width: area.isOfficial ? 3 : 2,
+        ),
         boxShadow: const [BoxShadow(blurRadius: 3, color: Colors.black38)],
       ),
       child: const Icon(Icons.smoking_rooms, color: Colors.white, size: 20),

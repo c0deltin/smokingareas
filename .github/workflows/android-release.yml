@@ -32,6 +32,13 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
+      # Refresh the bundled snapshot of official municipal smoking-area lists
+      # (Tokyo wards, Kyoto, Osaka). Failing sources keep their previous data;
+      # the tests below validate the result before anything is released.
+      - name: Refresh official open data
+        continue-on-error: true
+        run: python3 tool/opendata/update_opendata.py
+
       - name: Install dependencies
         run: flutter pub get
 

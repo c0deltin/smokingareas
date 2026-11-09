@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../data/cities.dart';
 import '../models/city.dart';
 import '../models/smoking_area.dart';
+import '../sources/official_opendata_source.dart';
 import '../sources/overpass_source.dart';
 import '../sources/smoking_area_source.dart';
 
@@ -36,7 +37,7 @@ class SmokingAreaRepository {
     List<SmokingAreaSource>? sources,
     Future<Directory> Function()? cacheDirectory,
     this.maxAge = const Duration(days: 7),
-  })  : sources = sources ?? [OverpassSource()],
+  })  : sources = sources ?? [OfficialOpenDataSource(), OverpassSource()],
         _cacheDirectory = cacheDirectory ?? getApplicationSupportDirectory;
 
   final List<SmokingAreaSource> sources;
@@ -98,68 +99,164 @@ class SmokingAreaRepository {
       DateTime.now().difference(fetchedAt) > maxAge;
 
   Future<CityAreas> _load(City city, bool forceRefresh) async {
+    final version = await _dataVersion();
     final disk = await _readCache(city);
-    if (!forceRefresh && disk != null && !_isStale(disk.fetchedAt)) {
-      _memory[city.id] = disk;
-      return disk;
+    if (!forceRefresh &&
+        disk != null &&
+        disk.version == version &&
+        !_isStale(disk.fetchedAt)) {
+      final cached = disk.toCityAreas(city);
+      _memory[city.id] = cached;
+      return cached;
     }
 
     final bounds = city.bounds;
     final errors = <String>[];
-    final collected = <SmokingArea>[];
-    var anySuccess = false;
+    final raw = <String, List<SmokingArea>>{};
+    var anyFresh = false;
+    var usedCache = false;
     for (final source in sources) {
       if (!source.covers(bounds)) continue;
       try {
-        collected.addAll(await source.fetch(bounds));
-        anySuccess = true;
+        raw[source.id] = await source.fetch(bounds);
+        if (source is! OfficialOpenDataSource) anyFresh = true;
       } catch (e) {
         errors.add('${source.displayName}: $e');
+        // Keep the last known data of this source instead of dropping it.
+        final old = disk?.raw[source.id];
+        if (old != null) {
+          raw[source.id] = old;
+          usedCache = true;
+        }
       }
     }
 
-    if (!anySuccess) {
-      if (disk != null) {
-        final stale = CityAreas(
-          city: city,
-          areas: disk.areas,
-          fetchedAt: disk.fetchedAt,
-          fromCache: true,
-          errors: errors,
-        );
-        _memory[city.id] = stale;
-        return stale;
-      }
+    if (raw.values.every((l) => l.isEmpty) && errors.isNotEmpty) {
       throw SourceException(errors.join('\n'));
     }
 
+    // Partial results (live source failed, nothing cached) are marked as
+    // stale so the next load retries the network.
+    final fetchedAt =
+        anyFresh ? DateTime.now() : (disk?.fetchedAt ?? DateTime(2000));
+    final snapshot = _CacheSnapshot(
+      version: version,
+      fetchedAt: fetchedAt,
+      raw: raw,
+    );
     final result = CityAreas(
       city: city,
-      areas: deduplicate(collected),
-      fetchedAt: DateTime.now(),
+      areas: merge(raw.values.expand((l) => l).toList()),
+      fetchedAt: fetchedAt,
+      fromCache: usedCache,
       errors: errors,
     );
     _memory[city.id] = result;
-    await _writeCache(result);
+    // Only persist when something new was fetched, so a failed refresh does
+    // not reset the age of the cached OSM data.
+    if (anyFresh || (disk != null && disk.version != version)) {
+      await _writeCache(city, snapshot);
+    }
     return result;
   }
 
-  /// Removes entries with the same id and entries of different sources that
-  /// are closer than [duplicateThresholdMeters] to each other.
-  static List<SmokingArea> deduplicate(List<SmokingArea> input) {
+  Future<String> _dataVersion() async {
+    final parts = <String>[];
+    for (final s in sources) {
+      if (s is OfficialOpenDataSource) {
+        try {
+          parts.add('${s.id}@${await s.version()}');
+        } catch (_) {}
+      }
+    }
+    return parts.join(',');
+  }
+
+  /// Maximum distance at which an official entry and an OSM entry are treated
+  /// as the same smoking area. Official coordinates from a CSV are precise;
+  /// geocoded street addresses can be a few dozen metres off.
+  static const double mergeRadiusPrecise = 25;
+  static const double mergeRadiusGeocoded = 50;
+
+  /// Combines the entries of all sources so that every real smoking area is
+  /// shown only once:
+  ///
+  /// * identical ids are dropped,
+  /// * every official entry is matched with at most one OSM entry (closest
+  ///   pairs first). The merged entry keeps the official name, hours and
+  ///   address, adds the OSM attributes and uses the OSM position when the
+  ///   official one was only geocoded from an address.
+  /// * other entries of different sources closer than
+  ///   [duplicateThresholdMeters] are collapsed.
+  static List<SmokingArea> merge(List<SmokingArea> input) {
     const distance = Distance();
     final byId = <String, SmokingArea>{};
     for (final a in input) {
       byId.putIfAbsent(a.id, () => a);
     }
-    final out = <SmokingArea>[];
-    for (final a in byId.values) {
+    final official = byId.values.where((a) => a.isOfficial).toList();
+    final others = byId.values.where((a) => !a.isOfficial).toList();
+
+    // Candidate pairs official <-> other, closest first.
+    final pairs = <(double, int, int)>[];
+    for (var i = 0; i < official.length; i++) {
+      final o = official[i];
+      final radius = o.isApproximate ? mergeRadiusGeocoded : mergeRadiusPrecise;
+      for (var j = 0; j < others.length; j++) {
+        final x = others[j];
+        if ((x.latitude - o.latitude).abs() > 0.001 ||
+            (x.longitude - o.longitude).abs() > 0.0012) {
+          continue;
+        }
+        final d = distance(o.position, x.position);
+        if (d <= radius) pairs.add((d, i, j));
+      }
+    }
+    pairs.sort((a, b) => a.$1.compareTo(b.$1));
+    final usedO = <int>{};
+    final usedX = <int>{};
+    final merged = <int, SmokingArea>{};
+    for (final (_, i, j) in pairs) {
+      if (usedO.contains(i) || usedX.contains(j)) continue;
+      usedO.add(i);
+      usedX.add(j);
+      merged[i] = _combine(official[i], others[j]);
+    }
+
+    final out = <SmokingArea>[
+      for (var i = 0; i < official.length; i++) merged[i] ?? official[i],
+    ];
+    for (var j = 0; j < others.length; j++) {
+      if (usedX.contains(j)) continue;
+      final a = others[j];
       final dup = out.any((b) =>
           b.source != a.source &&
           distance(a.position, b.position) < duplicateThresholdMeters);
       if (!dup) out.add(a);
     }
     return out;
+  }
+
+  /// Kept for compatibility; see [merge].
+  static List<SmokingArea> deduplicate(List<SmokingArea> input) =>
+      merge(input);
+
+  static SmokingArea _combine(SmokingArea official, SmokingArea other) {
+    final tags = <String, String>{
+      ...other.tags,
+      ...official.tags,
+      if (other.osmElement != null) 'osm:element': other.osmElement!,
+    };
+    // The OSM point is surveyed; prefer it over a geocoded address.
+    final position = official.isApproximate ? other.position : official.position;
+    if (official.isApproximate) tags.remove('geocoded');
+    return SmokingArea(
+      id: official.id,
+      position: position,
+      source: '${official.source} + ${other.source}',
+      name: official.name ?? other.name,
+      tags: tags,
+    );
   }
 
   Future<File> _cacheFile(City city) async {
@@ -169,35 +266,62 @@ class SmokingAreaRepository {
     return File('${sub.path}/${city.id}.json');
   }
 
-  Future<CityAreas?> _readCache(City city) async {
+  Future<_CacheSnapshot?> _readCache(City city) async {
     try {
       final file = await _cacheFile(city);
       if (!await file.exists()) return null;
       final json =
           jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      final areas = (json['areas'] as List)
-          .map((e) => SmokingArea.fromJson(e as Map<String, dynamic>))
-          .toList();
-      return CityAreas(
-        city: city,
-        areas: areas,
+      final raw = <String, List<SmokingArea>>{};
+      final rawJson = json['raw'] as Map<String, dynamic>?;
+      if (rawJson == null) return null; // old cache format
+      rawJson.forEach((k, v) {
+        raw[k] = (v as List)
+            .map((e) => SmokingArea.fromJson(e as Map<String, dynamic>))
+            .toList();
+      });
+      return _CacheSnapshot(
+        version: json['version'] as String? ?? '',
         fetchedAt: DateTime.parse(json['fetchedAt'] as String),
-        fromCache: true,
+        raw: raw,
       );
     } catch (_) {
       return null;
     }
   }
 
-  Future<void> _writeCache(CityAreas data) async {
+  Future<void> _writeCache(City city, _CacheSnapshot data) async {
     try {
-      final file = await _cacheFile(data.city);
+      final file = await _cacheFile(city);
       await file.writeAsString(jsonEncode({
+        'version': data.version,
         'fetchedAt': data.fetchedAt.toIso8601String(),
-        'areas': data.areas.map((a) => a.toJson()).toList(),
+        'raw': data.raw.map(
+            (k, v) => MapEntry(k, v.map((a) => a.toJson()).toList())),
       }));
     } catch (_) {
       // Caching is best effort.
     }
   }
+}
+
+/// Per-source raw data of one city as stored on disk.
+class _CacheSnapshot {
+  _CacheSnapshot({
+    required this.version,
+    required this.fetchedAt,
+    required this.raw,
+  });
+
+  final String version;
+  final DateTime fetchedAt;
+  final Map<String, List<SmokingArea>> raw;
+
+  CityAreas toCityAreas(City city) => CityAreas(
+        city: city,
+        areas: SmokingAreaRepository.merge(
+            raw.values.expand((l) => l).toList()),
+        fetchedAt: fetchedAt,
+        fromCache: true,
+      );
 }

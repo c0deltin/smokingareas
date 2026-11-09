@@ -40,9 +40,15 @@ class AreaDetailsSheet extends StatelessWidget {
     );
   }
 
-  Uri? get _sourceUri {
-    if (area.id.startsWith('osm:')) {
-      return Uri.parse('https://www.openstreetmap.org/${area.id.substring(4)}');
+  Uri? get _officialUri {
+    final url = area.officialUrl;
+    return url == null ? null : Uri.tryParse(url);
+  }
+
+  Uri? get _osmUri {
+    final element = area.osmElement;
+    if (element != null) {
+      return Uri.parse('https://www.openstreetmap.org/$element');
     }
     final website = area.tags['website'] ?? area.tags['url'];
     return website == null ? null : Uri.tryParse(website);
@@ -63,6 +69,13 @@ class AreaDetailsSheet extends StatelessWidget {
     final rows = <(IconData, String, String)>[
       if (distance != null)
         (Icons.near_me, 'Entfernung', formatDistance(distance)),
+      if (area.address != null) (Icons.place_outlined, 'Adresse', area.address!),
+      if (area.isApproximate)
+        (Icons.gps_not_fixed, 'Position',
+            'ungefähr (aus der Adresse ermittelt, ± ca. 50 m)'),
+      if (area.roomCount > 1)
+        (Icons.layers_outlined, 'Raucherräume',
+            '${area.roomCount} im selben Gebäude'),
       (Icons.meeting_room_outlined, 'Art',
           yesNo(area.isIndoor, 'Raucherraum (innen)', 'im Freien')),
       (Icons.roofing, 'Überdacht', yesNo(area.isCovered, 'ja', 'nein')),
@@ -73,7 +86,8 @@ class AreaDetailsSheet extends StatelessWidget {
       if (area.operator != null) (Icons.business, 'Betreiber', area.operator!),
       if (area.description != null)
         (Icons.info_outline, 'Hinweis', area.description!),
-      (Icons.storage, 'Quelle', area.source),
+      (Icons.storage, 'Quelle',
+          area.isOfficial ? '${area.source} (offiziell)' : area.source),
     ];
 
     return SafeArea(
@@ -137,14 +151,25 @@ class AreaDetailsSheet extends StatelessWidget {
                     label: const Text('Route'),
                   ),
                 ),
-                if (_sourceUri != null) ...[
-                  const SizedBox(width: 12),
+                if (_officialUri != null) ...[
+                  const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => launchUrl(_sourceUri!,
+                      onPressed: () => launchUrl(_officialUri!,
                           mode: LaunchMode.externalApplication),
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Quelle'),
+                      icon: const Icon(Icons.account_balance_outlined),
+                      label: const Text('Stadt'),
+                    ),
+                  ),
+                ],
+                if (_osmUri != null) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => launchUrl(_osmUri!,
+                          mode: LaunchMode.externalApplication),
+                      icon: const Icon(Icons.map_outlined),
+                      label: const Text('OSM'),
                     ),
                   ),
                 ],
