@@ -37,8 +37,29 @@ class SmokingArea {
     if (indoor == 'yes' || indoor == 'room') return true;
     if (indoor == 'no') return false;
     if (tags['smoking'] == 'isolated') return true;
+    final kind = tags['official:kind'] ?? '';
+    if (kind.contains('屋内')) return true;
+    if (kind.contains('屋外')) return false;
     return null;
   }
+
+  /// Entry comes from an official municipal list.
+  bool get isOfficial => tags['official'] == 'yes';
+
+  /// Position was derived from a street address (accuracy ~10–50 m) and
+  /// could not be matched with a precisely mapped OSM point.
+  bool get isApproximate => tags['geocoded'] == 'yes';
+
+  String? get address => tags['addr:full'];
+
+  /// OSM element (e.g. `node/123`) if this entry is or contains OSM data.
+  String? get osmElement {
+    if (id.startsWith('osm:')) return id.substring(4);
+    return tags['osm:element'];
+  }
+
+  /// Web page of the official source, if any.
+  String? get officialUrl => tags['official:url'];
 
   bool? get isCovered {
     final covered = tags['covered'] ?? tags['shelter'];
@@ -54,6 +75,9 @@ class SmokingArea {
   }
 
   String? get openingHours => tags['opening_hours'];
+
+  /// Number of smoking rooms combined in this entry (same building).
+  int get roomCount => int.tryParse(tags['official:rooms'] ?? '') ?? 1;
   String? get operator => tags['operator'];
   String? get description => tags['description'] ?? tags['note'];
 

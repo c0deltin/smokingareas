@@ -7,6 +7,9 @@ import 'ui/map_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final repository = SmokingAreaRepository();
+  // Official data for all of Japan + everything cached on the device: shown
+  // on the very first frame, before any network request.
+  await repository.warmUp();
   final monitor = ProximityMonitor(repository: repository);
   await monitor.init();
   runApp(SmokingAreasApp(repository: repository, monitor: monitor));

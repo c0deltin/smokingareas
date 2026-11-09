@@ -38,6 +38,9 @@ class _MapScreenState extends State<MapScreen> {
   bool _centeredOnUser = false;
   String? _lastAutoCity;
 
+  /// Label of a selected district (Viertel), shown instead of the city name.
+  String? _placeLabel;
+
   SmokingAreaRepository get _repo => widget.repository;
   ProximityMonitor get _monitor => widget.monitor;
 
@@ -45,6 +48,7 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _monitor.addListener(_onMonitorChanged);
+    _repo.addListener(_onRepoChanged);
     NotificationService.instance.onTap = _openAreaById;
     _loadCity(_city);
     WidgetsBinding.instance.addPostFrameCallback((_) => _askPermissions());
@@ -53,8 +57,29 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _monitor.removeListener(_onMonitorChanged);
+    _repo.removeListener(_onRepoChanged);
     NotificationService.instance.onTap = null;
     super.dispose();
+  }
+
+  /// New data from any source/city: redraw the (single, merged) map.
+  void _onRepoChanged() {
+    if (mounted) setState(() {});
+  }
+
+  // Markers are rebuilt only when the merged data set changes, not on every
+  // position update.
+  List<SmokingArea>? _markerSource;
+  List<Marker> _markerCache = const [];
+  Map<Key, SmokingArea> _markerAreas = const {};
+
+  List<Marker> _markersFor(List<SmokingArea> areas) {
+    if (!identical(areas, _markerSource)) {
+      _markerSource = areas;
+      _markerCache = _markers(areas);
+      _markerAreas = {for (final a in areas) ValueKey(a.id): a};
+    }
+    return _markerCache;
   }
 
   Future<void> _askPermissions() async {
@@ -109,6 +134,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _selectCity(City city, {bool moveMap = true}) {
     setState(() {
+      if (city.id != _city.id || moveMap) _placeLabel = null;
       _city = city;
       _data = _repo.cached(city.id);
     });
@@ -117,10 +143,13 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _pickCity() async {
-    final city = await showCityPicker(context, selected: _city);
-    if (city == null) return;
+    final place = await showCityPicker(context, selected: _city);
+    if (place == null) return;
     _userPickedCity = true;
-    _selectCity(city);
+    _selectCity(place.city, moveMap: false);
+    setState(() =>
+        _placeLabel = place.district == null ? null : place.label);
+    _mapController.move(place.center, place.zoom);
   }
 
   void _openAreaById(String id) {
@@ -173,8 +202,9 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final areas = _data?.areas ?? const <SmokingArea>[];
-    final byKey = {for (final a in areas) ValueKey(a.id): a};
+    // One merged data set for all of Japan – every source, every city.
+    final markers = _markersFor(_repo.allVisible);
+    final byKey = _markerAreas;
     final userPos = _monitor.position;
 
     return Scaffold(
@@ -185,7 +215,8 @@ class _MapScreenState extends State<MapScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: Text(_city.name, overflow: TextOverflow.ellipsis),
+                child: Text(_placeLabel ?? _city.name,
+                    overflow: TextOverflow.ellipsis),
               ),
               const Icon(Icons.arrow_drop_down),
             ],
@@ -242,7 +273,7 @@ class _MapScreenState extends State<MapScreen> {
                 ]),
               MarkerClusterLayerWidget(
                 options: MarkerClusterLayerOptions(
-                  markers: _markers(areas),
+                  markers: markers,
                   maxClusterRadius: 60,
                   disableClusteringAtZoom: 17,
                   size: const Size(42, 42),
@@ -313,6 +344,7 @@ class _MapScreenState extends State<MapScreen> {
             right: 12,
             child: _StatusBanner(
               data: _data,
+              cityCount: _repo.areasIn(_city.bounds).length,
               error: _error,
               loading: _loading,
               monitor: _monitor,
@@ -353,6 +385,14 @@ class _MapScreenState extends State<MapScreen> {
           Text('• ${s.displayName}: ${s.attribution}'),
         const SizedBox(height: 8),
         const Text(
+          'Offizielle Einträge (blau umrandet) stammen aus Listen der Städte '
+          'und Bezirke; liegt ein OSM-Eintrag am selben Ort, werden beide zu '
+          'einem Marker zusammengeführt. Ohne Koordinaten veröffentlichte '
+          'Adressen wurden über die GSI-Adresssuche verortet und sind als '
+          '„ungefähr“ gekennzeichnet.',
+        ),
+        const SizedBox(height: 8),
+        const Text(
           'Kartenkacheln: © OpenStreetMap-Mitwirkende.\n'
           'Angaben ohne Gewähr – fehlende oder falsche Einträge kannst du '
           'direkt auf openstreetmap.org korrigieren (amenity=smoking_area).',
@@ -373,7 +413,11 @@ class _AreaMarker extends StatelessWidget {
       decoration: BoxDecoration(
         color: indoor ? Colors.deepPurple : Colors.teal,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
+        // Official entries get a blue ring.
+        border: Border.all(
+          color: area.isOfficial ? Colors.lightBlueAccent : Colors.white,
+          width: area.isOfficial ? 3 : 2,
+        ),
         boxShadow: const [BoxShadow(blurRadius: 3, color: Colors.black38)],
       ),
       child: const Icon(Icons.smoking_rooms, color: Colors.white, size: 20),
@@ -384,6 +428,7 @@ class _AreaMarker extends StatelessWidget {
 class _StatusBanner extends StatelessWidget {
   const _StatusBanner({
     required this.data,
+    required this.cityCount,
     required this.error,
     required this.loading,
     required this.monitor,
@@ -393,6 +438,7 @@ class _StatusBanner extends StatelessWidget {
   });
 
   final CityAreas? data;
+  final int cityCount;
   final String? error;
   final bool loading;
   final ProximityMonitor monitor;
@@ -448,7 +494,7 @@ class _StatusBanner extends StatelessWidget {
     }
 
     final nearest = monitor.nearest();
-    final count = data?.areas.length;
+    final int? count = cityCount == 0 && loading ? null : cityCount;
     return card(
       InkWell(
         onTap: nearest == null ? null : () => onNearestTap(nearest.area),

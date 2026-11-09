@@ -20,6 +20,10 @@ abstract class SmokingAreaSource {
   /// single municipality can return false for everything else.
   bool covers(GeoBounds bounds) => true;
 
+  /// Bundled (offline) sources are read once for all of Japan and shown
+  /// immediately; live sources are fetched and cached per city.
+  bool get isBundled => false;
+
   Future<List<SmokingArea>> fetch(GeoBounds bounds);
 }
 
