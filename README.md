@@ -112,6 +112,10 @@ und unter *Settings → Secrets and variables → Actions* hinterlegen:
   Für eine App mit vielen Nutzern sollte ein eigener bzw. kommerzieller
   Kachel-Anbieter und ggf. eine eigene Overpass-Instanz verwendet werden
   (URL in `map_screen.dart` bzw. `OverpassSource.defaultEndpoints`).
-- App Store / Play Store verlangen eine Begründung für Hintergrund-Standort;
-  die Texte in `Info.plist` und die Foreground-Service-Benachrichtigung sind
-  dafür vorbereitet.
+- Android wird aktuell **nicht über den Play Store** verteilt, sondern direkt
+  als APK aus den GitHub Releases installiert (Sideloading). Google Play
+  Protect kann beim ersten Installieren eine Warnung „Unbekannte App“ zeigen –
+  „Trotzdem installieren“ wählen.
+- Für einen späteren Store-Upload verlangen App Store / Play Store eine
+  Begründung für Hintergrund-Standort; die Texte in `Info.plist` und die
+  Foreground-Service-Benachrichtigung sind dafür vorbereitet.

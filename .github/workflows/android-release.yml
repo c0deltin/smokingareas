@@ -88,6 +88,10 @@ jobs:
           body: |
             Automatischer Build von `${{ github.sha }}`.
 
-            **Installation (Android):** APK unten herunterladen, öffnen und
-            „Installation aus unbekannten Quellen“ für den Browser bzw.
-            Dateimanager erlauben.
+            **Installation (Android, ohne Play Store):**
+            1. `raucherzonen-japan-….apk` unten auf dem Handy herunterladen.
+            2. Datei öffnen und „Installation aus unbekannten Quellen“ für den
+               Browser bzw. Dateimanager erlauben.
+            3. Falls Play Protect warnt: „Trotzdem installieren“.
+            4. Beim ersten Start Standort „Immer zulassen“ und Benachrichtigungen
+               erlauben, damit der 30‑m‑Hinweis auch im Hintergrund kommt.
