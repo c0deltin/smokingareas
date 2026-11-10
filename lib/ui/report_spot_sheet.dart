@@ -11,6 +11,8 @@ class SpotReportInput {
     this.description,
     this.indoor,
     this.covered,
+    this.publicAccess = true,
+    this.accessNote,
     this.photo,
   });
 
@@ -18,6 +20,8 @@ class SpotReportInput {
   final String? description;
   final bool? indoor;
   final bool? covered;
+  final bool publicAccess;
+  final String? accessNote;
   final File? photo;
 }
 
@@ -44,6 +48,8 @@ class _ReportSpotForm extends StatefulWidget {
 class _ReportSpotFormState extends State<_ReportSpotForm> {
   final _name = TextEditingController();
   final _description = TextEditingController();
+  final _accessNote = TextEditingController();
+  bool _public = true;
   bool? _indoor;
   bool? _covered;
   File? _photo;
@@ -52,6 +58,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
   void dispose() {
     _name.dispose();
     _description.dispose();
+    _accessNote.dispose();
     super.dispose();
   }
 
@@ -98,6 +105,25 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 title: const Text('Überdacht'),
               ),
             ],
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _public,
+              onChanged: (v) => setState(() => _public = v ?? true),
+              title: const Text('Öffentlich zugänglich'),
+              subtitle: const Text('ohne Ticket, Eintritt oder Einkauf'),
+            ),
+            if (!_public) ...[
+              TextField(
+                controller: _accessNote,
+                maxLength: 120,
+                decoration: const InputDecoration(
+                  labelText: 'Zugang (optional)',
+                  hintText: 'z. B. Bahnsteig – nur mit Ticket, im Museum',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             TextField(
               controller: _description,
               maxLines: 3,
@@ -135,6 +161,8 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                   description: _description.text,
                   indoor: _indoor,
                   covered: _indoor == true ? null : _covered,
+                  publicAccess: _public,
+                  accessNote: _public ? null : _accessNote.text,
                   photo: _photo,
                 ),
               ),

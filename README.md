@@ -84,7 +84,10 @@ steuert nur den Kartenausschnitt (Zoom).
 
 - **Spot melden:** Button „Raucherbereich melden“ → Karte unter das Fadenkreuz
   schieben → Name, Art (im Freien / Raucherraum), überdacht, Hinweis und
-  optional ein Foto. Liegt schon ein Spot in ≤ 20 m, bietet die App ihn an,
+  optional ein Foto. Checkbox „Öffentlich zugänglich“ (ohne Ticket, Eintritt
+  oder Einkauf); ist sie aus – z. B. Bahnsteig oder Sehenswürdigkeit –, kann
+  der Zugang beschrieben werden (gespeichert als OSM-Schema
+  `access=customers` + `access:note`). Liegt schon ein Spot in ≤ 20 m, bietet die App ihn an,
   statt einen doppelten anzulegen. Gemeldete Spots haben orange Marker.
 - **Bewerten:** 1–5 Sterne plus Kommentar, eine Bewertung pro Nutzer und
   Spot (eine neue ersetzt die alte).

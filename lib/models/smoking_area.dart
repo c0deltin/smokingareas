@@ -68,6 +68,19 @@ class SmokingArea {
     return null;
   }
 
+  /// Publicly reachable (true), only with ticket / entry / purchase (false).
+  bool? get isPublic {
+    switch (tags['access']) {
+      case 'yes' || 'public' || 'permissive':
+        return true;
+      case 'customers' || 'private' || 'no' || 'permit' || 'destination':
+        return false;
+    }
+    return null;
+  }
+
+  String? get accessNote => tags['access:note'];
+
   bool? get requiresFee {
     final fee = tags['fee'];
     if (fee == null) return null;

@@ -511,6 +511,8 @@ class _MapScreenState extends State<MapScreen> {
       description: input.description,
       indoor: input.indoor,
       covered: input.covered,
+      publicAccess: input.publicAccess,
+      accessNote: input.accessNote,
       photo: input.photo,
     );
     if (!mounted) return;

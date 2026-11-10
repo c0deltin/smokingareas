@@ -157,6 +157,43 @@ void main() {
       expect(service.statusFor(area).confirmations, 1);
     });
 
+    test('access: public flag and note are stored and shown', () async {
+      await service.reportSpot(
+        position: const LatLng(35.6812, 139.7671),
+        name: 'Bahnsteig 5',
+        publicAccess: false,
+        accessNote: 'nur mit Bahnticket',
+      );
+      await service.reportSpot(
+        position: const LatLng(35.6900, 139.7000),
+        name: 'Park',
+        publicAccess: true,
+        accessNote: 'wird ignoriert',
+      );
+      final areas = {for (final a in service.spotsAsAreas) a.title: a};
+      expect(areas['Bahnsteig 5']!.isPublic, isFalse);
+      expect(areas['Bahnsteig 5']!.tags['access'], 'customers');
+      expect(areas['Bahnsteig 5']!.accessNote, 'nur mit Bahnticket');
+      expect(areas['Park']!.isPublic, isTrue);
+      expect(areas['Park']!.accessNote, isNull);
+
+      // survives a restart
+      final reopened = await LocalCommunityBackend(() async => tmp).spots();
+      final platform = reopened.firstWhere((s) => s.name == 'Bahnsteig 5');
+      expect(platform.publicAccess, isFalse);
+      expect(platform.accessNote, 'nur mit Bahnticket');
+    });
+
+    test('OSM access tags are understood', () {
+      SmokingArea withAccess(String v) => SmokingArea(
+          id: 'osm:node/$v', position: const LatLng(35, 139),
+          source: 'OpenStreetMap', tags: {'access': v});
+      expect(withAccess('yes').isPublic, isTrue);
+      expect(withAccess('customers').isPublic, isFalse);
+      expect(withAccess('private').isPublic, isFalse);
+      expect(withAccess('unknown').isPublic, isNull);
+    });
+
     test('ratings: one per user, average across users', () async {
       final a = osmArea();
       await service.rate(a, 2);

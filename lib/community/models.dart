@@ -43,6 +43,8 @@ class CommunitySpot {
     this.description,
     this.indoor,
     this.covered,
+    this.publicAccess,
+    this.accessNote,
   });
 
   /// Always starts with `community:`.
@@ -52,6 +54,13 @@ class CommunitySpot {
   final String? description;
   final bool? indoor;
   final bool? covered;
+
+  /// Reachable without ticket, entrance fee or purchase. `false` e.g. for a
+  /// smoking room on a station platform or inside a sight.
+  final bool? publicAccess;
+
+  /// How to get there when it is not public ("nur mit Bahnticket" …).
+  final String? accessNote;
   final String createdBy;
   final DateTime createdAt;
 
@@ -63,6 +72,8 @@ class CommunitySpot {
         if (description != null) 'description': description,
         if (indoor != null) 'indoor': indoor,
         if (covered != null) 'covered': covered,
+        if (publicAccess != null) 'publicAccess': publicAccess,
+        if (accessNote != null) 'accessNote': accessNote,
         'createdBy': createdBy,
         'createdAt': createdAt.toIso8601String(),
       };
@@ -77,6 +88,8 @@ class CommunitySpot {
         description: j['description'] as String?,
         indoor: j['indoor'] as bool?,
         covered: j['covered'] as bool?,
+        publicAccess: j['publicAccess'] as bool?,
+        accessNote: j['accessNote'] as String?,
         createdBy: j['createdBy'] as String,
         createdAt: DateTime.parse(j['createdAt'] as String),
       );

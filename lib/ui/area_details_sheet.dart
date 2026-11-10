@@ -100,6 +100,18 @@ class AreaDetailsSheet extends StatelessWidget {
       (Icons.meeting_room_outlined, 'Art',
           yesNo(area.isIndoor, 'Raucherraum (innen)', 'im Freien')),
       (Icons.roofing, 'Überdacht', yesNo(area.isCovered, 'ja', 'nein')),
+      if (area.isPublic != null || area.accessNote != null)
+        (
+          Icons.lock_open_outlined,
+          'Zugang',
+          [
+            if (area.isPublic != null)
+              area.isPublic!
+                  ? 'öffentlich'
+                  : 'nicht öffentlich (Ticket/Eintritt/Einkauf nötig)',
+            if (area.accessNote != null) area.accessNote!,
+          ].join(' – '),
+        ),
       (Icons.payments_outlined, 'Kostenpflichtig',
           yesNo(area.requiresFee, 'ja', 'nein')),
       if (area.openingHours != null)

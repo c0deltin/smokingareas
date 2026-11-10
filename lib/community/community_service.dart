@@ -125,6 +125,10 @@ class CommunityService extends ChangeNotifier {
               'community:created': s.createdAt.toIso8601String(),
               if (s.indoor != null) 'indoor': s.indoor! ? 'yes' : 'no',
               if (s.covered != null) 'covered': s.covered! ? 'yes' : 'no',
+              // OSM schema: access=yes / access=customers (ticket, entry …)
+              if (s.publicAccess != null)
+                'access': s.publicAccess! ? 'yes' : 'customers',
+              if (s.accessNote != null) 'access:note': s.accessNote!,
               if (s.description != null) 'description': s.description!,
             },
           ),
@@ -136,6 +140,8 @@ class CommunityService extends ChangeNotifier {
     String? description,
     bool? indoor,
     bool? covered,
+    bool? publicAccess,
+    String? accessNote,
     File? photo,
   }) async {
     final now = _now();
@@ -147,6 +153,12 @@ class CommunityService extends ChangeNotifier {
           description?.trim().isEmpty ?? true ? null : description!.trim(),
       indoor: indoor,
       covered: covered,
+      publicAccess: publicAccess,
+      accessNote: publicAccess == false &&
+              accessNote != null &&
+              accessNote.trim().isNotEmpty
+          ? accessNote.trim()
+          : null,
       createdBy: currentUser.id,
       createdAt: now,
     );
