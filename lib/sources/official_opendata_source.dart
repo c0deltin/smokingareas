@@ -24,10 +24,30 @@ class OfficialDataset {
   final String? fetched;
 
   /// Short German label used in the UI.
-  String get label => kOfficialDatasetLabels[id] ?? name;
+  String get label => officialDatasetLabel(id, name);
+}
+
+const _tokyoWards = {
+  'chiyoda': 'Chiyoda', 'chuo': 'Chūō', 'shinjuku': 'Shinjuku',
+  'taito': 'Taitō', 'sumida': 'Sumida', 'koto': 'Kōtō',
+  'meguro': 'Meguro', 'suginami': 'Suginami', 'toshima': 'Toshima',
+  'arakawa': 'Arakawa', 'itabashi': 'Itabashi', 'nerima': 'Nerima',
+  'katsushika': 'Katsushika', 'edogawa': 'Edogawa', 'shibuya': 'Shibuya',
+};
+
+/// German label of an official dataset id (e.g. `tokyo_sumida_toilets`).
+String officialDatasetLabel(String id, String fallback) {
+  final fixed = kOfficialDatasetLabels[id];
+  if (fixed != null) return fixed;
+  final m = RegExp(r'^tokyo_([a-z]+)_toilets$').firstMatch(id);
+  if (m != null && _tokyoWards[m.group(1)] != null) {
+    return 'Tokio, Bezirk ${_tokyoWards[m.group(1)]} (Open Data)';
+  }
+  return fallback;
 }
 
 const kOfficialDatasetLabels = {
+  'kyoto_toilets': 'Stadt Kyoto (Open Data)',
   'kyoto': 'Stadt Kyoto (Open Data)',
   'osaka': 'Stadt Osaka (Liste der Raucherplätze)',
   'tokyo_koto': 'Tokio, Bezirk Kōtō (Open Data)',
@@ -64,9 +84,10 @@ class OfficialOpenDataSource extends SmokingAreaSource {
 
   @override
   String get attribution =>
-      'Stadt Kyoto, Stadt Osaka, Tokioter Bezirke Chiyoda, Kōtō, Shibuya, '
-      'Shinjuku, Taitō, Toshima (Open Data CC BY 4.0 bzw. Angaben der '
-      'offiziellen Webseiten); Adress-Geocoding: GSI Japan';
+      'Raucherbereiche: Stadt Kyoto, Stadt Osaka, Tokioter Bezirke Chiyoda, '
+      'Kōtō, Shibuya, Shinjuku, Taitō, Toshima. Öffentliche Toiletten: Stadt '
+      'Kyoto und 14 Tokioter Bezirke (公衆トイレ一覧). Open Data CC BY 4.0 bzw. '
+      'Angaben der offiziellen Webseiten; Adress-Geocoding: GSI Japan';
 
   Future<_Snapshot> _load() => _snapshot ??= _loader().then(_Snapshot.parse);
 
@@ -117,6 +138,11 @@ class _Snapshot {
         if (a['note'] != null) 'note': a['note'] as String,
         if (a['geocoded'] == true) 'geocoded': 'yes',
         if (a['members'] != null) 'official:rooms': '${a['members']}',
+        if (a['category'] == 'toilet') 'amenity': 'toilets',
+        if (a['wheelchair'] != null)
+          'wheelchair': a['wheelchair'] == true ? 'yes' : 'no',
+        if (a['changing_table'] != null)
+          'changing_table': a['changing_table'] == true ? 'yes' : 'no',
       };
       areas.add(SmokingArea(
         id: a['id'] as String,
@@ -124,7 +150,8 @@ class _Snapshot {
           (a['lat'] as num).toDouble(),
           (a['lon'] as num).toDouble(),
         ),
-        source: ds?.label ?? a['source'] as String,
+        source: ds?.label ??
+            officialDatasetLabel(a['source'] as String, a['source'] as String),
         name: a['name'] as String?,
         tags: tags,
       ));

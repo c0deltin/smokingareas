@@ -1,6 +1,28 @@
 import 'package:latlong2/latlong.dart';
 
-/// A single designated smoking area (喫煙所 / 喫煙場所).
+/// Kind of place shown on the map.
+enum SpotCategory {
+  /// Designated smoking area (喫煙所 / 喫煙場所).
+  smoking,
+
+  /// Public toilet (公衆トイレ), OSM `amenity=toilets`.
+  toilet;
+
+  /// German label for the UI.
+  String get label => switch (this) {
+        SpotCategory.smoking => 'Raucherbereich',
+        SpotCategory.toilet => 'Öffentliche Toilette',
+      };
+
+  String get pluralLabel => switch (this) {
+        SpotCategory.smoking => 'Raucherbereiche',
+        SpotCategory.toilet => 'Toiletten',
+      };
+}
+
+/// A single place on the map – a smoking area or a public toilet (see
+/// [category]). The class name is historic; attributes follow the OSM tag
+/// schema, the category is derived from `amenity=toilets`.
 class SmokingArea {
   const SmokingArea({
     required this.id,
@@ -24,11 +46,32 @@ class SmokingArea {
   double get latitude => position.latitude;
   double get longitude => position.longitude;
 
+  SpotCategory get category =>
+      tags['amenity'] == 'toilets' ? SpotCategory.toilet : SpotCategory.smoking;
+
+  bool get isToilet => category == SpotCategory.toilet;
+
   /// Best effort display title.
   String get title {
     final n = name ?? tags['name:en'] ?? tags['name:ja'];
     if (n != null && n.trim().isNotEmpty) return n.trim();
-    return 'Raucherbereich';
+    return category.label;
+  }
+
+  /// Wheelchair accessible (toilets: `wheelchair` / `toilets:wheelchair`).
+  bool? get wheelchair {
+    final v = tags['toilets:wheelchair'] ?? tags['wheelchair'];
+    if (v == 'yes' || v == 'designated') return true;
+    if (v == 'no') return false;
+    return null;
+  }
+
+  /// Baby changing table (`changing_table`).
+  bool? get changingTable {
+    final v = tags['changing_table'];
+    if (v == 'yes') return true;
+    if (v == 'no') return false;
+    return null;
   }
 
   /// Whether the smoking area is indoors (smoking room) or outdoors.

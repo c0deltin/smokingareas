@@ -66,6 +66,9 @@ class SmokingAreaRepository extends ChangeNotifier {
   static const double mergeRadiusPrecise = 25;
   static const double mergeRadiusGeocoded = 50;
 
+  /// Version of the per-city cache content (2 = OSM incl. public toilets).
+  static const int cacheSchema = 2;
+
   List<SmokingArea> _bundled = const [];
   Future<void>? _bundledLoading;
   final List<String> _bundledErrors = [];
@@ -291,6 +294,8 @@ class SmokingAreaRepository extends ChangeNotifier {
       final o = official[i];
       final radius = o.isApproximate ? mergeRadiusGeocoded : mergeRadiusPrecise;
       for (final j in othersGrid.near(o.position)) {
+        // Never merge a toilet with a smoking area.
+        if (others[j].category != o.category) continue;
         final d = distance(o.position, others[j].position);
         if (d <= radius) pairs.add((d, i, j));
       }
@@ -321,6 +326,7 @@ class SmokingAreaRepository extends ChangeNotifier {
       final a = others[j];
       final dup = outGrid.near(a.position).any((b) =>
           b.source != a.source &&
+          b.category == a.category &&
           distance(a.position, b.position) < duplicateThresholdMeters);
       if (!dup) emit(a);
     }
@@ -367,7 +373,10 @@ class SmokingAreaRepository extends ChangeNotifier {
       if (!await file.exists()) return null;
       final json =
           jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      final fetchedAt = DateTime.parse(json['fetchedAt'] as String);
+      var fetchedAt = DateTime.parse(json['fetchedAt'] as String);
+      // Caches written before toilets existed lack them: show the data but
+      // refresh at the next opportunity.
+      if ((json['schema'] as int? ?? 1) < cacheSchema) fetchedAt = DateTime(2000);
       List<SmokingArea> parse(Object? list) => (list as List)
           .map((e) => SmokingArea.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -398,6 +407,7 @@ class SmokingAreaRepository extends ChangeNotifier {
     try {
       final file = await _cacheFile(city);
       await file.writeAsString(jsonEncode({
+        'schema': cacheSchema,
         'fetchedAt': data.fetchedAt.toIso8601String(),
         'raw': data.raw.map(
             (k, v) => MapEntry(k, v.map((a) => a.toJson()).toList())),
