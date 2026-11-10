@@ -30,6 +30,7 @@ Future<void> main() async {
   void syncCommunity() => repository.setCommunity(
         spots: community.spotsAsAreas,
         isHidden: community.isHidden,
+        annotate: community.annotate,
       );
   community.addListener(syncCommunity);
   syncCommunity();

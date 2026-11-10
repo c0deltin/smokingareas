@@ -133,9 +133,16 @@ class CommunitySection extends StatelessWidget {
               ),
             ),
 
+            // --- temporary closure (Waze-like, expires) -----------------
+            const SizedBox(height: 12),
+            _ClosureControls(area: area, community: community),
+
             // --- existence votes (Waze-like) ----------------------------
             const SizedBox(height: 12),
-            Text('Gibt es diesen Raucherbereich noch?',
+            Text(
+                area.isToilet
+                    ? 'Gibt es diese Toilette noch?'
+                    : 'Gibt es diesen Raucherbereich noch?',
                 style: theme.textTheme.bodyMedium),
             const SizedBox(height: 6),
             Row(children: [
@@ -163,8 +170,9 @@ class CommunitySection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '${status.removals} Nutzer melden, dass es diesen '
-                  'Raucherbereich nicht mehr gibt.',
+                  '${status.removals} Nutzer melden, dass es '
+                  '${area.isToilet ? 'diese Toilette' : 'diesen Raucherbereich'} '
+                  'nicht mehr gibt.',
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.error),
                 ),
@@ -196,8 +204,8 @@ class CommunitySection extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Gibt es nicht mehr?'),
         content: const Text(
-          'Wenn genug Nutzer melden, dass es diesen Raucherbereich nicht mehr '
-          'gibt, wird er von der Karte entfernt.',
+          'Wenn genug Nutzer melden, dass es diesen Ort nicht mehr gibt, '
+          'wird er von der Karte entfernt.',
         ),
         actions: [
           TextButton(
@@ -380,7 +388,7 @@ class _RatingDialogState extends State<_RatingDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Raucherbereich bewerten'),
+      title: const Text('Bewerten'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           for (var i = 1; i <= 5; i++)
@@ -396,7 +404,7 @@ class _RatingDialogState extends State<_RatingDialog> {
           maxLength: 280,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: 'Kommentar (optional): sauber, überdacht, voll …',
+            hintText: 'Kommentar (optional): sauber, voll, gut zu finden …',
             border: OutlineInputBorder(),
           ),
         ),
@@ -411,6 +419,125 @@ class _RatingDialogState extends State<_RatingDialog> {
               ? null
               : () => Navigator.pop(context, (_stars, _comment.text)),
           child: const Text('Speichern'),
+        ),
+      ],
+    );
+  }
+}
+
+/// "Vorübergehend geschlossen" / "Wieder geöffnet" reports.
+class _ClosureControls extends StatelessWidget {
+  const _ClosureControls({required this.area, required this.community});
+  final SmokingArea area;
+  final CommunityService community;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final status = community.closureFor(area);
+    // Closed by official data or by the community (live state).
+    final closed = community.annotate(area).isTemporarilyClosed;
+    final info = closed
+        ? '${status.closedReports} Meldung${status.closedReports == 1 ? '' : 'en'} '
+            '„geschlossen“'
+            '${status.reopenedReports > 0 ? ', ${status.reopenedReports} „wieder offen“' : ''}'
+        : 'Gesperrt, Baustelle, defekt? Melde es – die Meldung läuft '
+            'automatisch nach 14 Tagen oder zum angegebenen Datum ab.';
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(
+          child: closed
+              ? OutlinedButton.icon(
+                  onPressed: () => community.reportClosure(area, closed: false),
+                  icon: const Icon(Icons.play_circle_outline),
+                  label: const Text('Ist wieder offen'),
+                )
+              : OutlinedButton.icon(
+                  onPressed: () => _reportClosed(context),
+                  icon: const Icon(Icons.pause_circle_outline),
+                  label: const Text('Vorübergehend geschlossen'),
+                ),
+        ),
+      ]),
+      if (closed && status.closedReports == 0 && area.isOfficial)
+        Text('Laut offizieller Liste geschlossen.',
+            style: theme.textTheme.bodySmall)
+      else
+        Text(info, style: theme.textTheme.bodySmall),
+    ]);
+  }
+
+  Future<void> _reportClosed(BuildContext context) async {
+    final result = await showDialog<(String, DateTime?)>(
+      context: context,
+      builder: (_) => const _ClosureDialog(),
+    );
+    if (result == null) return;
+    await community.reportClosure(area,
+        closed: true, note: result.$1, until: result.$2);
+  }
+}
+
+class _ClosureDialog extends StatefulWidget {
+  const _ClosureDialog();
+
+  @override
+  State<_ClosureDialog> createState() => _ClosureDialogState();
+}
+
+class _ClosureDialogState extends State<_ClosureDialog> {
+  final _note = TextEditingController();
+  DateTime? _until;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Vorübergehend geschlossen'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(
+          controller: _note,
+          maxLength: 120,
+          decoration: const InputDecoration(
+            labelText: 'Grund (optional)',
+            hintText: 'z. B. Bauarbeiten, defekt, abgesperrt',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        Row(children: [
+          Expanded(
+            child: Text(_until == null
+                ? 'Ende unbekannt (läuft nach 14 Tagen ab)'
+                : 'voraussichtlich bis ${_until!.day}.${_until!.month}.${_until!.year}'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final now = DateTime.now();
+              final picked = await showDatePicker(
+                context: context,
+                firstDate: now,
+                lastDate: now.add(const Duration(days: 180)),
+                initialDate: _until ?? now.add(const Duration(days: 7)),
+              );
+              if (picked != null) setState(() => _until = picked);
+            },
+            child: const Text('Datum'),
+          ),
+        ]),
+      ]),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, (_note.text, _until)),
+          child: const Text('Melden'),
         ),
       ],
     );

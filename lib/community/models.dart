@@ -45,6 +45,9 @@ class CommunitySpot {
     this.covered,
     this.publicAccess,
     this.accessNote,
+    this.category = 'smoking',
+    this.wheelchair,
+    this.changingTable,
   });
 
   /// Always starts with `community:`.
@@ -61,6 +64,13 @@ class CommunitySpot {
 
   /// How to get there when it is not public ("nur mit Bahnticket" …).
   final String? accessNote;
+
+  /// `smoking` or `toilet` (name of a `SpotCategory`).
+  final String category;
+
+  /// Toilets: wheelchair accessible / baby changing table.
+  final bool? wheelchair;
+  final bool? changingTable;
   final String createdBy;
   final DateTime createdAt;
 
@@ -74,6 +84,9 @@ class CommunitySpot {
         if (covered != null) 'covered': covered,
         if (publicAccess != null) 'publicAccess': publicAccess,
         if (accessNote != null) 'accessNote': accessNote,
+        if (category != 'smoking') 'category': category,
+        if (wheelchair != null) 'wheelchair': wheelchair,
+        if (changingTable != null) 'changingTable': changingTable,
         'createdBy': createdBy,
         'createdAt': createdAt.toIso8601String(),
       };
@@ -90,6 +103,9 @@ class CommunitySpot {
         covered: j['covered'] as bool?,
         publicAccess: j['publicAccess'] as bool?,
         accessNote: j['accessNote'] as String?,
+        category: j['category'] as String? ?? 'smoking',
+        wheelchair: j['wheelchair'] as bool?,
+        changingTable: j['changingTable'] as bool?,
         createdBy: j['createdBy'] as String,
         createdAt: DateTime.parse(j['createdAt'] as String),
       );
@@ -190,6 +206,48 @@ class ExistenceVote {
         spotId: j['spotId'] as String,
         userId: j['userId'] as String,
         exists: j['exists'] as bool,
+        createdAt: DateTime.parse(j['createdAt'] as String),
+      );
+}
+
+/// "Vorübergehend geschlossen" (closed = true) or "wieder geöffnet"
+/// (closed = false). Reports expire, see `ClosurePolicy`.
+class ClosureReport {
+  const ClosureReport({
+    required this.spotId,
+    required this.userId,
+    required this.closed,
+    required this.createdAt,
+    this.note,
+    this.until,
+  });
+
+  final String spotId;
+  final String userId;
+  final bool closed;
+
+  /// Reason, e.g. "Bauarbeiten".
+  final String? note;
+
+  /// Expected end of the closure (optional).
+  final DateTime? until;
+  final DateTime createdAt;
+
+  Map<String, dynamic> toJson() => {
+        'spotId': spotId,
+        'userId': userId,
+        'closed': closed,
+        if (note != null) 'note': note,
+        if (until != null) 'until': until!.toIso8601String(),
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory ClosureReport.fromJson(Map<String, dynamic> j) => ClosureReport(
+        spotId: j['spotId'] as String,
+        userId: j['userId'] as String,
+        closed: j['closed'] as bool,
+        note: j['note'] as String?,
+        until: j['until'] == null ? null : DateTime.parse(j['until'] as String),
         createdAt: DateTime.parse(j['createdAt'] as String),
       );
 }

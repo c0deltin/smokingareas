@@ -18,6 +18,7 @@ import 'area_details_sheet.dart';
 import 'city_picker.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
+import 'spot_style.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({
@@ -54,7 +55,11 @@ class _MapScreenState extends State<MapScreen> {
 
   /// "Spot melden": the user moves the map until the cross hair is on the
   /// smoking area and confirms.
-  bool _reportMode = false;
+  SpotCategory? _reportCategory;
+  bool get _reportMode => _reportCategory != null;
+
+  /// Categories shown on the map (both by default).
+  final Set<SpotCategory> _visible = {...SpotCategory.values};
 
   @override
   void initState() {
@@ -80,15 +85,18 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   // Markers are rebuilt only when the merged data set changes, not on every
-  // position update.
+  // position update. One list per category (own cluster layer and colour).
   List<SmokingArea>? _markerSource;
-  List<Marker> _markerCache = const [];
+  Map<SpotCategory, List<Marker>> _markerCache = const {};
   Map<Key, SmokingArea> _markerAreas = const {};
 
-  List<Marker> _markersFor(List<SmokingArea> areas) {
+  Map<SpotCategory, List<Marker>> _markersFor(List<SmokingArea> areas) {
     if (!identical(areas, _markerSource)) {
       _markerSource = areas;
-      _markerCache = _markers(areas);
+      _markerCache = {
+        for (final c in SpotCategory.values)
+          c: _markers(areas.where((a) => a.category == c)),
+      };
       _markerAreas = {for (final a in areas) ValueKey(a.id): a};
     }
     return _markerCache;
@@ -201,7 +209,7 @@ class _MapScreenState extends State<MapScreen> {
   String _formatDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
-  List<Marker> _markers(List<SmokingArea> areas) => [
+  List<Marker> _markers(Iterable<SmokingArea> areas) => [
         for (final a in areas)
           Marker(
             key: ValueKey(a.id),
@@ -289,37 +297,40 @@ class _MapScreenState extends State<MapScreen> {
                     borderStrokeWidth: 1.5,
                   ),
                 ]),
-              MarkerClusterLayerWidget(
-                options: MarkerClusterLayerOptions(
-                  markers: markers,
-                  maxClusterRadius: 60,
-                  disableClusteringAtZoom: 17,
-                  size: const Size(42, 42),
-                  showPolygon: false,
-                  onMarkerTap: (m) {
-                    final a = byKey[m.key];
-                    if (a != null) {
-                      showAreaDetails(context, a,
-                          userPosition: userPos, community: _community);
-                    }
-                  },
-                  builder: (context, markers) => Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.secondary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${markers.length}',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSecondary,
-                        fontWeight: FontWeight.bold,
+              for (final c in SpotCategory.values)
+                if (_visible.contains(c))
+                  MarkerClusterLayerWidget(
+                    key: ValueKey('cluster-${c.name}'),
+                    options: MarkerClusterLayerOptions(
+                      markers: markers[c] ?? const [],
+                      maxClusterRadius: 60,
+                      disableClusteringAtZoom: 17,
+                      size: const Size(42, 42),
+                      showPolygon: false,
+                      onMarkerTap: (m) {
+                        final a = byKey[m.key];
+                        if (a != null) {
+                          showAreaDetails(context, a,
+                              userPosition: userPos, community: _community);
+                        }
+                      },
+                      builder: (context, cluster) => Container(
+                        decoration: BoxDecoration(
+                          color: categoryColor(c),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${cluster.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
               if (userPos != null)
                 MarkerLayer(markers: [
                   Marker(
@@ -361,9 +372,13 @@ class _MapScreenState extends State<MapScreen> {
             top: 12,
             left: 12,
             right: 12,
-            child: _StatusBanner(
+            child: Column(children: [
+            _StatusBanner(
               data: _data,
-              cityCount: _repo.areasIn(_city.bounds).length,
+              cityCount: _repo
+                  .areasIn(_city.bounds)
+                  .where((a) => a.category == SpotCategory.smoking)
+                  .length,
               error: _error,
               loading: _loading,
               monitor: _monitor,
@@ -373,6 +388,31 @@ class _MapScreenState extends State<MapScreen> {
                   showAreaDetails(context, a,
                       userPosition: userPos, community: _community),
             ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(spacing: 8, children: [
+                for (final c in SpotCategory.values)
+                  FilterChip(
+                    avatar: Icon(
+                      categoryIcon(c),
+                      size: 18,
+                      color: categoryColor(c),
+                    ),
+                    label: Text(c.pluralLabel),
+                    selected: _visible.contains(c),
+                    showCheckmark: false,
+                    backgroundColor: theme.colorScheme.surface,
+                    selectedColor:
+                        categoryColor(c).withValues(alpha: 0.22),
+                    side: BorderSide(color: categoryColor(c)),
+                    onSelected: (on) => setState(() {
+                      on ? _visible.add(c) : _visible.remove(c);
+                    }),
+                  ),
+              ]),
+            ),
+            ]),
           ),
           if (_reportMode) ..._reportOverlay(theme),
         ],
@@ -405,14 +445,17 @@ class _MapScreenState extends State<MapScreen> {
   // Report a new spot
   // ---------------------------------------------------------------------
 
-  void _startReport() {
+  Future<void> _startReport() async {
+    final category = await askSpotCategory(context);
+    if (category == null || !mounted) return;
+    _visible.add(category);
     final pos = _monitor.position;
     if (pos != null) {
       _mapController.move(pos, 18);
     } else if (_mapController.camera.zoom < 16) {
       _mapController.move(_mapController.camera.center, 17);
     }
-    setState(() => _reportMode = true);
+    setState(() => _reportCategory = category);
   }
 
   List<Widget> _reportOverlay(ThemeData theme) => [
@@ -431,16 +474,16 @@ class _MapScreenState extends State<MapScreen> {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Text(
-                  'Karte verschieben, bis das Kreuz genau auf dem '
-                  'Raucherbereich liegt.',
+                Text(
+                  '${_reportCategory!.label} melden: Karte verschieben, bis '
+                  'das Kreuz genau auf dem Ort liegt.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Row(children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => setState(() => _reportMode = false),
+                      onPressed: () => setState(() => _reportCategory = null),
                       child: const Text('Abbrechen'),
                     ),
                   ),
@@ -460,12 +503,14 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _confirmReportPosition() async {
     final position = _mapController.camera.center;
+    final category = _reportCategory!;
 
     // Avoid duplicates: offer the existing spot instead.
     const distance = Distance();
     SmokingArea? nearest;
     var nearestDist = double.infinity;
     for (final a in _repo.allVisible) {
+      if (a.category != category) continue;
       if ((a.latitude - position.latitude).abs() > 0.0005) continue;
       final d = distance(position, a.position);
       if (d < nearestDist) {
@@ -480,7 +525,7 @@ class _MapScreenState extends State<MapScreen> {
         builder: (context) => AlertDialog(
           title: const Text('Schon vorhanden?'),
           content: Text('In ${nearestDist.round()} m gibt es bereits '
-              '„${existing.title}“. Ist es derselbe Raucherbereich?'),
+              '„${existing.title}“. Ist es derselbe Ort?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -495,7 +540,7 @@ class _MapScreenState extends State<MapScreen> {
       );
       if (!mounted || choice == null) return;
       if (choice) {
-        setState(() => _reportMode = false);
+        setState(() => _reportCategory = null);
         showAreaDetails(context, existing,
             userPosition: _monitor.position, community: _community);
         return;
@@ -503,7 +548,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     if (!mounted) return;
-    final input = await showReportSpotSheet(context);
+    final input = await showReportSpotSheet(context, category);
     if (!mounted || input == null) return;
     await _community.reportSpot(
       position: position,
@@ -513,12 +558,15 @@ class _MapScreenState extends State<MapScreen> {
       covered: input.covered,
       publicAccess: input.publicAccess,
       accessNote: input.accessNote,
+      category: input.category,
+      wheelchair: input.wheelchair,
+      changingTable: input.changingTable,
       photo: input.photo,
     );
     if (!mounted) return;
-    setState(() => _reportMode = false);
+    setState(() => _reportCategory = null);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Danke! Der Raucherbereich ist jetzt auf der Karte.'),
+      content: Text('Danke! Dein Eintrag ist jetzt auf der Karte.'),
     ));
   }
 
@@ -530,12 +578,13 @@ class _MapScreenState extends State<MapScreen> {
       applicationIcon: const Icon(Icons.smoking_rooms, size: 40),
       children: [
         const Text(
-          'Zeigt öffentliche Raucherbereiche (喫煙所) in allen großen Städten '
-          'Japans. In vielen japanischen Städten ist das Rauchen auf der '
-          'Straße verboten und nur an ausgewiesenen Stellen erlaubt.\n\n'
+          'Zeigt öffentliche Raucherbereiche (喫煙所, grün) und öffentliche '
+          'Toiletten (公衆トイレ, blau) in allen großen Städten Japans. In '
+          'vielen japanischen Städten ist das Rauchen auf der Straße verboten '
+          'und nur an ausgewiesenen Stellen erlaubt.\n\n'
           'Ist die Benachrichtigung aktiv, bekommst du eine Push-Mitteilung, '
           'sobald du dich einem Raucherbereich auf 30 m näherst – auch wenn '
-          'die App im Hintergrund läuft.\n',
+          'die App im Hintergrund läuft (nicht für Toiletten).\n',
         ),
         const Text('Datenquellen:',
             style: TextStyle(fontWeight: FontWeight.bold)),
@@ -543,7 +592,7 @@ class _MapScreenState extends State<MapScreen> {
           Text('• ${s.displayName}: ${s.attribution}'),
         const SizedBox(height: 8),
         const Text(
-          'Offizielle Einträge (blau umrandet) stammen aus Listen der Städte '
+          'Offizielle Einträge (gold umrandet) stammen aus Listen der Städte '
           'und Bezirke; liegt ein OSM-Eintrag am selben Ort, werden beide zu '
           'einem Marker zusammengeführt. Ohne Koordinaten veröffentlichte '
           'Adressen wurden über die GSI-Adresssuche verortet und sind als '
@@ -553,7 +602,8 @@ class _MapScreenState extends State<MapScreen> {
         const Text(
           'Kartenkacheln: © OpenStreetMap-Mitwirkende.\n'
           'Angaben ohne Gewähr – fehlende oder falsche Einträge kannst du '
-          'direkt auf openstreetmap.org korrigieren (amenity=smoking_area).',
+          'direkt auf openstreetmap.org korrigieren (amenity=smoking_area, '
+          'amenity=toilets).',
         ),
       ],
     );
@@ -566,22 +616,45 @@ class _AreaMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final indoor = area.isIndoor == true;
-    return Container(
+    final community = area.tags['community'] == 'yes';
+    // Fill = category (green: smoking, blue: toilet);
+    // ring = origin (gold: official list, pink: reported by a user).
+    final ring = area.isOfficial
+        ? Colors.amber.shade400
+        : (community ? Colors.pinkAccent : Colors.white);
+    final closed = area.isTemporarilyClosed;
+    final marker = Container(
       decoration: BoxDecoration(
-        color: area.tags['community'] == 'yes'
-            ? Colors.orange.shade700
-            : (indoor ? Colors.deepPurple : Colors.teal),
+        // Temporarily closed: grey, but still recognisable by icon and ring.
+        color: closed
+            ? Colors.grey.shade500
+            : categoryColor(area.category, indoor: area.isIndoor == true),
         shape: BoxShape.circle,
-        // Official entries get a blue ring.
         border: Border.all(
-          color: area.isOfficial ? Colors.lightBlueAccent : Colors.white,
-          width: area.isOfficial ? 3 : 2,
+          color: ring,
+          width: area.isOfficial || community ? 3 : 2,
         ),
         boxShadow: const [BoxShadow(blurRadius: 3, color: Colors.black38)],
       ),
-      child: const Icon(Icons.smoking_rooms, color: Colors.white, size: 20),
+      child: Icon(
+        categoryIcon(area.category),
+        color: Colors.white,
+        size: 20,
+      ),
     );
+    if (!closed) return marker;
+    return Stack(clipBehavior: Clip.none, children: [
+      Positioned.fill(child: marker),
+      const Positioned(
+        right: -4,
+        top: -4,
+        child: CircleAvatar(
+          radius: 8,
+          backgroundColor: Colors.white,
+          child: Icon(Icons.pause_circle_filled, size: 16, color: Colors.red),
+        ),
+      ),
+    ]);
   }
 }
 
@@ -654,6 +727,7 @@ class _StatusBanner extends StatelessWidget {
     }
 
     final nearest = monitor.nearest();
+    final nearestToilet = monitor.nearest(SpotCategory.toilet);
     final int? count = cityCount == 0 && loading ? null : cityCount;
     return card(
       InkWell(
@@ -685,6 +759,23 @@ class _StatusBanner extends StatelessWidget {
                     '${formatDistance(nearest.distanceMeters)} entfernt'
                     '${count != null ? ' · $count in dieser Stadt' : ''}',
                     style: theme.textTheme.bodySmall,
+                  ),
+                if (nearestToilet != null)
+                  InkWell(
+                    onTap: () => onNearestTap(nearestToilet.area),
+                    child: Row(children: [
+                      Icon(Icons.wc,
+                          size: 14, color: categoryColor(SpotCategory.toilet)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Toilette: ${nearestToilet.area.title} · '
+                          '${formatDistance(nearestToilet.distanceMeters)}',
+                          style: theme.textTheme.bodySmall,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ]),
                   ),
                 if (state == LocationState.whileInUse && monitor.alertsEnabled)
                   Text(

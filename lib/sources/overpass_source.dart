@@ -47,6 +47,8 @@ class OverpassSource extends SmokingAreaSource {
         '(\n'
         '  nwr["amenity"~"^(smoking_area|smoking_room)\$"]($bbox);\n'
         '  nwr["smoking"="dedicated"]($bbox);\n'
+        // Publicly usable toilets (not private / customers only).
+        '  nwr["amenity"="toilets"]["access"!~"^(private|no|customers|permit)\$"]($bbox);\n'
         ');\n'
         'out center tags;';
   }

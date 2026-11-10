@@ -182,9 +182,11 @@ class ProximityMonitor extends ChangeNotifier {
     }
 
     if (!_alertsEnabled) return;
+    // Alerts only for smoking areas – toilets are far too dense for that.
     final hit = detector.update(
       pos,
-      repository.allLoaded,
+      repository.allLoaded.where((a) =>
+          a.category == SpotCategory.smoking && !a.isTemporarilyClosed),
       accuracyMeters: p.accuracy,
     );
     if (hit != null) {
@@ -194,13 +196,14 @@ class ProximityMonitor extends ChangeNotifier {
     }
   }
 
-  /// Nearest loaded smoking area to the current position.
-  ProximityHit? nearest() {
+  /// Nearest known spot of [category] to the current position.
+  ProximityHit? nearest([SpotCategory category = SpotCategory.smoking]) {
     final pos = _position;
     if (pos == null) return null;
     const distance = Distance();
     ProximityHit? best;
     for (final SmokingArea a in repository.allLoaded) {
+      if (a.category != category || a.isTemporarilyClosed) continue;
       final d = distance(pos, a.position);
       if (best == null || d < best.distanceMeters) best = ProximityHit(a, d);
     }
