@@ -92,13 +92,15 @@ jobs:
           target_commitish: ${{ github.sha }}
           make_latest: true
           files: dist/*.apk
+          # Appends the merged PRs / changes since the previous release.
+          generate_release_notes: true
           body: |
-            Automatischer Build von `${{ github.sha }}`.
+            Automated build of `${{ github.sha }}`.
 
-            **Installation (Android, ohne Play Store):**
-            1. `smokingareas-….apk` unten auf dem Handy herunterladen.
-            2. Datei öffnen und „Installation aus unbekannten Quellen“ für den
-               Browser bzw. Dateimanager erlauben.
-            3. Falls Play Protect warnt: „Trotzdem installieren“.
-            4. Beim ersten Start Standort „Immer zulassen“ und Benachrichtigungen
-               erlauben, damit der 30‑m‑Hinweis auch im Hintergrund kommt.
+            **Installation (Android, without Play Store):**
+            1. Download `smokingareas-….apk` below on your phone.
+            2. Open the file and allow "Install unknown apps" for your browser
+               or file manager.
+            3. If Play Protect shows a warning: choose "Install anyway".
+            4. On first start allow location "Allow all the time" and
+               notifications, so the 30 m alert also works in the background.

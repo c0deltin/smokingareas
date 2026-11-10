@@ -102,6 +102,9 @@ Run `flutter analyze` and `flutter test` before every commit.
 
 ## Working rules
 
+- **Language:** commit messages, PR titles and descriptions, release notes,
+  docs and code comments are written in **English**. Only user-facing app
+  text is German.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `ci:`, `chore:`, optional
   scope such as `feat(community): …`). Commit small, coherent steps regularly.
