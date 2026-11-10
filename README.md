@@ -36,6 +36,43 @@ The app's user interface is in German.
 - Community features: report spots, add photos, rate spots and vote on
   whether a spot still exists (see below).
 
+## Supported cities
+
+All 55 cities / metropolitan areas below are covered with **OpenStreetMap
+data for both categories** (smoking areas and public toilets, loaded live per
+city and cached on the device). The download area of each city is a radius
+around its centre, defined in `lib/data/cities.dart`.
+
+| Region | Cities |
+|---|---|
+| Kantō | Tokyo (23 wards), Tokyo Tama (Hachiōji / Tachikawa), Yokohama, Kawasaki, Sagamihara, Saitama, Chiba, Utsunomiya, Maebashi / Takasaki, Mito |
+| Hokkaidō / Tōhoku | Sapporo, Sendai, Aomori, Morioka, Akita, Yamagata, Fukushima / Kōriyama |
+| Chūbu | Nagoya, Niigata, Shizuoka, Hamamatsu, Kanazawa, Toyama, Fukui, Kōfu, Nagano / Matsumoto, Gifu |
+| Kansai | Osaka, Sakai, Kyoto, Kobe, Himeji, Nara, Ōtsu, Wakayama, Tsu / Yokkaichi |
+| Chūgoku / Shikoku | Hiroshima, Okayama, Matsue, Tottori, Yamaguchi / Shimonoseki, Takamatsu, Matsuyama, Tokushima, Kōchi |
+| Kyūshū / Okinawa | Fukuoka, Kitakyūshū, Kumamoto, Kagoshima, Nagasaki, Ōita / Beppu, Miyazaki, Saga, Naha |
+
+**Additional official municipal data** (bundled snapshot, merged with OSM):
+
+| City | Smoking areas | Public toilets |
+|---|---|---|
+| Tokyo | wards Chiyoda (Akihabara, Kanda), Shinjuku, Shibuya, Toshima (Ikebukuro), Taitō (Ueno, Asakusa), Kōtō | wards Chiyoda, Chūō, Shinjuku, Taitō, Sumida, Kōtō, Meguro, Suginami, Toshima, Arakawa, Itabashi, Nerima, Katsushika, Edogawa |
+| Kyoto | ✔ city facility list | ✔ city facility list |
+| Osaka | ✔ 大阪市指定喫煙所 | – (OSM only) |
+| Okayama | – (OSM only) | planned (dataset only reachable from within Japan) |
+| all other cities | – (OSM only) | – (OSM only) |
+
+Districts with a quick jump in the city picker: Shinjuku, Shibuya, Ikebukuro,
+Akihabara, Kanda, Jimbōchō / Kudanshita, Tokyo Station / Marunouchi, Ueno,
+Asakusa, Ginza, Shimbashi, Roppongi, Harajuku / Omotesandō, Ebisu,
+Takadanobaba, Shinagawa, Kameido / Tōyōchō (Tokyo); Umeda, Namba / Dōtonbori,
+Shinsaibashi, Tennōji, Shin-Ōsaka (Osaka); Kyoto Station, Kawaramachi / Gion,
+Kiyomizu-dera (Kyoto); Okayama Station, Omotechō (Okayama).
+
+To add a city, add an entry to `kCities` (centre + radius); OSM data then
+works automatically. Official data needs a source in
+`tool/opendata/update_opendata.py`.
+
 ## Data sources
 
 | Source | Area | Access | Licence |
