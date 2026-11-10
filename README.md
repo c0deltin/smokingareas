@@ -80,6 +80,50 @@ steuert nur den Kartenausschnitt (Zoom).
 - Offizielle Einträge haben einen blauen Ring; die Detailansicht verlinkt die
   Seite der Stadt und den OSM-Eintrag.
 
+## Community (Spots melden, Fotos, Bewertungen)
+
+- **Spot melden:** Button „Raucherbereich melden“ → Karte unter das Fadenkreuz
+  schieben → Name, Art (im Freien / Raucherraum), überdacht, Hinweis und
+  optional ein Foto. Liegt schon ein Spot in ≤ 20 m, bietet die App ihn an,
+  statt einen doppelten anzulegen. Gemeldete Spots haben orange Marker.
+- **Bewerten:** 1–5 Sterne plus Kommentar, eine Bewertung pro Nutzer und
+  Spot (eine neue ersetzt die alte).
+- **Fotos:** Kamera oder Galerie, zu jedem Spot (auch offiziellen/OSM).
+- **„Gibt es noch?“ (wie bei Waze):** Ja/Nein pro Nutzer; nur die letzte
+  Stimme eines Nutzers zählt, Stimmen älter als 180 Tage verfallen. Ein Spot
+  wird ausgeblendet (Karte **und** 30‑m‑Hinweis), sobald mindestens 3 Nutzer
+  „Nein“ sagen und die Nein-Stimmen die Ja-Stimmen mindestens um das Doppelte
+  übersteigen (`ExistencePolicy`).
+- **Mehrere Nutzer:** Alle Einträge tragen die `userId` ihres Autors. Bis ein
+  Server existiert, gibt es lokale Profile (Profil-Symbol oben rechts), mit
+  denen sich die Mehrbenutzer-Regeln auf einem Gerät ausprobieren lassen.
+
+### Architektur: Adapter, vorerst alles lokal
+
+```
+lib/community/
+  models.dart              UserProfile, CommunitySpot, SpotReview, SpotPhoto, ExistenceVote
+  existence_policy.dart    Waze-Regel (rein, getestet)
+  community_backend.dart   CommunityBackend (Adapter)
+                             ├ LocalCommunityBackend  → JSON-„Datenbank“ auf dem Gerät
+                             └ RemoteCommunityBackend → Stub für den späteren Server
+  photo_storage.dart       PhotoStorage → LocalPhotoStorage (Dateien im App-Ordner)
+  auth_service.dart        AuthService  → LocalAuthService (lokale Profile)
+  community_service.dart   Fassade für die UI; speist Community-Spots und
+                           ausgeblendete Spots in den einen Datenbestand ein
+```
+
+Die lokale Datenbank (`<App-Support>/community/db.json`) ist wie eine
+Mehrbenutzer-Datenbank aufgebaut (Tabellen `users`, `spots`, `reviews`,
+`photos`, `votes`). Für einen echten Server wird `RemoteCommunityBackend`
+implementiert (Login, eine Bewertung pro Nutzer, Waze-Regel und
+Rate-Limit serverseitig, Fotos in Objektspeicher) und in `main.dart` statt
+der lokalen Adapter eingesetzt – UI und Logik bleiben unverändert.
+
+Stimmen, Bewertungen und Fotos hängen an der ID des angezeigten Spots. Wird
+ein OSM-Punkt später mit offiziellen Daten zusammengeführt, werden die unter
+der OSM-ID gesammelten Daten weiter berücksichtigt.
+
 ## Architektur
 
 ```
