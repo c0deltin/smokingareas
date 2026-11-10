@@ -229,7 +229,7 @@
    "license": "CC BY",
    "category": "toilet",
    "fetched": "2026-11-10",
-   "count": 156
+   "count": 158
   },
   {
    "id": "kyoto_toilets",
@@ -28623,6 +28623,32 @@
    "hours": "0:00～23:59",
    "wheelchair": false,
    "changing_table": false
+  },
+  {
+   "id": "okayama_toilets:120",
+   "source": "okayama_toilets",
+   "name": "烏城公園 便所（月見櫓下）",
+   "lat": 34.665605,
+   "lon": 133.935145,
+   "category": "toilet",
+   "address": "岡山市北区丸の内二丁目",
+   "note": "工事中のため、休止中",
+   "wheelchair": true,
+   "changing_table": false,
+   "temporarily_closed": true
+  },
+  {
+   "id": "okayama_toilets:121",
+   "source": "okayama_toilets",
+   "name": "烏城公園 便所（維持管理センター横）",
+   "lat": 34.663812,
+   "lon": 133.935572,
+   "category": "toilet",
+   "address": "岡山市北区丸の内二丁目",
+   "note": "工事中のため、休止中",
+   "wheelchair": true,
+   "changing_table": false,
+   "temporarily_closed": true
   },
   {
    "id": "okayama_toilets:122",

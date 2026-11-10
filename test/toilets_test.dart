@@ -147,8 +147,10 @@ void main() {
       final station = okayama.firstWhere((a) => a.title.contains('岡山駅西口'));
       expect(station.wheelchair, isTrue);
       expect(station.changingTable, isTrue);
-      expect(okayama.any((a) => (a.tags['note'] ?? '').contains('休止')),
-          isFalse, reason: 'temporarily closed toilets are skipped');
+      final closed = okayama.where((a) => a.isTemporarilyClosed).toList();
+      expect(closed, hasLength(2),
+          reason: '「工事中のため、休止中」 is shown as temporarily closed');
+      expect(closed.first.closedNote, contains('工事中'));
       final kyoto = await source.fetch(cityById('kyoto')!.bounds);
       expect(kyoto.where((a) => a.isToilet).length, greaterThan(100));
       expect(kyoto.where((a) => !a.isToilet), isNotEmpty);

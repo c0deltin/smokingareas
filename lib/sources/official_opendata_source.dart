@@ -141,6 +141,9 @@ class _Snapshot {
         if (a['geocoded'] == true) 'geocoded': 'yes',
         if (a['members'] != null) 'official:rooms': '${a['members']}',
         if (a['category'] == 'toilet') 'amenity': 'toilets',
+        if (a['temporarily_closed'] == true) 'temporarily_closed': 'yes',
+        if (a['temporarily_closed'] == true && a['note'] != null)
+          'temporarily_closed:note': a['note'] as String,
         if (a['wheelchair'] != null)
           'wheelchair': a['wheelchair'] == true ? 'yes' : 'no',
         if (a['changing_table'] != null)

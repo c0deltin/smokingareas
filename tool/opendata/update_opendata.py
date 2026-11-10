@@ -136,7 +136,8 @@ def area(*, source: str, local_id: str, name: str, lat: float, lon: float,
          address: str | None = None, hours: str | None = None,
          kind: str | None = None, geocoded: bool = False, note: str | None = None,
          category: str = "smoking", wheelchair: bool | None = None,
-         changing_table: bool | None = None) -> dict:
+         changing_table: bool | None = None,
+         temporarily_closed: bool = False) -> dict:
     out = {
         "id": f"{source}:{local_id}",
         "source": source,
@@ -160,6 +161,8 @@ def area(*, source: str, local_id: str, name: str, lat: float, lon: float,
         out["wheelchair"] = wheelchair
     if changing_table is not None:
         out["changing_table"] = changing_table
+    if temporarily_closed:
+        out["temporarily_closed"] = True
     return out
 
 
@@ -451,8 +454,6 @@ def parse_standard_toilets(text: str, source_id: str) -> list[dict]:
     out = []
     for i, r in enumerate(rows):
         r = {(k or "").strip().strip('"'): (v or "") for k, v in r.items()}
-        if "休止" in _first(r, "備考"):
-            continue  # temporarily closed (e.g. 工事中のため、休止中)
         try:
             lat = float(_first(r, "緯度"))
             lon = float(_first(r, "経度"))
@@ -489,6 +490,8 @@ def parse_standard_toilets(text: str, source_id: str) -> list[dict]:
             category="toilet",
             wheelchair=accessible,
             changing_table=_yes(_first(r, "乳幼児用設備設置トイレ有無")),
+            # e.g. 「工事中のため、休止中」 (closed for construction)
+            temporarily_closed="休止" in _first(r, "備考", "利用可能時間特記事項"),
         ))
     return out
 

@@ -66,6 +66,30 @@ class SmokingArea {
     return null;
   }
 
+  /// Temporarily closed (construction, renovation …). Set by official data
+  /// or by community reports; such spots stay visible but greyed out and do
+  /// not trigger alerts.
+  bool get isTemporarilyClosed => tags['temporarily_closed'] == 'yes';
+
+  String? get closedNote => tags['temporarily_closed:note'];
+
+  DateTime? get closedUntil =>
+      DateTime.tryParse(tags['temporarily_closed:until'] ?? '');
+
+  /// Copy with additional / replaced tags.
+  SmokingArea withTags(Map<String, String> extra, {Set<String> remove = const {}}) =>
+      SmokingArea(
+        id: id,
+        position: position,
+        source: source,
+        name: name,
+        tags: {
+          for (final e in tags.entries)
+            if (!remove.contains(e.key)) e.key: e.value,
+          ...extra,
+        },
+      );
+
   /// Baby changing table (`changing_table`).
   bool? get changingTable {
     final v = tags['changing_table'];

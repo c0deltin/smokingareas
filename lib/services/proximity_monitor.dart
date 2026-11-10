@@ -185,7 +185,8 @@ class ProximityMonitor extends ChangeNotifier {
     // Alerts only for smoking areas – toilets are far too dense for that.
     final hit = detector.update(
       pos,
-      repository.allLoaded.where((a) => a.category == SpotCategory.smoking),
+      repository.allLoaded.where((a) =>
+          a.category == SpotCategory.smoking && !a.isTemporarilyClosed),
       accuracyMeters: p.accuracy,
     );
     if (hit != null) {
@@ -202,7 +203,7 @@ class ProximityMonitor extends ChangeNotifier {
     const distance = Distance();
     ProximityHit? best;
     for (final SmokingArea a in repository.allLoaded) {
-      if (a.category != category) continue;
+      if (a.category != category || a.isTemporarilyClosed) continue;
       final d = distance(pos, a.position);
       if (best == null || d < best.distanceMeters) best = ProximityHit(a, d);
     }

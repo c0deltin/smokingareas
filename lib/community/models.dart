@@ -209,3 +209,45 @@ class ExistenceVote {
         createdAt: DateTime.parse(j['createdAt'] as String),
       );
 }
+
+/// "Vorübergehend geschlossen" (closed = true) or "wieder geöffnet"
+/// (closed = false). Reports expire, see `ClosurePolicy`.
+class ClosureReport {
+  const ClosureReport({
+    required this.spotId,
+    required this.userId,
+    required this.closed,
+    required this.createdAt,
+    this.note,
+    this.until,
+  });
+
+  final String spotId;
+  final String userId;
+  final bool closed;
+
+  /// Reason, e.g. "Bauarbeiten".
+  final String? note;
+
+  /// Expected end of the closure (optional).
+  final DateTime? until;
+  final DateTime createdAt;
+
+  Map<String, dynamic> toJson() => {
+        'spotId': spotId,
+        'userId': userId,
+        'closed': closed,
+        if (note != null) 'note': note,
+        if (until != null) 'until': until!.toIso8601String(),
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory ClosureReport.fromJson(Map<String, dynamic> j) => ClosureReport(
+        spotId: j['spotId'] as String,
+        userId: j['userId'] as String,
+        closed: j['closed'] as bool,
+        note: j['note'] as String?,
+        until: j['until'] == null ? null : DateTime.parse(j['until'] as String),
+        createdAt: DateTime.parse(j['createdAt'] as String),
+      );
+}

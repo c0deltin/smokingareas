@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../models/smoking_area.dart';
 import 'auth_service.dart';
 import 'community_backend.dart';
+import 'closure_policy.dart';
 import 'existence_policy.dart';
 import 'models.dart';
 import 'photo_storage.dart';
@@ -33,6 +34,7 @@ class CommunityService extends ChangeNotifier {
     required this.photos,
     required this.auth,
     this.policy = const ExistencePolicy(),
+    this.closurePolicy = const ClosurePolicy(),
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
 
@@ -40,6 +42,7 @@ class CommunityService extends ChangeNotifier {
   final PhotoStorage photos;
   final AuthService auth;
   final ExistencePolicy policy;
+  final ClosurePolicy closurePolicy;
   final DateTime Function() _now;
   static const _uuid = Uuid();
 
@@ -48,6 +51,7 @@ class CommunityService extends ChangeNotifier {
   List<SpotReview> _reviews = [];
   List<SpotPhoto> _photos = [];
   List<ExistenceVote> _votes = [];
+  List<ClosureReport> _closures = [];
   Set<String>? _hiddenCache;
 
   Future<void> init() async {
@@ -56,6 +60,7 @@ class CommunityService extends ChangeNotifier {
     _reviews = await backend.reviews();
     _photos = await backend.photos();
     _votes = await backend.votes();
+    _closures = await backend.closureReports();
     _changed();
   }
 
@@ -295,6 +300,75 @@ class CommunityService extends ChangeNotifier {
     );
     await backend.addVote(vote);
     _votes.add(vote);
+  }
+
+  // ---------------------------------------------------------------------
+  // Temporary closures
+  // ---------------------------------------------------------------------
+
+  ClosureStatus closureFor(SmokingArea area) {
+    final keys = keysFor(area);
+    return closurePolicy.evaluate(
+      _closures.where((r) => keys.contains(r.spotId)),
+      now: _now(),
+    );
+  }
+
+  /// Latest active closure report of the current user (null = none).
+  bool? myClosureReport(SmokingArea area) {
+    final keys = keysFor(area);
+    ClosureReport? latest;
+    for (final r in _closures) {
+      if (r.userId != currentUser.id || !keys.contains(r.spotId)) continue;
+      if (latest == null || r.createdAt.isAfter(latest.createdAt)) latest = r;
+    }
+    return latest?.closed;
+  }
+
+  Future<void> reportClosure(
+    SmokingArea area, {
+    required bool closed,
+    String? note,
+    DateTime? until,
+  }) async {
+    final report = ClosureReport(
+      spotId: area.id,
+      userId: currentUser.id,
+      closed: closed,
+      note: closed && (note?.trim().isNotEmpty ?? false) ? note!.trim() : null,
+      until: closed ? until : null,
+      createdAt: _now(),
+    );
+    await backend.addClosureReport(report);
+    _closures.add(report);
+    _changed();
+  }
+
+  /// Applies community closure reports to a map entry. A "reopened" majority
+  /// also overrides a closure flag that came with official data.
+  SmokingArea annotate(SmokingArea area) {
+    final keys = keysFor(area);
+    if (!_closures.any((r) => keys.contains(r.spotId))) return area;
+    final status = closureFor(area);
+    if (status.closed) {
+      return area.withTags({
+        'temporarily_closed': 'yes',
+        if (status.note != null) 'temporarily_closed:note': status.note!,
+        if (status.until != null)
+          'temporarily_closed:until': status.until!.toIso8601String(),
+        if (status.since != null)
+          'temporarily_closed:since': status.since!.toIso8601String(),
+      });
+    }
+    if (area.isTemporarilyClosed && status.reopenedReports > 0) {
+      return area.withTags(const {}, remove: {
+        'temporarily_closed',
+        'temporarily_closed:note',
+        'temporarily_closed:until',
+        'temporarily_closed:since',
+      });
+    }
+    return area;
   }
 
   /// Ids of spots removed by the community.

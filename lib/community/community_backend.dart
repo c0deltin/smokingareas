@@ -29,6 +29,11 @@ abstract class CommunityBackend {
 
   /// Votes are append-only (history); the policy uses the latest per user.
   Future<void> addVote(ExistenceVote vote);
+
+  Future<List<ClosureReport>> closureReports();
+
+  /// Append-only, like votes; see `ClosurePolicy`.
+  Future<void> addClosureReport(ClosureReport report);
 }
 
 /// Local, single-device implementation: one JSON document with one list per
@@ -133,6 +138,16 @@ class LocalCommunityBackend implements CommunityBackend {
     (await _db()).votes.add(vote);
     await _persist();
   }
+
+  @override
+  Future<List<ClosureReport>> closureReports() async =>
+      List.of((await _db()).closures);
+
+  @override
+  Future<void> addClosureReport(ClosureReport report) async {
+    (await _db()).closures.add(report);
+    await _persist();
+  }
 }
 
 class _Tables {
@@ -141,6 +156,7 @@ class _Tables {
   final List<SpotReview> reviews = [];
   final List<SpotPhoto> photos = [];
   final List<ExistenceVote> votes = [];
+  final List<ClosureReport> closures = [];
 
   Map<String, dynamic> toJson() => {
         'schemaVersion': LocalCommunityBackend.schemaVersion,
@@ -149,6 +165,7 @@ class _Tables {
         'reviews': reviews.map((e) => e.toJson()).toList(),
         'photos': photos.map((e) => e.toJson()).toList(),
         'votes': votes.map((e) => e.toJson()).toList(),
+        'closures': closures.map((e) => e.toJson()).toList(),
       };
 
   static _Tables fromJson(Map<String, dynamic> j) {
@@ -159,7 +176,8 @@ class _Tables {
       ..spots.addAll(rows('spots').map(CommunitySpot.fromJson))
       ..reviews.addAll(rows('reviews').map(SpotReview.fromJson))
       ..photos.addAll(rows('photos').map(SpotPhoto.fromJson))
-      ..votes.addAll(rows('votes').map(ExistenceVote.fromJson));
+      ..votes.addAll(rows('votes').map(ExistenceVote.fromJson))
+      ..closures.addAll(rows('closures').map(ClosureReport.fromJson));
   }
 }
 
@@ -200,4 +218,9 @@ class RemoteCommunityBackend implements CommunityBackend {
   Future<List<ExistenceVote>> votes() async => _todo('votes');
   @override
   Future<void> addVote(ExistenceVote vote) async => _todo('addVote');
+  @override
+  Future<List<ClosureReport>> closureReports() async => _todo('closureReports');
+  @override
+  Future<void> addClosureReport(ClosureReport report) async =>
+      _todo('addClosureReport');
 }
