@@ -57,6 +57,8 @@ def fetch(url: str, *, data: dict | None = None, timeout: int = 60, attempts: in
 
 
 def decode(raw: bytes) -> str:
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return raw.decode("utf-16")
     for enc in ("utf-8-sig", "cp932"):
         try:
             return raw.decode(enc)
@@ -132,7 +134,9 @@ def normalise_address(addr: str, prefix: str) -> str:
 
 def area(*, source: str, local_id: str, name: str, lat: float, lon: float,
          address: str | None = None, hours: str | None = None,
-         kind: str | None = None, geocoded: bool = False, note: str | None = None) -> dict:
+         kind: str | None = None, geocoded: bool = False, note: str | None = None,
+         category: str = "smoking", wheelchair: bool | None = None,
+         changing_table: bool | None = None) -> dict:
     out = {
         "id": f"{source}:{local_id}",
         "source": source,
@@ -140,6 +144,8 @@ def area(*, source: str, local_id: str, name: str, lat: float, lon: float,
         "lat": round(lat, 6),
         "lon": round(lon, 6),
     }
+    if category != "smoking":
+        out["category"] = category
     if address:
         out["address"] = address
     if hours:
@@ -150,6 +156,10 @@ def area(*, source: str, local_id: str, name: str, lat: float, lon: float,
         out["geocoded"] = True
     if note:
         out["note"] = note
+    if wheelchair is not None:
+        out["wheelchair"] = wheelchair
+    if changing_table is not None:
+        out["changing_table"] = changing_table
     return out
 
 
@@ -158,7 +168,8 @@ def merge_same_location(areas: list[dict]) -> list[dict]:
     coordinate. Show them as one marker instead of stacked duplicates."""
     groups: dict[tuple, list[dict]] = {}
     for a in areas:
-        groups.setdefault((a["source"], round(a["lat"], 5), round(a["lon"], 5)), []).append(a)
+        groups.setdefault((a["source"], a.get("category", "smoking"),
+                         round(a["lat"], 5), round(a["lon"], 5)), []).append(a)
     merged = []
     for items in groups.values():
         if len(items) == 1:
@@ -181,10 +192,12 @@ def merge_same_location(areas: list[dict]) -> list[dict]:
 SOURCES: dict[str, dict] = {}
 
 
-def source(key: str, *, name: str, city: str, url: str, license: str):
+def source(key: str, *, name: str, city: str, url: str, license: str,
+           category: str = "smoking"):
     def deco(fn):
         SOURCES[key] = {"fn": fn, "meta": {"id": key, "name": name, "city": city,
-                                            "url": url, "license": license}}
+                                            "url": url, "license": license,
+                                            "category": category}}
         return fn
     return deco
 
@@ -192,6 +205,25 @@ def source(key: str, *, name: str, city: str, url: str, license: str):
 @source("kyoto", name="京都市オープンデータ（施設情報・喫煙場所）", city="kyoto",
         url="https://data.city.kyoto.lg.jp/dataset/00003/", license="CC BY 4.0")
 def kyoto() -> list[dict]:
+    rows, col = _kyoto_facilities()
+    out = []
+    for r in rows:
+        if len(r) <= col["cate_id"] or r[col["cate_id"]].strip() != "138":  # 138 = 喫煙場所
+            continue
+        out.append(area(source="kyoto", local_id=r[col["id"]], name=r[col["name"]],
+                        lat=float(r[col["lat"]]), lon=float(r[col["lng"]]),
+                        address=r[col["address"]] or None, kind="public"))
+    return out
+
+
+_kyoto_cache: tuple[list[list[str]], dict[str, int]] | None = None
+
+
+def _kyoto_facilities() -> tuple[list[list[str]], dict[str, int]]:
+    """Kyoto's facility list (all categories), downloaded once per run."""
+    global _kyoto_cache
+    if _kyoto_cache is not None:
+        return _kyoto_cache
     page = decode(fetch("https://data.city.kyoto.lg.jp/dataset/00003/"))
     # newest "施設情報一覧" CSV resource (download is a POST form)
     m = re.search(r"<form action='\.\./\.\./resource/\?id=(\d+)'[^>]*>.*?"
@@ -202,20 +234,13 @@ def kyoto() -> list[dict]:
     raw = fetch(f"https://data.city.kyoto.lg.jp/resource/?id={rid}",
                 data={"download": "Download", "upload_file": fname, "upload_url": ""})
     rows = list(csv.reader(io.StringIO(decode(raw))))
-    head = rows[0]
     col = {}
-    for i, h in enumerate(head):
+    for i, h in enumerate(rows[0]):
         m_col = re.search(r"[（(]\s*([a-z_]+)\s*[)）]", h)
         if m_col:
             col[m_col.group(1)] = i
-    out = []
-    for r in rows[1:]:
-        if len(r) <= col["cate_id"] or r[col["cate_id"]].strip() != "138":  # 138 = 喫煙場所
-            continue
-        out.append(area(source="kyoto", local_id=r[col["id"]], name=r[col["name"]],
-                        lat=float(r[col["lat"]]), lon=float(r[col["lng"]]),
-                        address=r[col["address"]] or None, kind="public"))
-    return out
+    _kyoto_cache = (rows[1:], col)
+    return _kyoto_cache
 
 
 @source("tokyo_koto", name="江東区 公共喫煙所一覧", city="tokyo",
@@ -396,6 +421,148 @@ def osaka() -> list[dict]:
 
 
 # --------------------------------------------------------------------------
+# public toilets
+# --------------------------------------------------------------------------
+
+
+def _first(row: dict, *names: str) -> str:
+    for n in names:
+        v = (row.get(n) or "").strip()
+        if v:
+            return v
+    return ""
+
+
+def _yes(v: str) -> bool | None:
+    v = v.strip()
+    if v in ("有", "あり", "○", "◯", "1", "yes", "Yes"):
+        return True
+    if v in ("無", "なし", "×", "0", "no", "No"):
+        return False
+    return None
+
+
+def parse_standard_toilets(text: str, source_id: str) -> list[dict]:
+    """Parses the national standard dataset 「公衆トイレ一覧」
+    (自治体標準オープンデータセット) and close variants of it."""
+    rows = list(csv.DictReader(io.StringIO(text)))
+    out = []
+    for i, r in enumerate(rows):
+        r = {(k or "").strip().strip('"'): (v or "") for k, v in r.items()}
+        try:
+            lat = float(_first(r, "緯度"))
+            lon = float(_first(r, "経度"))
+        except ValueError:
+            continue
+        if not (20 < lat < 46 and 122 < lon < 154):
+            continue
+        name = _first(r, "名称")
+        if not name:
+            continue
+        if "トイレ" not in name and "便所" not in name:
+            name = f"{name} トイレ"
+        accessible = _yes(_first(r, "車椅子使用者用トイレ有無"))
+        if accessible is None:
+            try:
+                n = int(float(_first(r, "バリアフリートイレ数", "多機能トイレ数") or "x"))
+                accessible = n > 0
+            except ValueError:
+                accessible = None
+        start = _first(r, "利用開始時間")
+        end = _first(r, "利用終了時間")
+        hours = f"{start}～{end}" if start and end else (start or end)
+        extra = _first(r, "利用可能時間特記事項")
+        if extra:
+            hours = f"{hours} {extra}".strip()
+        out.append(area(
+            source=source_id,
+            local_id=_first(r, "ID", "NO") or str(i),
+            name=name,
+            lat=lat, lon=lon,
+            address=_first(r, "所在地_連結表記", "住所", "所在地") or None,
+            hours=hours or None,
+            note=_first(r, "設置位置", "備考") or None,
+            category="toilet",
+            wheelchair=accessible,
+            changing_table=_yes(_first(r, "乳幼児用設備設置トイレ有無")),
+        ))
+    return out
+
+
+def _ckan_csv_url(dataset_id: str) -> str:
+    """Current CSV download URL of a Tokyo open-data catalog dataset."""
+    meta = json.loads(fetch(
+        "https://catalog.data.metro.tokyo.lg.jp/api/3/action/package_show?id=" + dataset_id))
+    for res in meta["result"]["resources"]:
+        if (res.get("format") or "").upper() == "CSV":
+            return res["url"]
+    raise RuntimeError("no CSV resource")
+
+
+def _tokyo_toilets(source_id: str, dataset_id: str) -> list[dict]:
+    url = _ckan_csv_url(dataset_id)
+    if url.startswith("http://"):
+        url = "https://" + url[len("http://"):]
+    try:
+        raw = fetch(url, attempts=2)
+    except urllib.error.HTTPError as e:
+        # Some catalog entries miss the ".csv" suffix of the actual file.
+        if e.code == 404 and not url.lower().endswith(".csv"):
+            raw = fetch(url + ".csv", attempts=2)
+        else:
+            raise
+    return parse_standard_toilets(decode(raw), source_id)
+
+
+# Tokyo special wards publishing 「公衆トイレ一覧」 in the Tokyo open data catalog.
+# Not included: Shinagawa (file no longer exists), Nakano (server refuses
+# connections from abroad), Shibuya/Minato (no current dataset) – OSM covers them.
+_TOKYO_TOILET_DATASETS = {
+    "chiyoda": ("千代田区", "t131016d0000000005"),
+    "chuo": ("中央区", "t131024d0000000036"),
+    "shinjuku": ("新宿区", "t131041d0000000123"),
+    "taito": ("台東区", "t131067d0000000249"),
+    "sumida": ("墨田区", "t131075d0000000137"),
+    "koto": ("江東区", "t131083d0000000019"),
+    "meguro": ("目黒区", "t131105d0000000167"),
+    "suginami": ("杉並区", "t131156d0000000206"),
+    "toshima": ("豊島区", "t131164d0000000009"),
+    "arakawa": ("荒川区", "t131181d0000000012"),
+    "itabashi": ("板橋区", "t131199d0000000005"),
+    "nerima": ("練馬区", "t131202d0000000132"),
+    "katsushika": ("葛飾区", "t131229d0000000009"),
+    "edogawa": ("江戸川区", "t131237d0000000257"),
+}
+
+for _ward, (_ja, _ds) in _TOKYO_TOILET_DATASETS.items():
+    _key = f"tokyo_{_ward}_toilets"
+    source(_key, name=f"{_ja} 公衆トイレ一覧", city="tokyo",
+           url=f"https://catalog.data.metro.tokyo.lg.jp/dataset/{_ds}",
+           license="CC BY 4.0", category="toilet")(
+        lambda _key=_key, _ds=_ds: _tokyo_toilets(_key, _ds))
+
+
+@source("kyoto_toilets", name="京都市オープンデータ（施設情報・公衆トイレ）", city="kyoto",
+        url="https://data.city.kyoto.lg.jp/dataset/00003/", license="CC BY 4.0",
+        category="toilet")
+def kyoto_toilets() -> list[dict]:
+    rows, col = _kyoto_facilities()
+    out = []
+    for r in rows:
+        if len(r) <= col["cate_id"] or r[col["cate_id"]].strip() != "137":  # 137 = 公衆トイレ／観光トイレ
+            continue
+        try:
+            lat, lon = float(r[col["lat"]]), float(r[col["lng"]])
+        except ValueError:
+            continue
+        out.append(area(source="kyoto_toilets", local_id=r[col["id"]], name=r[col["name"]],
+                        lat=lat, lon=lon, address=r[col["address"]] or None,
+                        hours=(r[col["optime"]] if "optime" in col else "") or None,
+                        category="toilet"))
+    return out
+
+
+# --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
 
@@ -427,12 +594,12 @@ def main(only: list[str]) -> int:
                 raise RuntimeError("no entries parsed")
             meta["fetched"] = today
             meta["count"] = len(items)
-            print(f"{key:16s} {len(items):4d} entries")
+            print(f"{key:24s} {len(items):4d} entries")
             all_areas += items
         except Exception as e:  # noqa: BLE001
             failures += 1
             kept = prev_by_source.get(key, [])
-            print(f"{key:16s} FAILED ({e}); keeping {len(kept)} previous entries", file=sys.stderr)
+            print(f"{key:24s} FAILED ({e}); keeping {len(kept)} previous entries", file=sys.stderr)
             all_areas += kept
             meta = prev_meta.get(key, meta)
         metas.append(meta)
