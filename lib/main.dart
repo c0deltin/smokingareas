@@ -6,6 +6,7 @@ import 'community/auth_service.dart';
 import 'community/community_backend.dart';
 import 'community/community_service.dart';
 import 'community/photo_storage.dart';
+import 'services/heading_service.dart';
 import 'services/proximity_monitor.dart';
 import 'services/smoking_area_repository.dart';
 import 'ui/map_screen.dart';
@@ -34,7 +35,8 @@ Future<void> main() async {
       );
   community.addListener(syncCommunity);
   syncCommunity();
-  final monitor = ProximityMonitor(repository: repository);
+  final heading = HeadingService()..start();
+  final monitor = ProximityMonitor(repository: repository, heading: heading);
   await monitor.init();
   runApp(SmokingAreasApp(
     repository: repository,

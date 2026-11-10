@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/cities.dart';
 import '../models/smoking_area.dart';
+import 'heading_service.dart';
 import 'notification_service.dart';
 import 'proximity_detector.dart';
 import 'smoking_area_repository.dart';
@@ -21,6 +22,7 @@ class ProximityMonitor extends ChangeNotifier {
     required this.repository,
     NotificationService? notifications,
     ProximityDetector? detector,
+    this.heading,
   })  : notifications = notifications ?? NotificationService.instance,
         detector = detector ?? ProximityDetector();
 
@@ -30,6 +32,9 @@ class ProximityMonitor extends ChangeNotifier {
   final SmokingAreaRepository repository;
   final NotificationService notifications;
   final ProximityDetector detector;
+
+  /// Receives position and GPS course for the direction cone (optional).
+  final HeadingService? heading;
 
   StreamSubscription<Position>? _sub;
   LatLng? _position;
@@ -166,6 +171,8 @@ class ProximityMonitor extends ChangeNotifier {
   Future<void> _onPosition(Position p) async {
     final pos = LatLng(p.latitude, p.longitude);
     _position = pos;
+    heading?.updatePosition(p.latitude, p.longitude);
+    heading?.updateFromGps(course: p.heading, speed: p.speed);
     _accuracy = p.accuracy;
     notifyListeners();
 

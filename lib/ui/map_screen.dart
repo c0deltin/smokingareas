@@ -16,9 +16,11 @@ import '../services/proximity_monitor.dart';
 import '../services/smoking_area_repository.dart';
 import 'area_details_sheet.dart';
 import 'city_picker.dart';
+import 'legend_sheet.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
 import 'spot_style.dart';
+import 'user_location_marker.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({
@@ -216,7 +218,7 @@ class _MapScreenState extends State<MapScreen> {
             point: a.position,
             width: 36,
             height: 36,
-            child: _AreaMarker(area: a),
+            child: SpotMarker.fromArea(a),
           ),
       ];
 
@@ -258,15 +260,36 @@ class _MapScreenState extends State<MapScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: _loading ? null : () => _loadCity(_city, force: true),
           ),
-          IconButton(
-            tooltip: 'Profil',
-            icon: const Icon(Icons.account_circle_outlined),
-            onPressed: () => showProfileSheet(context, _community),
-          ),
-          IconButton(
-            tooltip: 'Info',
-            icon: const Icon(Icons.info_outline),
-            onPressed: () => _showInfo(context),
+          PopupMenuButton<String>(
+            tooltip: 'Menü',
+            onSelected: (v) => switch (v) {
+              'legend' => showLegendSheet(context),
+              'profile' => showProfileSheet(context, _community),
+              _ => _showInfo(context),
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'legend',
+                child: ListTile(
+                  leading: Icon(Icons.legend_toggle),
+                  title: Text('Legende'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'profile',
+                child: ListTile(
+                  leading: Icon(Icons.account_circle_outlined),
+                  title: Text('Profil'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'info',
+                child: ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Info'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -314,39 +337,19 @@ class _MapScreenState extends State<MapScreen> {
                               userPosition: userPos, community: _community);
                         }
                       },
-                      builder: (context, cluster) => Container(
-                        decoration: BoxDecoration(
-                          color: categoryColor(c),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${cluster.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      builder: (context, cluster) =>
+                          ClusterBubble(category: c, count: cluster.length),
                     ),
                   ),
               if (userPos != null)
                 MarkerLayer(markers: [
+                  // Dot + direction cone; not counter-rotated, so the cone
+                  // keeps its geographic direction when the map rotates.
                   Marker(
                     point: userPos,
-                    width: 22,
-                    height: 22,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                        boxShadow: const [
-                          BoxShadow(blurRadius: 4, color: Colors.black26),
-                        ],
-                      ),
-                    ),
+                    width: UserLocationMarker.size,
+                    height: UserLocationMarker.size,
+                    child: UserLocationMarker(heading: _monitor.heading),
                   ),
                 ]),
               RichAttributionWidget(
@@ -592,7 +595,8 @@ class _MapScreenState extends State<MapScreen> {
           Text('• ${s.displayName}: ${s.attribution}'),
         const SizedBox(height: 8),
         const Text(
-          'Offizielle Einträge (gold umrandet) stammen aus Listen der Städte '
+          'Alle Symbole erklärt die Legende (Menü ⋮). Offizielle Einträge '
+          '(gold umrandet) stammen aus Listen der Städte '
           'und Bezirke; liegt ein OSM-Eintrag am selben Ort, werden beide zu '
           'einem Marker zusammengeführt. Ohne Koordinaten veröffentlichte '
           'Adressen wurden über die GSI-Adresssuche verortet und sind als '
@@ -607,54 +611,6 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ],
     );
-  }
-}
-
-class _AreaMarker extends StatelessWidget {
-  const _AreaMarker({required this.area});
-  final SmokingArea area;
-
-  @override
-  Widget build(BuildContext context) {
-    final community = area.tags['community'] == 'yes';
-    // Fill = category (green: smoking, blue: toilet);
-    // ring = origin (gold: official list, pink: reported by a user).
-    final ring = area.isOfficial
-        ? Colors.amber.shade400
-        : (community ? Colors.pinkAccent : Colors.white);
-    final closed = area.isTemporarilyClosed;
-    final marker = Container(
-      decoration: BoxDecoration(
-        // Temporarily closed: grey, but still recognisable by icon and ring.
-        color: closed
-            ? Colors.grey.shade500
-            : categoryColor(area.category, indoor: area.isIndoor == true),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: ring,
-          width: area.isOfficial || community ? 3 : 2,
-        ),
-        boxShadow: const [BoxShadow(blurRadius: 3, color: Colors.black38)],
-      ),
-      child: Icon(
-        categoryIcon(area.category),
-        color: Colors.white,
-        size: 20,
-      ),
-    );
-    if (!closed) return marker;
-    return Stack(clipBehavior: Clip.none, children: [
-      Positioned.fill(child: marker),
-      const Positioned(
-        right: -4,
-        top: -4,
-        child: CircleAvatar(
-          radius: 8,
-          backgroundColor: Colors.white,
-          child: Icon(Icons.pause_circle_filled, size: 16, color: Colors.red),
-        ),
-      ),
-    ]);
   }
 }
 

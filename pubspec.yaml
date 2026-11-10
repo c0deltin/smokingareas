@@ -45,7 +45,7 @@ dependencies:
   path_provider: ^2.1.6
   image_picker: ^1.2.4
   uuid: ^4.6.0
-
+  flutter_rotation_sensor: ^0.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
