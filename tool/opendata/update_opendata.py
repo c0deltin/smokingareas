@@ -445,10 +445,14 @@ def _yes(v: str) -> bool | None:
 def parse_standard_toilets(text: str, source_id: str) -> list[dict]:
     """Parses the national standard dataset 「公衆トイレ一覧」
     (自治体標準オープンデータセット) and close variants of it."""
-    rows = list(csv.DictReader(io.StringIO(text)))
+    first_line = text.split("\n", 1)[0]
+    delimiter = "\t" if first_line.count("\t") > first_line.count(",") else ","
+    rows = list(csv.DictReader(io.StringIO(text), delimiter=delimiter))
     out = []
     for i, r in enumerate(rows):
         r = {(k or "").strip().strip('"'): (v or "") for k, v in r.items()}
+        if "休止" in _first(r, "備考"):
+            continue  # temporarily closed (e.g. 工事中のため、休止中)
         try:
             lat = float(_first(r, "緯度"))
             lon = float(_first(r, "経度"))
@@ -540,6 +544,18 @@ for _ward, (_ja, _ds) in _TOKYO_TOILET_DATASETS.items():
            url=f"https://catalog.data.metro.tokyo.lg.jp/dataset/{_ds}",
            license="CC BY 4.0", category="toilet")(
         lambda _key=_key, _ds=_ds: _tokyo_toilets(_key, _ds))
+
+
+@source("okayama_toilets", name="岡山市 公衆トイレ（おかやま全県統合型GIS）", city="okayama",
+        url="https://www.gis.pref.okayama.jp/pref-okayama/OpenDataDetail?lid=1442",
+        license="CC BY", category="toilet")
+def okayama_toilets() -> list[dict]:
+    # The GIS refuses connections from outside Japan (also from CI), so the
+    # CSV is downloaded manually from within Japan and kept in the repo –
+    # see tool/opendata/manual/README.md.
+    text = (Path(__file__).resolve().parent / "manual" / "okayama_public_toilets.tsv").read_text(
+        encoding="utf-8")
+    return parse_standard_toilets(text, "okayama_toilets")
 
 
 @source("kyoto_toilets", name="京都市オープンデータ（施設情報・公衆トイレ）", city="kyoto",

@@ -140,6 +140,15 @@ void main() {
           'tokyo_koto_toilets',
         ]),
       );
+      final okayama = await source.fetch(cityById('okayama')!.bounds);
+      expect(okayama.where((a) => a.isToilet).length, greaterThan(50),
+          reason: 'manually downloaded Okayama dataset');
+      // Okayama station west exit: wheelchair + baby changing table.
+      final station = okayama.firstWhere((a) => a.title.contains('岡山駅西口'));
+      expect(station.wheelchair, isTrue);
+      expect(station.changingTable, isTrue);
+      expect(okayama.any((a) => (a.tags['note'] ?? '').contains('休止')),
+          isFalse, reason: 'temporarily closed toilets are skipped');
       final kyoto = await source.fetch(cityById('kyoto')!.bounds);
       expect(kyoto.where((a) => a.isToilet).length, greaterThan(100));
       expect(kyoto.where((a) => !a.isToilet), isNotEmpty);

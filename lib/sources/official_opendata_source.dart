@@ -48,6 +48,7 @@ String officialDatasetLabel(String id, String fallback) {
 
 const kOfficialDatasetLabels = {
   'kyoto_toilets': 'Stadt Kyoto (Open Data)',
+  'okayama_toilets': 'Stadt Okayama (Open Data)',
   'kyoto': 'Stadt Kyoto (Open Data)',
   'osaka': 'Stadt Osaka (Liste der Raucherplätze)',
   'tokyo_koto': 'Tokio, Bezirk Kōtō (Open Data)',
@@ -86,7 +87,8 @@ class OfficialOpenDataSource extends SmokingAreaSource {
   String get attribution =>
       'Raucherbereiche: Stadt Kyoto, Stadt Osaka, Tokioter Bezirke Chiyoda, '
       'Kōtō, Shibuya, Shinjuku, Taitō, Toshima. Öffentliche Toiletten: Stadt '
-      'Kyoto und 14 Tokioter Bezirke (公衆トイレ一覧). Open Data CC BY 4.0 bzw. '
+      'Kyoto, Stadt Okayama und 14 Tokioter Bezirke (公衆トイレ一覧). Open Data '
+      'CC BY 4.0 bzw. '
       'Angaben der offiziellen Webseiten; Adress-Geocoding: GSI Japan';
 
   Future<_Snapshot> _load() => _snapshot ??= _loader().then(_Snapshot.parse);

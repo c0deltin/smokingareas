@@ -59,7 +59,7 @@ around its centre, defined in `lib/data/cities.dart`.
 | Tokyo | wards Chiyoda (Akihabara, Kanda), Shinjuku, Shibuya, Toshima (Ikebukuro), Taitō (Ueno, Asakusa), Kōtō | wards Chiyoda, Chūō, Shinjuku, Taitō, Sumida, Kōtō, Meguro, Suginami, Toshima, Arakawa, Itabashi, Nerima, Katsushika, Edogawa |
 | Kyoto | ✔ city facility list | ✔ city facility list |
 | Osaka | ✔ 大阪市指定喫煙所 | – (OSM only) |
-| Okayama | – (OSM only) | planned (dataset only reachable from within Japan) |
+| Okayama | – (OSM only) | ✔ city dataset 公衆トイレ (downloaded manually from within Japan) |
 | all other cities | – (OSM only) | – (OSM only) |
 
 Districts with a quick jump in the city picker: Shinjuku, Shibuya, Ikebukuro,
@@ -87,6 +87,7 @@ works automatically. Official data needs a source in
 | Tokyo, Shibuya ward – “区内公共喫煙所一覧” | **Shibuya**, Harajuku, Ebisu … | snapshot, geocoded | published by the ward |
 | Tokyo, Toshima ward – “区指定喫煙所” | **Ikebukuro**, Ōtsuka | snapshot, geocoded | published by the ward |
 | Kyoto – same facility list, category 公衆トイレ／観光トイレ | Kyoto (136 toilets) | snapshot | CC BY 4.0 |
+| City of Okayama – 公衆トイレ, おかやま全県統合型GIS (only reachable from within Japan, so kept in `tool/opendata/manual/`) | Okayama (156 toilets) | manual snapshot | CC BY |
 | Tokyo wards – national standard dataset “公衆トイレ一覧” of Chiyoda, Chūō, Shinjuku, Taitō, Sumida, Kōtō, Meguro, Suginami, Toshima, Arakawa, Itabashi, Nerima, Katsushika, Edogawa (URLs resolved via the Tokyo catalog API) | Tokyo (≈ 1,950 toilets) | snapshot | CC BY 4.0 |
 | GSI (国土地理院) address search | geocoding of the address lists | when building the snapshot | – |
 | OpenStreetMap map tiles | – | live | ODbL |
@@ -94,8 +95,10 @@ works automatically. Official data needs a source in
 Where no official data is available the app shows the OSM data:
 
 - **Okayama** publishes no machine-readable list of smoking areas (only the
-  outline of its no-smoking zone); its public-toilet dataset is served by a
-  GIS that refuses connections from abroad.
+  outline of its no-smoking zone). Its public-toilet dataset is served by a
+  GIS that refuses connections from abroad; it is therefore downloaded
+  manually from within Japan (`tool/opendata/manual/README.md`) and not
+  refreshed by CI.
 - **Osaka**: no official public-toilet dataset found.
 - **Tokyo**: Shibuya and Minato publish no current toilet dataset, Shinagawa's
   file no longer exists and Nakano's server refuses connections from abroad.
