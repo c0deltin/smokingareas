@@ -45,6 +45,9 @@ class CommunitySpot {
     this.covered,
     this.publicAccess,
     this.accessNote,
+    this.category = 'smoking',
+    this.wheelchair,
+    this.changingTable,
   });
 
   /// Always starts with `community:`.
@@ -61,6 +64,13 @@ class CommunitySpot {
 
   /// How to get there when it is not public ("nur mit Bahnticket" …).
   final String? accessNote;
+
+  /// `smoking` or `toilet` (name of a `SpotCategory`).
+  final String category;
+
+  /// Toilets: wheelchair accessible / baby changing table.
+  final bool? wheelchair;
+  final bool? changingTable;
   final String createdBy;
   final DateTime createdAt;
 
@@ -74,6 +84,9 @@ class CommunitySpot {
         if (covered != null) 'covered': covered,
         if (publicAccess != null) 'publicAccess': publicAccess,
         if (accessNote != null) 'accessNote': accessNote,
+        if (category != 'smoking') 'category': category,
+        if (wheelchair != null) 'wheelchair': wheelchair,
+        if (changingTable != null) 'changingTable': changingTable,
         'createdBy': createdBy,
         'createdAt': createdAt.toIso8601String(),
       };
@@ -90,6 +103,9 @@ class CommunitySpot {
         covered: j['covered'] as bool?,
         publicAccess: j['publicAccess'] as bool?,
         accessNote: j['accessNote'] as String?,
+        category: j['category'] as String? ?? 'smoking',
+        wheelchair: j['wheelchair'] as bool?,
+        changingTable: j['changingTable'] as bool?,
         createdBy: j['createdBy'] as String,
         createdAt: DateTime.parse(j['createdAt'] as String),
       );

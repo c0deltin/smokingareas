@@ -135,7 +135,10 @@ class CommunitySection extends StatelessWidget {
 
             // --- existence votes (Waze-like) ----------------------------
             const SizedBox(height: 12),
-            Text('Gibt es diesen Raucherbereich noch?',
+            Text(
+                area.isToilet
+                    ? 'Gibt es diese Toilette noch?'
+                    : 'Gibt es diesen Raucherbereich noch?',
                 style: theme.textTheme.bodyMedium),
             const SizedBox(height: 6),
             Row(children: [
@@ -163,8 +166,9 @@ class CommunitySection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '${status.removals} Nutzer melden, dass es diesen '
-                  'Raucherbereich nicht mehr gibt.',
+                  '${status.removals} Nutzer melden, dass es '
+                  '${area.isToilet ? 'diese Toilette' : 'diesen Raucherbereich'} '
+                  'nicht mehr gibt.',
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.error),
                 ),
@@ -196,8 +200,8 @@ class CommunitySection extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Gibt es nicht mehr?'),
         content: const Text(
-          'Wenn genug Nutzer melden, dass es diesen Raucherbereich nicht mehr '
-          'gibt, wird er von der Karte entfernt.',
+          'Wenn genug Nutzer melden, dass es diesen Ort nicht mehr gibt, '
+          'wird er von der Karte entfernt.',
         ),
         actions: [
           TextButton(
@@ -380,7 +384,7 @@ class _RatingDialogState extends State<_RatingDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Raucherbereich bewerten'),
+      title: const Text('Bewerten'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           for (var i = 1; i <= 5; i++)
@@ -396,7 +400,7 @@ class _RatingDialogState extends State<_RatingDialog> {
           maxLength: 280,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: 'Kommentar (optional): sauber, überdacht, voll …',
+            hintText: 'Kommentar (optional): sauber, voll, gut zu finden …',
             border: OutlineInputBorder(),
           ),
         ),

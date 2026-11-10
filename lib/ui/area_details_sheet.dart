@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../community/community_service.dart';
 import '../models/smoking_area.dart';
 import 'community_section.dart';
+import 'spot_style.dart';
 
 String formatDistance(double meters) {
   if (meters < 1000) return '${meters.round()} m';
@@ -94,12 +95,20 @@ class AreaDetailsSheet extends StatelessWidget {
       if (area.isApproximate)
         (Icons.gps_not_fixed, 'Position',
             'ungefähr (aus der Adresse ermittelt, ± ca. 50 m)'),
-      if (area.roomCount > 1)
+      if (!area.isToilet && area.roomCount > 1)
         (Icons.layers_outlined, 'Raucherräume',
             '${area.roomCount} im selben Gebäude'),
-      (Icons.meeting_room_outlined, 'Art',
-          yesNo(area.isIndoor, 'Raucherraum (innen)', 'im Freien')),
-      (Icons.roofing, 'Überdacht', yesNo(area.isCovered, 'ja', 'nein')),
+      if (!area.isToilet) ...[
+        (Icons.meeting_room_outlined, 'Art',
+            yesNo(area.isIndoor, 'Raucherraum (innen)', 'im Freien')),
+        (Icons.roofing, 'Überdacht', yesNo(area.isCovered, 'ja', 'nein')),
+      ],
+      if (area.isToilet) ...[
+        (Icons.accessible, 'Rollstuhlgerecht',
+            yesNo(area.wheelchair, 'ja', 'nein')),
+        (Icons.baby_changing_station, 'Wickeltisch',
+            yesNo(area.changingTable, 'ja', 'nein')),
+      ],
       if (area.isPublic != null || area.accessNote != null)
         (
           Icons.lock_open_outlined,
@@ -136,9 +145,11 @@ class AreaDetailsSheet extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Icon(Icons.smoking_rooms,
-                      color: theme.colorScheme.onPrimaryContainer),
+                  backgroundColor: categoryColor(area.category,
+                      indoor: area.isIndoor == true),
+                  child: Icon(
+                      categoryIcon(area.category),
+                      color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -219,7 +230,7 @@ class AreaDetailsSheet extends StatelessWidget {
                   final messenger = ScaffoldMessenger.of(context);
                   Navigator.of(context).pop();
                   messenger.showSnackBar(const SnackBar(
-                    content: Text('Danke! Der Raucherbereich wurde nach den '
+                    content: Text('Danke! Der Ort wurde nach den '
                         'Meldungen der Community entfernt.'),
                   ));
                 },

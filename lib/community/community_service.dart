@@ -129,6 +129,11 @@ class CommunityService extends ChangeNotifier {
               if (s.publicAccess != null)
                 'access': s.publicAccess! ? 'yes' : 'customers',
               if (s.accessNote != null) 'access:note': s.accessNote!,
+              if (s.category == SpotCategory.toilet.name) 'amenity': 'toilets',
+              if (s.wheelchair != null)
+                'wheelchair': s.wheelchair! ? 'yes' : 'no',
+              if (s.changingTable != null)
+                'changing_table': s.changingTable! ? 'yes' : 'no',
               if (s.description != null) 'description': s.description!,
             },
           ),
@@ -142,23 +147,29 @@ class CommunityService extends ChangeNotifier {
     bool? covered,
     bool? publicAccess,
     String? accessNote,
+    SpotCategory category = SpotCategory.smoking,
+    bool? wheelchair,
+    bool? changingTable,
     File? photo,
   }) async {
     final now = _now();
     final spot = CommunitySpot(
       id: 'community:${_uuid.v4()}',
       position: position,
-      name: name.trim().isEmpty ? 'Raucherbereich' : name.trim(),
+      name: name.trim().isEmpty ? category.label : name.trim(),
       description:
           description?.trim().isEmpty ?? true ? null : description!.trim(),
-      indoor: indoor,
-      covered: covered,
+      indoor: category == SpotCategory.smoking ? indoor : null,
+      covered: category == SpotCategory.smoking ? covered : null,
       publicAccess: publicAccess,
       accessNote: publicAccess == false &&
               accessNote != null &&
               accessNote.trim().isNotEmpty
           ? accessNote.trim()
           : null,
+      category: category.name,
+      wheelchair: category == SpotCategory.toilet ? wheelchair : null,
+      changingTable: category == SpotCategory.toilet ? changingTable : null,
       createdBy: currentUser.id,
       createdAt: now,
     );

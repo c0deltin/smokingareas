@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../models/smoking_area.dart';
 import 'community_section.dart';
+import 'spot_style.dart';
 
 /// Data entered for a new spot.
 class SpotReportInput {
@@ -14,8 +16,14 @@ class SpotReportInput {
     this.publicAccess = true,
     this.accessNote,
     this.photo,
+    this.category = SpotCategory.smoking,
+    this.wheelchair,
+    this.changingTable,
   });
 
+  final SpotCategory category;
+  final bool? wheelchair;
+  final bool? changingTable;
   final String name;
   final String? description;
   final bool? indoor;
@@ -25,7 +33,36 @@ class SpotReportInput {
   final File? photo;
 }
 
-Future<SpotReportInput?> showReportSpotSheet(BuildContext context) {
+/// Asks which kind of spot the user wants to report.
+Future<SpotCategory?> askSpotCategory(BuildContext context) {
+  return showModalBottomSheet<SpotCategory>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('Was möchtest du melden?'),
+        ),
+        ListTile(
+          leading: Icon(categoryIcon(SpotCategory.smoking),
+              color: categoryColor(SpotCategory.smoking)),
+          title: const Text('Raucherbereich'),
+          onTap: () => Navigator.pop(context, SpotCategory.smoking),
+        ),
+        ListTile(
+          leading: Icon(categoryIcon(SpotCategory.toilet),
+              color: categoryColor(SpotCategory.toilet)),
+          title: const Text('Öffentliche Toilette'),
+          onTap: () => Navigator.pop(context, SpotCategory.toilet),
+        ),
+      ]),
+    ),
+  );
+}
+
+Future<SpotReportInput?> showReportSpotSheet(BuildContext context,
+    [SpotCategory category = SpotCategory.smoking]) {
   return showModalBottomSheet<SpotReportInput>(
     context: context,
     isScrollControlled: true,
@@ -33,13 +70,14 @@ Future<SpotReportInput?> showReportSpotSheet(BuildContext context) {
     builder: (context) => Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: const _ReportSpotForm(),
+      child: _ReportSpotForm(category: category),
     ),
   );
 }
 
 class _ReportSpotForm extends StatefulWidget {
-  const _ReportSpotForm();
+  const _ReportSpotForm({required this.category});
+  final SpotCategory category;
 
   @override
   State<_ReportSpotForm> createState() => _ReportSpotFormState();
@@ -52,7 +90,11 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
   bool _public = true;
   bool? _indoor;
   bool? _covered;
+  bool _wheelchair = false;
+  bool _changingTable = false;
   File? _photo;
+
+  bool get _toilet => widget.category == SpotCategory.toilet;
 
   @override
   void dispose() {
@@ -71,18 +113,36 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Raucherbereich melden', style: theme.textTheme.titleLarge),
+            Text('${widget.category.label} melden',
+                style: theme.textTheme.titleLarge),
             const SizedBox(height: 12),
             TextField(
               controller: _name,
               textCapitalization: TextCapitalization.sentences,
               maxLength: 80,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Name / Ort',
-                hintText: 'z. B. „Raucherecke neben FamilyMart“',
-                border: OutlineInputBorder(),
+                hintText: _toilet
+                    ? 'z. B. „Toilette am Parkeingang“'
+                    : 'z. B. „Raucherecke neben FamilyMart“',
+                border: const OutlineInputBorder(),
               ),
             ),
+            if (_toilet) ...[
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _wheelchair,
+                onChanged: (v) => setState(() => _wheelchair = v ?? false),
+                title: const Text('Rollstuhlgerecht'),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _changingTable,
+                onChanged: (v) => setState(() => _changingTable = v ?? false),
+                title: const Text('Wickeltisch'),
+              ),
+            ],
+            if (!_toilet) ...[
             const SizedBox(height: 8),
             Text('Art', style: theme.textTheme.labelLarge),
             const SizedBox(height: 4),
@@ -104,6 +164,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 onChanged: (v) => setState(() => _covered = v),
                 title: const Text('Überdacht'),
               ),
+            ],
             ],
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
@@ -159,8 +220,11 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 SpotReportInput(
                   name: _name.text,
                   description: _description.text,
-                  indoor: _indoor,
-                  covered: _indoor == true ? null : _covered,
+                  indoor: _toilet ? null : _indoor,
+                  covered: _toilet || _indoor == true ? null : _covered,
+                  category: widget.category,
+                  wheelchair: _toilet ? _wheelchair : null,
+                  changingTable: _toilet ? _changingTable : null,
                   publicAccess: _public,
                   accessNote: _public ? null : _accessNote.text,
                   photo: _photo,
