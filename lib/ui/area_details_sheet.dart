@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../community/community_service.dart';
 import '../models/smoking_area.dart';
+import 'community_section.dart';
 
 String formatDistance(double meters) {
   if (meters < 1000) return '${meters.round()} m';
@@ -15,20 +17,39 @@ Future<void> showAreaDetails(
   BuildContext context,
   SmokingArea area, {
   LatLng? userPosition,
+  CommunityService? community,
 }) {
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (_) => AreaDetailsSheet(area: area, userPosition: userPosition),
+    builder: (_) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      maxChildSize: 0.95,
+      builder: (context, controller) => AreaDetailsSheet(
+        area: area,
+        userPosition: userPosition,
+        community: community,
+        scrollController: controller,
+      ),
+    ),
   );
 }
 
 class AreaDetailsSheet extends StatelessWidget {
-  const AreaDetailsSheet({super.key, required this.area, this.userPosition});
+  const AreaDetailsSheet({
+    super.key,
+    required this.area,
+    this.userPosition,
+    this.community,
+    this.scrollController,
+  });
 
   final SmokingArea area;
   final LatLng? userPosition;
+  final CommunityService? community;
+  final ScrollController? scrollController;
 
   Uri get _routeUri {
     final dest = '${area.latitude},${area.longitude}';
@@ -86,12 +107,15 @@ class AreaDetailsSheet extends StatelessWidget {
       if (area.operator != null) (Icons.business, 'Betreiber', area.operator!),
       if (area.description != null)
         (Icons.info_outline, 'Hinweis', area.description!),
+      if (area.tags['community:by'] != null)
+        (Icons.person_outline, 'Gemeldet von', area.tags['community:by']!),
       (Icons.storage, 'Quelle',
           area.isOfficial ? '${area.source} (offiziell)' : area.source),
     ];
 
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
+        controller: scrollController,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -175,6 +199,19 @@ class AreaDetailsSheet extends StatelessWidget {
                 ],
               ],
             ),
+            if (community != null)
+              CommunitySection(
+                area: area,
+                community: community!,
+                onRemoved: () {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.of(context).pop();
+                  messenger.showSnackBar(const SnackBar(
+                    content: Text('Danke! Der Raucherbereich wurde nach den '
+                        'Meldungen der Community entfernt.'),
+                  ));
+                },
+              ),
           ],
         ),
       ),
