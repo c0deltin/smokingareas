@@ -66,6 +66,11 @@ Key design decisions – keep them:
 - **Waze-like moderation** lives only in `ExistencePolicy` (pure, tested):
   latest vote per user, 180-day expiry, hidden at ≥ 3 "gone" and ≥ 2× the
   "exists" votes. Hidden spots disappear from the map *and* proximity alerts.
+- **Temporary closures** live only in `ClosurePolicy` (pure, tested): reports
+  expire after 14 days or at their end date (max. 180 days), latest report per
+  user, majority wins. Closed spots stay visible (grey, pause badge) but are
+  excluded from alerts; state is applied via `CommunityService.annotate`
+  (tag `temporarily_closed=yes`).
 
 ## Layout
 

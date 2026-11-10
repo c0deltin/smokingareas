@@ -161,6 +161,15 @@ map section (zoom).
   latest vote counts and votes older than 180 days expire. A spot is hidden
   (from the map **and** the 30 m alert) once at least 3 users say “no” and the
   “no” votes are at least twice the “yes” votes (`ExistencePolicy`).
+- **Temporarily closed (like a Waze report):** users can report a spot as
+  temporarily closed (optional reason and expected end date) or as reopened.
+  A report expires after 14 days, or at its end date (max. 180 days); only a
+  user's latest report counts and the majority wins (newest report on a tie,
+  `ClosurePolicy`). Closed spots stay on the map in grey with a pause badge,
+  show a banner in the details view and are excluded from 30 m alerts and the
+  nearest-spot banner. Official entries flagged as closed (e.g. Okayama's
+  「工事中のため、休止中」) are shown the same way and can be reopened by the
+  community.
 - **Multiple users:** every record carries the `userId` of its author. Until a
   server exists there are local profiles (profile icon at the top right) to
   try out the multi-user rules on a single device.
@@ -181,7 +190,7 @@ lib/community/
 ```
 
 The local database (`<app support>/community/db.json`) is structured like a
-multi-user database (tables `users`, `spots`, `reviews`, `photos`, `votes`).
+multi-user database (tables `users`, `spots`, `reviews`, `photos`, `votes`, `closures`).
 For a real server, `RemoteCommunityBackend` gets implemented (login, one rating
 per user, Waze rule and rate limiting on the server, photos in object storage)
 and is used in `main.dart` instead of the local adapters – UI and logic stay
