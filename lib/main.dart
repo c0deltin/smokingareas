@@ -58,7 +58,7 @@ class SmokingAreasApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const seed = Colors.teal;
     return MaterialApp(
-      title: 'Raucherzonen Japan',
+      title: 'smokingareas',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: seed, useMaterial3: true),
       darkTheme: ThemeData(

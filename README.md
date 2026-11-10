@@ -1,4 +1,4 @@
-# Raucherzonen Japan (Smoking Areas Japan) 🚬🗾
+# smokingareas 🚬🗾
 
 Flutter app for **iOS and Android** that shows public smoking areas (喫煙所) in
 all major Japanese cities on a map and sends a **push notification** as soon as
@@ -169,7 +169,7 @@ On every push to `main` the GitHub Actions pipeline
 (`.github/workflows/android-release.yml`) refreshes the official data, runs
 analysis and tests, builds the app and publishes the APK as a **GitHub
 Release** (`v1.0.<build number>`). Download: *Releases* → latest version →
-open `raucherzonen-japan-….apk` on the Android device and allow installation
+open `smokingareas-….apk` on the Android device and allow installation
 from unknown sources. The pipeline can also be started manually (*Actions* →
 *Run workflow*).
 
@@ -179,7 +179,7 @@ the old version. Create it once:
 
 ```bash
 keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 \
-  -validity 10000 -alias raucherzonen
+  -validity 10000 -alias smokingareas
 base64 -w0 release.jks   # store the output as a secret
 ```
 
@@ -189,7 +189,7 @@ and add it under *Settings → Secrets and variables → Actions*:
 |---|---|
 | `ANDROID_KEYSTORE_BASE64` | base64-encoded `release.jks` |
 | `ANDROID_KEYSTORE_PASSWORD` | keystore password |
-| `ANDROID_KEY_ALIAS` | e.g. `raucherzonen` |
+| `ANDROID_KEY_ALIAS` | e.g. `smokingareas` |
 | `ANDROID_KEY_PASSWORD` | key password (empty = keystore password) |
 
 ## Permissions & background operation

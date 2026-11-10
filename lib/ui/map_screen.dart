@@ -525,7 +525,7 @@ class _MapScreenState extends State<MapScreen> {
   void _showInfo(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'Raucherzonen Japan',
+      applicationName: 'smokingareas',
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(Icons.smoking_rooms, size: 40),
       children: [

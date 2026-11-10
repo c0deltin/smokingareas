@@ -77,7 +77,7 @@ jobs:
             --build-number=${{ github.run_number }}
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk \
-            dist/raucherzonen-japan-1.0.${{ github.run_number }}.apk
+            dist/smokingareas-1.0.${{ github.run_number }}.apk
 
       - uses: actions/upload-artifact@v4
         with:
@@ -88,7 +88,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Raucherzonen Japan 1.0.${{ github.run_number }}
+          name: smokingareas 1.0.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           make_latest: true
           files: dist/*.apk
@@ -96,7 +96,7 @@ jobs:
             Automatischer Build von `${{ github.sha }}`.
 
             **Installation (Android, ohne Play Store):**
-            1. `raucherzonen-japan-….apk` unten auf dem Handy herunterladen.
+            1. `smokingareas-….apk` unten auf dem Handy herunterladen.
             2. Datei öffnen und „Installation aus unbekannten Quellen“ für den
                Browser bzw. Dateimanager erlauben.
             3. Falls Play Protect warnt: „Trotzdem installieren“.
