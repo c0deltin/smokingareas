@@ -32,7 +32,8 @@ when it is picked up and delete it here once it is merged.
   entries plus OSM smoking areas and toilets); consider viewport-based
   marker building if it stutters.
 - [ ] Verify on a real device: live Overpass query incl. toilets, camera and
-  gallery for photos, background location and the 30 m alert.
+  gallery for photos, background location and the 30 m alert, direction cone
+  (compass accuracy, flat vs. upright, map rotation).
 
 ## Distribution
 
