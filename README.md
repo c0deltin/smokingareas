@@ -1,23 +1,32 @@
 # smokingareas 🚬🗾
 
-Flutter app for **iOS and Android** that shows public smoking areas (喫煙所) in
-all major Japanese cities on a map and sends a **push notification** as soon as
-you get within **30 m** of one – even while the app runs in the background.
+Flutter app for **iOS and Android** that shows public smoking areas (喫煙所)
+and public toilets (公衆トイレ) in all major Japanese cities on a map and sends a
+**push notification** as soon as you get within **30 m** of a smoking area –
+even while the app runs in the background.
 
 The app's user interface is in German.
 
 ## Features
 
 - Map (OpenStreetMap tiles) with clustered markers, a details view (indoor /
-  outdoor, covered, fee, opening hours, operator, access) and walking
-  directions via Apple Maps / Google Maps.
+  outdoor, covered, fee, opening hours, operator, access; for toilets
+  wheelchair access and baby changing table) and walking directions via Apple
+  Maps / Google Maps.
+- Two categories, visually distinct: **smoking areas in green** (darker green
+  for smoking rooms) and **public toilets in blue** with a WC icon. Each
+  category has its own coloured cluster layer and a filter chip to show or
+  hide it. Marker rings show the origin: gold = official list, pink =
+  reported by a user. The status banner shows the nearest smoking area and
+  the nearest toilet.
 - 55 cities / metropolitan areas: Tokyo (23 wards + Tama), all 20 designated
   cities (政令指定都市) and all remaining prefectural capitals or large cities
   (Naha, Kanazawa, Nara, Kagoshima, Nagasaki …) – see `lib/data/cities.dart`.
 - Automatic city selection based on your location, manual selection with
   search – including quick jumps to popular districts (Shinjuku, Shibuya,
   Ikebukuro, Akihabara, Kanda, Ueno, Asakusa, Ginza, Umeda, Namba, Gion …).
-- 30 m proximity alert as a local push notification
+- 30 m proximity alert as a local push notification (smoking areas only –
+  toilets are far too dense for alerts)
   - hysteresis (a new alert only after moving > 60 m away) and a 30 min
     cooldown per smoking area, so GPS jitter does not cause a flood of alerts
   - inaccurate location fixes (accuracy > 50 m) are ignored
@@ -31,7 +40,7 @@ The app's user interface is in German.
 
 | Source | Area | Access | Licence |
 |---|---|---|---|
-| **OpenStreetMap** via the public **Overpass API** – `amenity=smoking_area`, `amenity=smoking_room`, `smoking=dedicated` | all of Japan | live in the app | ODbL |
+| **OpenStreetMap** via the public **Overpass API** – `amenity=smoking_area`, `amenity=smoking_room`, `smoking=dedicated`, and `amenity=toilets` without `access=private/no/customers/permit` | all of Japan | live in the app | ODbL |
 | City of Kyoto – open data portal, dataset “施設情報一覧”, category 喫煙場所 | Kyoto | snapshot | CC BY 4.0 |
 | City of Osaka – list of 大阪市指定喫煙所 (coordinates taken from the GIS links) | Osaka | snapshot | published by the city |
 | Tokyo, Kōtō ward – open data “公共喫煙所一覧” | Kameido, Tōyōchō, Shin-Kiba … | snapshot | CC BY 4.0 |
@@ -40,11 +49,19 @@ The app's user interface is in German.
 | Tokyo, Shinjuku ward – “公衆喫煙所” | **Shinjuku**, Takadanobaba … | snapshot, geocoded | published by the ward |
 | Tokyo, Shibuya ward – “区内公共喫煙所一覧” | **Shibuya**, Harajuku, Ebisu … | snapshot, geocoded | published by the ward |
 | Tokyo, Toshima ward – “区指定喫煙所” | **Ikebukuro**, Ōtsuka | snapshot, geocoded | published by the ward |
+| Kyoto – same facility list, category 公衆トイレ／観光トイレ | Kyoto (136 toilets) | snapshot | CC BY 4.0 |
+| Tokyo wards – national standard dataset “公衆トイレ一覧” of Chiyoda, Chūō, Shinjuku, Taitō, Sumida, Kōtō, Meguro, Suginami, Toshima, Arakawa, Itabashi, Nerima, Katsushika, Edogawa (URLs resolved via the Tokyo catalog API) | Tokyo (≈ 1,950 toilets) | snapshot | CC BY 4.0 |
 | GSI (国土地理院) address search | geocoding of the address lists | when building the snapshot | – |
 | OpenStreetMap map tiles | – | live | ODbL |
 
-**Okayama** does not publish a machine-readable list of smoking areas (only
-the outline of its no-smoking zone) – there the app shows the OSM data.
+Where no official data is available the app shows the OSM data:
+
+- **Okayama** publishes no machine-readable list of smoking areas (only the
+  outline of its no-smoking zone); its public-toilet dataset is served by a
+  GIS that refuses connections from abroad.
+- **Osaka**: no official public-toilet dataset found.
+- **Tokyo**: Shibuya and Minato publish no current toilet dataset, Shinagawa's
+  file no longer exists and Nakano's server refuses connections from abroad.
 
 ### Official data (snapshot)
 
@@ -73,6 +90,8 @@ map section (zoom).
 
 ### No duplicate markers
 
+- Entries are only ever merged within the same category – a toilet never
+  absorbs a smoking area next to it.
 - Several smoking rooms in the same building (same address) are already
   combined into one entry in the snapshot.
 - When a city is loaded, every official entry is merged with at most one OSM
@@ -80,19 +99,20 @@ map section (zoom).
   coordinates). The resulting marker uses the city's name, address and
   opening hours, the OSM attributes and – for geocoded addresses – the more
   precise OSM position.
-- Official entries have a blue ring; the details view links to the city's
+- Official entries have a gold ring; the details view links to the city's
   page and to the OSM entry.
 
 ## Community (report spots, photos, ratings)
 
-- **Report a spot:** “Report smoking area” button → move the map until the
-  cross hair is on the spot → name, type (outdoor / smoking room), covered,
-  note and optionally a photo. A “publicly accessible” checkbox (no ticket,
+- **Report a spot:** “Report” button → choose *smoking area* or *public
+  toilet* → move the map until the cross hair is on the spot → name, type
+  (outdoor / smoking room) and covered for smoking areas, wheelchair access
+  and baby changing table for toilets, note and optionally a photo. A “publicly accessible” checkbox (no ticket,
   entrance fee or purchase required); if unchecked – e.g. on a station
   platform or inside a sight – the access can be described (stored using the
-  OSM schema `access=customers` + `access:note`). If a spot already exists
-  within 20 m, the app offers it instead of creating a duplicate. Reported
-  spots have orange markers.
+  OSM schema `access=customers` + `access:note`). If a spot of the same
+  category already exists within 20 m, the app offers it instead of creating
+  a duplicate. Reported spots have a pink ring.
 - **Ratings:** 1–5 stars plus a comment, one rating per user and spot (a new
   rating replaces the old one).
 - **Photos:** camera or gallery, for every spot (including official and OSM
