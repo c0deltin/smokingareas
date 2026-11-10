@@ -19,6 +19,7 @@ import 'city_picker.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
 import 'spot_style.dart';
+import 'user_location_marker.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({
@@ -333,20 +334,13 @@ class _MapScreenState extends State<MapScreen> {
                   ),
               if (userPos != null)
                 MarkerLayer(markers: [
+                  // Dot + direction cone; not counter-rotated, so the cone
+                  // keeps its geographic direction when the map rotates.
                   Marker(
                     point: userPos,
-                    width: 22,
-                    height: 22,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                        boxShadow: const [
-                          BoxShadow(blurRadius: 4, color: Colors.black26),
-                        ],
-                      ),
-                    ),
+                    width: UserLocationMarker.size,
+                    height: UserLocationMarker.size,
+                    child: UserLocationMarker(heading: _monitor.heading),
                   ),
                 ]),
               RichAttributionWidget(
