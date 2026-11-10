@@ -27,7 +27,7 @@ class OverpassSource extends SmokingAreaSource {
   ];
 
   static const userAgent =
-      'SmokingAreasJapan/1.0 (+https://github.com/c0deltin/smokingareas)';
+      'smokingareas/1.0 (+https://github.com/c0deltin/smokingareas)';
 
   final http.Client _client;
   final List<Uri> endpoints;

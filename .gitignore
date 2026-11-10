@@ -46,3 +46,21 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Secrets – never commit (see AGENTS.md)
+.env
+.env.*
+*.env
+*.jks
+*.keystore
+key.properties
+*.p8
+*.p12
+*.pem
+*.key
+*.cer
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+*-credentials.json
+*service-account*.json

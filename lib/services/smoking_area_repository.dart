@@ -89,7 +89,24 @@ class SmokingAreaRepository extends ChangeNotifier {
         ..._bundled,
         for (final snap in _cities.values)
           for (final list in snap.raw.values) ...list,
-      ]);
+        ..._community,
+      ]).where((a) => !_isHidden(a)).toList();
+
+  // Community data (user reports + crowd moderation), see [setCommunity].
+  List<SmokingArea> _community = const [];
+  bool Function(SmokingArea) _isHidden = _never;
+  static bool _never(SmokingArea _) => false;
+
+  /// Adds user-reported spots to the merged data set and removes every spot
+  /// for which [isHidden] is true (reported as gone by the community).
+  void setCommunity({
+    required List<SmokingArea> spots,
+    required bool Function(SmokingArea) isHidden,
+  }) {
+    _community = spots;
+    _isHidden = isHidden;
+    _changed();
+  }
 
   /// Alias kept for the proximity monitor.
   Iterable<SmokingArea> get allLoaded => allVisible;

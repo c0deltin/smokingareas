@@ -34,7 +34,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "assets" / "opendata" / "official_smoking_areas.json"
 GEOCODE_CACHE = Path(__file__).resolve().parent / "geocode_cache.json"
-USER_AGENT = "SmokingAreasJapan-opendata/1.0 (+https://github.com/c0deltin/smokingareas)"
+USER_AGENT = "smokingareas-opendata/1.0 (+https://github.com/c0deltin/smokingareas)"
 
 # --------------------------------------------------------------------------
 # helpers

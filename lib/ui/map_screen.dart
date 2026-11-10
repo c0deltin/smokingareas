@@ -5,6 +5,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:latlong2/latlong.dart';
+
+import '../community/community_service.dart';
 import '../data/cities.dart';
 import '../models/city.dart';
 import '../models/smoking_area.dart';
@@ -13,16 +16,20 @@ import '../services/proximity_monitor.dart';
 import '../services/smoking_area_repository.dart';
 import 'area_details_sheet.dart';
 import 'city_picker.dart';
+import 'profile_sheet.dart';
+import 'report_spot_sheet.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({
     super.key,
     required this.repository,
     required this.monitor,
+    required this.community,
   });
 
   final SmokingAreaRepository repository;
   final ProximityMonitor monitor;
+  final CommunityService community;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -43,6 +50,11 @@ class _MapScreenState extends State<MapScreen> {
 
   SmokingAreaRepository get _repo => widget.repository;
   ProximityMonitor get _monitor => widget.monitor;
+  CommunityService get _community => widget.community;
+
+  /// "Spot melden": the user moves the map until the cross hair is on the
+  /// smoking area and confirms.
+  bool _reportMode = false;
 
   @override
   void initState() {
@@ -156,7 +168,8 @@ class _MapScreenState extends State<MapScreen> {
     for (final a in _repo.allLoaded) {
       if (a.id == id) {
         _mapController.move(a.position, 18);
-        showAreaDetails(context, a, userPosition: _monitor.position);
+        showAreaDetails(context, a,
+            userPosition: _monitor.position, community: _community);
         return;
       }
     }
@@ -238,6 +251,11 @@ class _MapScreenState extends State<MapScreen> {
             onPressed: _loading ? null : () => _loadCity(_city, force: true),
           ),
           IconButton(
+            tooltip: 'Profil',
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => showProfileSheet(context, _community),
+          ),
+          IconButton(
             tooltip: 'Info',
             icon: const Icon(Icons.info_outline),
             onPressed: () => _showInfo(context),
@@ -281,7 +299,8 @@ class _MapScreenState extends State<MapScreen> {
                   onMarkerTap: (m) {
                     final a = byKey[m.key];
                     if (a != null) {
-                      showAreaDetails(context, a, userPosition: userPos);
+                      showAreaDetails(context, a,
+                          userPosition: userPos, community: _community);
                     }
                   },
                   builder: (context, markers) => Container(
@@ -351,23 +370,162 @@ class _MapScreenState extends State<MapScreen> {
               onRetry: () => _loadCity(_city, force: true),
               onFixPermissions: _monitor.openSettings,
               onNearestTap: (a) =>
-                  showAreaDetails(context, a, userPosition: userPos),
+                  showAreaDetails(context, a,
+                      userPosition: userPos, community: _community),
             ),
           ),
+          if (_reportMode) ..._reportOverlay(theme),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Mein Standort',
-        onPressed: _centerOnUser,
-        child: const Icon(Icons.my_location),
-      ),
+      floatingActionButton: _reportMode
+          ? null
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'report',
+                  tooltip: 'Raucherbereich melden',
+                  onPressed: _startReport,
+                  child: const Icon(Icons.add_location_alt_outlined),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton(
+                  heroTag: 'locate',
+                  tooltip: 'Mein Standort',
+                  onPressed: _centerOnUser,
+                  child: const Icon(Icons.my_location),
+                ),
+              ],
+            ),
     );
+  }
+
+  // ---------------------------------------------------------------------
+  // Report a new spot
+  // ---------------------------------------------------------------------
+
+  void _startReport() {
+    final pos = _monitor.position;
+    if (pos != null) {
+      _mapController.move(pos, 18);
+    } else if (_mapController.camera.zoom < 16) {
+      _mapController.move(_mapController.camera.center, 17);
+    }
+    setState(() => _reportMode = true);
+  }
+
+  List<Widget> _reportOverlay(ThemeData theme) => [
+        // Cross hair in the middle of the map.
+        IgnorePointer(
+          child: Center(
+            child: Icon(Icons.add, size: 44, color: theme.colorScheme.error),
+          ),
+        ),
+        Positioned(
+          left: 12,
+          right: 12,
+          bottom: 24,
+          child: Card(
+            elevation: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text(
+                  'Karte verschieben, bis das Kreuz genau auf dem '
+                  'Raucherbereich liegt.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => setState(() => _reportMode = false),
+                      child: const Text('Abbrechen'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _confirmReportPosition,
+                      child: const Text('Hier melden'),
+                    ),
+                  ),
+                ]),
+              ]),
+            ),
+          ),
+        ),
+      ];
+
+  Future<void> _confirmReportPosition() async {
+    final position = _mapController.camera.center;
+
+    // Avoid duplicates: offer the existing spot instead.
+    const distance = Distance();
+    SmokingArea? nearest;
+    var nearestDist = double.infinity;
+    for (final a in _repo.allVisible) {
+      if ((a.latitude - position.latitude).abs() > 0.0005) continue;
+      final d = distance(position, a.position);
+      if (d < nearestDist) {
+        nearest = a;
+        nearestDist = d;
+      }
+    }
+    if (nearest != null && nearestDist <= 20) {
+      final existing = nearest;
+      final choice = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Schon vorhanden?'),
+          content: Text('In ${nearestDist.round()} m gibt es bereits '
+              '„${existing.title}“. Ist es derselbe Raucherbereich?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Nein, neu melden'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Ja, anzeigen'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || choice == null) return;
+      if (choice) {
+        setState(() => _reportMode = false);
+        showAreaDetails(context, existing,
+            userPosition: _monitor.position, community: _community);
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    final input = await showReportSpotSheet(context);
+    if (!mounted || input == null) return;
+    await _community.reportSpot(
+      position: position,
+      name: input.name,
+      description: input.description,
+      indoor: input.indoor,
+      covered: input.covered,
+      publicAccess: input.publicAccess,
+      accessNote: input.accessNote,
+      photo: input.photo,
+    );
+    if (!mounted) return;
+    setState(() => _reportMode = false);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Danke! Der Raucherbereich ist jetzt auf der Karte.'),
+    ));
   }
 
   void _showInfo(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'Raucherzonen Japan',
+      applicationName: 'smokingareas',
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(Icons.smoking_rooms, size: 40),
       children: [
@@ -411,7 +569,9 @@ class _AreaMarker extends StatelessWidget {
     final indoor = area.isIndoor == true;
     return Container(
       decoration: BoxDecoration(
-        color: indoor ? Colors.deepPurple : Colors.teal,
+        color: area.tags['community'] == 'yes'
+            ? Colors.orange.shade700
+            : (indoor ? Colors.deepPurple : Colors.teal),
         shape: BoxShape.circle,
         // Official entries get a blue ring.
         border: Border.all(

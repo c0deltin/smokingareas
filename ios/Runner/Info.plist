@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Die Kamera wird verwendet, um Fotos von Raucherbereichen aufzunehmen.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fotos aus deiner Mediathek können Raucherbereichen hinzugefügt werden.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Dein Standort wird verwendet, um Raucherbereiche in deiner Nähe anzuzeigen.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
@@ -17,7 +21,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Raucherzonen</string>
+	<string>smokingareas</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -25,7 +29,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>smoking_areas</string>
+	<string>smokingareas</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
