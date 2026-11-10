@@ -18,7 +18,9 @@ The app's user interface is in German.
   category has its own coloured cluster layer and a filter chip to show or
   hide it. Marker rings show the origin: gold = official list, pink =
   reported by a user. The status banner shows the nearest smoking area and
-  the nearest toilet.
+  the nearest toilet. A **legend** (menu ⋮ → Legende) explains every symbol
+  with one sentence; it uses the same marker widgets as the map
+  (`SpotMarker`, `ClusterBubble` in `lib/ui/spot_style.dart`).
 - 55 cities / metropolitan areas: Tokyo (23 wards + Tama), all 20 designated
   cities (政令指定都市) and all remaining prefectural capitals or large cities
   (Naha, Kanazawa, Nara, Kagoshima, Nagasaki …) – see `lib/data/cities.dart`.
