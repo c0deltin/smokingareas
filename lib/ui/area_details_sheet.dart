@@ -167,6 +167,18 @@ class AreaDetailsSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
+            if (community != null)
+              ListenableBuilder(
+                listenable: community!,
+                builder: (context, _) {
+                  final current = community!.annotate(area);
+                  return current.isTemporarilyClosed
+                      ? ClosedBanner(area: current)
+                      : const SizedBox.shrink();
+                },
+              )
+            else if (area.isTemporarilyClosed)
+              ClosedBanner(area: area),
             for (final (icon, label, value) in rows)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -238,6 +250,50 @@ class AreaDetailsSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+String formatDate(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+
+/// Red notice for temporarily closed spots.
+class ClosedBanner extends StatelessWidget {
+  const ClosedBanner({super.key, required this.area});
+  final SmokingArea area;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final until = area.closedUntil;
+    final note = area.closedNote;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(Icons.pause_circle_filled, color: theme.colorScheme.error),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Vorübergehend geschlossen',
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(color: theme.colorScheme.onErrorContainer)),
+            if (note != null)
+              Text(note,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onErrorContainer)),
+            if (until != null)
+              Text('voraussichtlich bis ${formatDate(until)}',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onErrorContainer)),
+          ]),
+        ),
+      ]),
     );
   }
 }

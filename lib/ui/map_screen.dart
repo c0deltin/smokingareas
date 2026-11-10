@@ -622,9 +622,13 @@ class _AreaMarker extends StatelessWidget {
     final ring = area.isOfficial
         ? Colors.amber.shade400
         : (community ? Colors.pinkAccent : Colors.white);
-    return Container(
+    final closed = area.isTemporarilyClosed;
+    final marker = Container(
       decoration: BoxDecoration(
-        color: categoryColor(area.category, indoor: area.isIndoor == true),
+        // Temporarily closed: grey, but still recognisable by icon and ring.
+        color: closed
+            ? Colors.grey.shade500
+            : categoryColor(area.category, indoor: area.isIndoor == true),
         shape: BoxShape.circle,
         border: Border.all(
           color: ring,
@@ -638,6 +642,19 @@ class _AreaMarker extends StatelessWidget {
         size: 20,
       ),
     );
+    if (!closed) return marker;
+    return Stack(clipBehavior: Clip.none, children: [
+      Positioned.fill(child: marker),
+      const Positioned(
+        right: -4,
+        top: -4,
+        child: CircleAvatar(
+          radius: 8,
+          backgroundColor: Colors.white,
+          child: Icon(Icons.pause_circle_filled, size: 16, color: Colors.red),
+        ),
+      ),
+    ]);
   }
 }
 
