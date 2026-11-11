@@ -14,10 +14,21 @@ import 'smoking_area_source.dart';
 /// In Japan, public smoking spots (喫煙所) are mapped as
 /// `amenity=smoking_area`; dedicated smoking rooms / booths sometimes as
 /// `amenity=smoking_room` or with `smoking=dedicated`.
+///
+/// Only a fallback: the app normally uses the weekly OSM export
+/// ([OsmSnapshotSource]); live queries happen only while [isFallbackActive]
+/// says there is none on the device yet.
 class OverpassSource extends SmokingAreaSource {
-  OverpassSource({http.Client? client, List<Uri>? endpoints})
+  OverpassSource(
+      {http.Client? client, List<Uri>? endpoints, this.isFallbackActive})
       : _client = client ?? http.Client(),
         endpoints = endpoints ?? defaultEndpoints;
+
+  /// Null: always query live.
+  final bool Function()? isFallbackActive;
+
+  @override
+  bool covers(GeoBounds bounds) => isFallbackActive?.call() ?? true;
 
   /// Public Overpass instances, tried in order.
   static final List<Uri> defaultEndpoints = [
@@ -32,14 +43,16 @@ class OverpassSource extends SmokingAreaSource {
   final http.Client _client;
   final List<Uri> endpoints;
 
+  /// Different from [OsmSnapshotSource.id], so cached live data and the
+  /// export never mix up; equal ids are merged by the repository.
   @override
-  String get id => 'osm';
+  String get id => 'osm-live';
 
   @override
   String get displayName => 'OpenStreetMap';
 
   @override
-  String get attribution => '© OpenStreetMap-Mitwirkende (ODbL)';
+  String get attribution => '© OpenStreetMap contributors (ODbL)';
 
   static String buildQuery(GeoBounds b) {
     final bbox = b.toOverpass();

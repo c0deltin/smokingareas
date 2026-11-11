@@ -18,6 +18,7 @@ import 'services/proximity_monitor.dart';
 import 'services/smoking_area_repository.dart';
 import 'services/snapshot_updater.dart';
 import 'sources/official_opendata_source.dart';
+import 'sources/osm_snapshot_source.dart';
 import 'sources/overpass_source.dart';
 import 'ui/map_screen.dart';
 
@@ -30,9 +31,20 @@ Future<void> main() async {
     loader: snapshots.preferNewer(() =>
         rootBundle.loadString('assets/opendata/official_smoking_areas.json')),
   );
-  final repository =
-      SmokingAreaRepository(sources: [official, OverpassSource()]);
-  final updater = SnapshotUpdater(store: snapshots, source: official);
+  // OpenStreetMap: the weekly export (downloaded like the official data);
+  // live Overpass queries only until the first export is on the device.
+  final osmStore = SnapshotStore(getApplicationSupportDirectory,
+      fileName: 'osm_snapshot.json', metaName: 'osm-meta.json');
+  final osm = OsmSnapshotSource(osmStore.read);
+  final repository = SmokingAreaRepository(sources: [
+    official,
+    osm,
+    OverpassSource(isFallbackActive: () => !osm.hasData),
+  ]);
+  final updater = DataUpdaters([
+    SnapshotUpdater(store: snapshots, source: official),
+    SnapshotUpdater(store: osmStore, source: osm),
+  ]);
   // Official data for all of Japan + everything cached on the device: shown
   // on the very first frame, before any network request.
   await repository.warmUp();
@@ -109,7 +121,7 @@ class SmokingAreasApp extends StatelessWidget {
   final SmokingAreaRepository repository;
   final ProximityMonitor monitor;
   final CommunityService community;
-  final SnapshotUpdater? updater;
+  final DataUpdater? updater;
   final LocalDataMigration? localMigration;
 
   @override

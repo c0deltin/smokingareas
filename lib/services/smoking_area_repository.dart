@@ -88,12 +88,20 @@ class SmokingAreaRepository extends ChangeNotifier {
   // ---------------------------------------------------------------------
 
   /// Every known smoking area (all cities, all sources), merged.
-  List<SmokingArea> get allVisible => _visible ??= merge([
+  List<SmokingArea> get allVisible {
+    final seen = <String>{};
+    return _visible ??= merge([
+      // Bundled/downloaded data first: an OSM element that is also in an
+      // older live cache is used once, from the newer export.
+      for (final a in [
         ..._bundled,
         for (final snap in _cities.values)
           for (final list in snap.raw.values) ...list,
-        ..._community,
-      ]).where((a) => !_isHidden(a)).map(_annotate).toList();
+      ])
+        if (seen.add(a.id)) a,
+      ..._community,
+    ]).where((a) => !_isHidden(a)).map(_annotate).toList();
+  }
 
   // Community data (user reports + crowd moderation), see [setCommunity].
   List<SmokingArea> _community = const [];
@@ -483,17 +491,20 @@ class SmokingAreaRepository extends ChangeNotifier {
 
       final raw = <String, List<SmokingArea>>{};
       final rawJson = json['raw'] as Map<String, dynamic>?;
+      final bundledIds = {
+        for (final s in sources)
+          if (s.isBundled) s.id,
+      };
       if (rawJson != null) {
-        final bundledIds = {
-          for (final s in sources)
-            if (s.isBundled) s.id,
-        };
         rawJson.forEach((k, v) {
-          if (!bundledIds.contains(k)) raw[k] = parse(v);
+          // Live OSM data was cached as 'osm' before the weekly export
+          // (now the bundled source 'osm') existed.
+          final key = k == 'osm' && bundledIds.contains('osm') ? 'osm-live' : k;
+          if (!bundledIds.contains(key)) raw[key] = parse(v);
         });
       } else if (json['areas'] != null) {
         // Cache of app version 1.0.x: OpenStreetMap data only.
-        raw['osm'] = parse(json['areas'])
+        raw[bundledIds.contains('osm') ? 'osm-live' : 'osm'] = parse(json['areas'])
             .where((a) => a.id.startsWith('osm:'))
             .toList();
       }

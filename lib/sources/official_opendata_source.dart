@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/city.dart';
 import '../models/data_fingerprint.dart';
 import '../models/smoking_area.dart';
+import '../services/snapshot_updater.dart';
 import 'smoking_area_source.dart';
 
 /// Metadata of one official (municipal) dataset inside the snapshot.
@@ -66,7 +67,8 @@ const kOfficialDatasetLabels = {
 /// are normalised at build time by `tool/opendata/update_opendata.py` into a
 /// JSON snapshot that is bundled with the app. This source serves that
 /// snapshot; the repository merges it with live OpenStreetMap data.
-class OfficialOpenDataSource extends SmokingAreaSource {
+class OfficialOpenDataSource extends SmokingAreaSource
+    implements SnapshotDataset {
   OfficialOpenDataSource({Future<String> Function()? loader})
       : _loader = loader ??
             (() => rootBundle
@@ -97,7 +99,24 @@ class OfficialOpenDataSource extends SmokingAreaSource {
   Future<List<OfficialDataset>> datasets() async => (await _load()).datasets;
 
   /// Date the snapshot was generated.
+  @override
   Future<String> version() async => (await _load()).generated;
+
+  @override
+  String get manifestName => 'opendata-manifest.json';
+
+  @override
+  String get dataName => 'official_smoking_areas.json.gz';
+
+  @override
+  Future<int> entryCount() async => (await allAreas()).length;
+
+  @override
+  List<dynamic>? entriesOf(Map<String, dynamic> snapshot) =>
+      snapshot['areas'] as List?;
+
+  @override
+  void validate(String json) => parseSnapshot(json);
 
   /// All entries of the snapshot.
   Future<List<SmokingArea>> allAreas() async => (await _load()).areas;

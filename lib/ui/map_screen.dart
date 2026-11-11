@@ -44,7 +44,7 @@ class MapScreen extends StatefulWidget {
   final CommunityService community;
 
   /// Data updates without an app release (null in tests).
-  final SnapshotUpdater? updater;
+  final DataUpdater? updater;
 
   /// Device-only data of earlier versions, offered for upload after sign-in.
   final LocalDataMigration? localMigration;
@@ -302,7 +302,7 @@ class _MapScreenState extends State<MapScreen> {
         await _repo.reloadBundled();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Official data updated (${result.version}).'),
+            content: Text('Map data updated (${result.version}).'),
           ));
         }
       }

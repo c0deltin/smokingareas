@@ -131,7 +131,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: opendata
-          name: Official open data (for in-app updates)
+          name: Map data (for in-app updates)
           target_commitish: ${{ github.sha }}
           make_latest: false
           files: dist/opendata/*
