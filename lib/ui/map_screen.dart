@@ -530,7 +530,10 @@ class _MapScreenState extends State<MapScreen> {
         nearestDist = d;
       }
     }
-    if (nearest != null && nearestDist <= 20) {
+    // Same radius as the merge of reports, so the user decides here.
+    Set<String> notSameAs = const {};
+    if (nearest != null &&
+        nearestDist <= SmokingAreaRepository.mergeRadiusCommunity) {
       final existing = nearest;
       final choice = await showDialog<bool>(
         context: context,
@@ -557,6 +560,7 @@ class _MapScreenState extends State<MapScreen> {
             userPosition: _monitor.position, community: _community);
         return;
       }
+      notSameAs = existing.allIds;
     }
 
     if (!mounted) return;
@@ -574,6 +578,7 @@ class _MapScreenState extends State<MapScreen> {
       wheelchair: input.wheelchair,
       changingTable: input.changingTable,
       photo: input.photo,
+      notSameAs: notSameAs,
     );
     if (!mounted) return;
     setState(() => _reportCategory = null);

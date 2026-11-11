@@ -267,16 +267,24 @@ class SmokingAreaRepository extends ChangeNotifier {
   // Merging
   // ---------------------------------------------------------------------
 
-  /// Combines the entries of all sources so that every real smoking area is
-  /// shown only once:
+  /// Radius within which a user-reported spot is taken to be the same place
+  /// as an official or OSM entry of the same category.
+  static const double mergeRadiusCommunity = 25;
+
+  /// Combines the entries of all sources so that every real place is shown
+  /// only once. Never merges across categories.
   ///
-  /// * identical ids are dropped,
-  /// * every official entry is matched with at most one other entry (closest
-  ///   pairs first). The merged entry keeps the official name, hours and
-  ///   address, adds the OSM attributes and uses the OSM position when the
-  ///   official one was only geocoded from an address,
-  /// * other entries of different sources closer than
-  ///   [duplicateThresholdMeters] are collapsed.
+  /// 1. Official ↔ OSM: every official entry is matched with at most one OSM
+  ///    entry (closest pairs first, 25 m / 50 m for geocoded addresses). The
+  ///    result keeps the official name, hours and address, adds the OSM
+  ///    attributes and uses the OSM position for geocoded addresses.
+  /// 2. Remaining OSM entries closer than [duplicateThresholdMeters] to an
+  ///    entry of another source are dropped as duplicates.
+  /// 3. User reports ↔ the result: a reported spot that later shows up in
+  ///    official or OSM data (≤ [mergeRadiusCommunity], 1:1, closest first)
+  ///    is absorbed – the official/OSM entry stays the base, user details
+  ///    only fill gaps, and the community id becomes an alias so ratings,
+  ///    photos, votes and closures move along.
   static List<SmokingArea> merge(List<SmokingArea> input) {
     const distance = Distance();
     final byId = <String, SmokingArea>{};
@@ -284,58 +292,132 @@ class SmokingAreaRepository extends ChangeNotifier {
       byId.putIfAbsent(a.id, () => a);
     }
     final official = <SmokingArea>[];
-    final others = <SmokingArea>[];
+    final osm = <SmokingArea>[];
+    final community = <SmokingArea>[];
     for (final a in byId.values) {
-      (a.isOfficial ? official : others).add(a);
-    }
-
-    // Candidate pairs official <-> other, closest first.
-    final othersGrid = _Grid<int>();
-    for (var j = 0; j < others.length; j++) {
-      othersGrid.add(others[j].position, j);
-    }
-    final pairs = <(double, int, int)>[];
-    for (var i = 0; i < official.length; i++) {
-      final o = official[i];
-      final radius = o.isApproximate ? mergeRadiusGeocoded : mergeRadiusPrecise;
-      for (final j in othersGrid.near(o.position)) {
-        // Never merge a toilet with a smoking area.
-        if (others[j].category != o.category) continue;
-        final d = distance(o.position, others[j].position);
-        if (d <= radius) pairs.add((d, i, j));
+      if (a.isOfficial) {
+        official.add(a);
+      } else if (a.tags['community'] == 'yes') {
+        community.add(a);
+      } else {
+        osm.add(a);
       }
     }
-    pairs.sort((a, b) => a.$1.compareTo(b.$1));
-    final usedO = <int>{};
-    final usedX = <int>{};
-    final merged = <int, SmokingArea>{};
-    for (final (_, i, j) in pairs) {
-      if (usedO.contains(i) || usedX.contains(j)) continue;
-      usedO.add(i);
-      usedX.add(j);
-      merged[i] = _combine(official[i], others[j]);
-    }
 
-    final out = <SmokingArea>[];
-    final outGrid = _Grid<SmokingArea>();
-    void emit(SmokingArea a) {
-      out.add(a);
-      outGrid.add(a.position, a);
+    // --- 1. official <-> OSM ---------------------------------------------
+    final osmMatch = _matchPairs(official, osm,
+        (o) => o.isApproximate ? mergeRadiusGeocoded : mergeRadiusPrecise);
+    final base = <SmokingArea>[];
+    final baseGrid = _Grid<SmokingArea>();
+    void addBase(SmokingArea a) {
+      base.add(a);
+      baseGrid.add(a.position, a);
     }
 
     for (var i = 0; i < official.length; i++) {
-      emit(merged[i] ?? official[i]);
+      final j = osmMatch[i];
+      addBase(j == null ? official[i] : _combine(official[i], osm[j]));
     }
-    for (var j = 0; j < others.length; j++) {
-      if (usedX.contains(j)) continue;
-      final a = others[j];
-      final dup = outGrid.near(a.position).any((b) =>
+
+    // --- 2. remaining OSM entries, minus near duplicates -------------------
+    final usedOsm = osmMatch.values.toSet();
+    for (var j = 0; j < osm.length; j++) {
+      if (usedOsm.contains(j)) continue;
+      final a = osm[j];
+      final dup = baseGrid.near(a.position).any((b) =>
           b.source != a.source &&
           b.category == a.category &&
           distance(a.position, b.position) < duplicateThresholdMeters);
-      if (!dup) emit(a);
+      if (!dup) addBase(a);
+    }
+
+    // --- 3. user reports -> official / OSM ---------------------------------
+    final reportMatch = _matchPairs(
+      base,
+      community,
+      (_) => mergeRadiusCommunity,
+      // The reporter said "this is a different place" for these ids.
+      allowed: (b, r) {
+        final not = r.tags['community:not_same_as'];
+        if (not == null || not.isEmpty) return true;
+        final ids = b.allIds;
+        return !not.split(',').any(ids.contains);
+      },
+    );
+    final out = <SmokingArea>[
+      for (var i = 0; i < base.length; i++)
+        reportMatch[i] == null
+            ? base[i]
+            : _absorbReport(base[i], community[reportMatch[i]!]),
+    ];
+    final usedReports = reportMatch.values.toSet();
+    for (var j = 0; j < community.length; j++) {
+      if (!usedReports.contains(j)) out.add(community[j]);
     }
     return out;
+  }
+
+  /// 1:1 matching of [a] to [b] within [radius] (per entry of [a]), same
+  /// category only, closest pairs first. Returns index in [a] -> index in [b].
+  static Map<int, int> _matchPairs(
+    List<SmokingArea> a,
+    List<SmokingArea> b,
+    double Function(SmokingArea) radius, {
+    bool Function(SmokingArea a, SmokingArea b)? allowed,
+  }) {
+    const distance = Distance();
+    final grid = _Grid<int>();
+    for (var j = 0; j < b.length; j++) {
+      grid.add(b[j].position, j);
+    }
+    final pairs = <(double, int, int)>[];
+    for (var i = 0; i < a.length; i++) {
+      final r = radius(a[i]);
+      for (final j in grid.near(a[i].position)) {
+        if (b[j].category != a[i].category) continue;
+        if (allowed != null && !allowed(a[i], b[j])) continue;
+        final d = distance(a[i].position, b[j].position);
+        if (d <= r) pairs.add((d, i, j));
+      }
+    }
+    pairs.sort((x, y) => x.$1.compareTo(y.$1));
+    final result = <int, int>{};
+    final usedB = <int>{};
+    for (final (_, i, j) in pairs) {
+      if (result.containsKey(i) || usedB.contains(j)) continue;
+      result[i] = j;
+      usedB.add(j);
+    }
+    return result;
+  }
+
+  /// A user-reported spot that turned out to be an official / OSM place.
+  static SmokingArea _absorbReport(SmokingArea base, SmokingArea report) {
+    final tags = <String, String>{...base.tags};
+    // User details only fill gaps; the origin stays official / OSM.
+    report.tags.forEach((k, v) {
+      if (k == 'community' ||
+          k == 'aliases' ||
+          k == 'community:not_same_as') {
+        return;
+      }
+      tags.putIfAbsent(k, () => v);
+    });
+    final aliases = {
+      ...?base.tags['aliases']?.split(',').where((s) => s.isNotEmpty),
+      ...report.allIds,
+    }..remove(base.id);
+    tags['aliases'] = (aliases.toList()..sort()).join(',');
+    // A position placed by a user on site beats an address-based estimate.
+    final position = base.isApproximate ? report.position : base.position;
+    if (base.isApproximate) tags.remove('geocoded');
+    return SmokingArea(
+      id: base.id,
+      position: position,
+      source: '${base.source} + ${report.source}',
+      name: base.name ?? report.name,
+      tags: tags,
+    );
   }
 
   /// Kept for compatibility; see [merge].
@@ -384,6 +466,8 @@ class SmokingAreaRepository extends ChangeNotifier {
       if ((json['schema'] as int? ?? 1) < cacheSchema) fetchedAt = DateTime(2000);
       List<SmokingArea> parse(Object? list) => (list as List)
           .map((e) => SmokingArea.fromJson(e as Map<String, dynamic>))
+          // Caches written before fingerprints existed.
+          .map((a) => a.id.startsWith('osm:') ? a.withOsmFingerprint() : a)
           .toList();
 
       final raw = <String, List<SmokingArea>>{};

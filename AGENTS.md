@@ -50,8 +50,11 @@ Key design decisions – keep them:
   in `SmokingAreaRepository.allVisible`. City/district selection only moves the
   map; it never filters data.
 - **No duplicate markers.** `SmokingAreaRepository.merge` matches official
-  entries 1:1 with OSM points (25 m precise / 50 m geocoded); same-building
-  rooms are combined in the snapshot. Do not add a second marker path.
+  entries 1:1 with OSM points (25 m precise / 50 m geocoded), then absorbs
+  user reports into official/OSM entries (25 m, 1:1; the report id becomes
+  an alias, user details only fill gaps, "not same as" answers are
+  respected); same-building rooms are combined in the snapshot. Do not add a
+  second marker path.
 - **Adapters for everything that will later need a server**
   (`CommunityBackend`, `PhotoStorage`, `AuthService`). Today all data is local
   (`LocalCommunityBackend` → `<app support>/community/db.json`).
@@ -64,12 +67,19 @@ Key design decisions – keep them:
   blue = toilet (`lib/ui/spot_style.dart`); ring gold = official, pink =
   community. Proximity alerts are for smoking areas only; the radius is a
   user setting (`ProximityMonitor.alertRadius`, 10–150 m).
+- **The community has the upper hand over the data sets.** Official and OSM
+  entries carry a fingerprint of their source data (`data:fingerprint`,
+  `lib/models/data_fingerprint.dart`); votes and closure reports remember
+  the fingerprint they were made for. Verdicts for the current version hold
+  across data updates; a changed source entry restarts the evaluation.
 - **Waze-like moderation** lives only in `ExistencePolicy` (pure, tested):
-  latest vote per user, 180-day expiry, hidden at ≥ 3 "gone" and ≥ 2× the
-  "exists" votes. Hidden spots disappear from the map *and* proximity alerts.
+  latest vote per user, hidden at ≥ 3 "gone" and ≥ 2× the "exists" votes;
+  votes for the current data version never expire, votes without one expire
+  after 180 days. Hidden spots disappear from the map *and* proximity alerts.
 - **Temporary closures** live only in `ClosurePolicy` (pure, tested): reports
   expire after 14 days or at their end date (max. 180 days), latest report per
-  user, majority wins. Closed spots stay visible (grey, pause badge) but are
+  user, majority wins; an "open again" report against an official closure
+  (`official:closed`) holds until the official entry changes. Closed spots stay visible (grey, pause badge) but are
   excluded from alerts; state is applied via `CommunityService.annotate`
   (tag `temporarily_closed=yes`).
 

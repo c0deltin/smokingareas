@@ -1,5 +1,7 @@
 import 'package:latlong2/latlong.dart';
 
+import 'data_fingerprint.dart';
+
 /// Kind of place shown on the map.
 enum SpotCategory {
   /// Designated smoking area (喫煙所 / 喫煙場所).
@@ -123,6 +125,22 @@ class SmokingArea {
   String? get osmElement {
     if (id.startsWith('osm:')) return id.substring(4);
     return tags['osm:element'];
+  }
+
+  /// Fingerprint of the source data this entry is based on (null for pure
+  /// user reports). See `data_fingerprint.dart`.
+  String? get sourceFingerprint => tags[fingerprintTag];
+
+  /// Copy with the fingerprint of its OSM source data set (used for entries
+  /// fetched from Overpass and for older caches without it).
+  SmokingArea withOsmFingerprint() {
+    if (tags.containsKey(fingerprintTag)) return this;
+    final source = {
+      for (final e in tags.entries)
+        if (!isDerivedTag(e.key)) e.key: e.value,
+    };
+    return withTags(
+        {fingerprintTag: dataFingerprint(position: position, fields: source)});
   }
 
   /// Every id this place has been known under: its own id, former ids from

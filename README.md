@@ -148,6 +148,13 @@ map section (zoom).
   coordinates). The resulting marker uses the city's name, address and
   opening hours, the OSM attributes and – for geocoded addresses – the more
   precise OSM position.
+- **User reports that later appear in official or OSM data** (same
+  category, ≤ 25 m, 1:1 closest first) are absorbed: the official/OSM entry
+  stays the base (name, position, gold/white ring), the user's details only
+  fill gaps, a user-placed position beats a geocoded address, and the report
+  id becomes an alias – ratings, photos, "gone" votes and closures move
+  along. If the reporter answered "No, report new" to "Already on the map?"
+  (asked within the same 25 m), the report is never merged with that place.
 - Official entries have a gold ring; the details view links to the city's
   page and to the OSM entry.
 
@@ -167,9 +174,16 @@ map section (zoom).
 - **Photos:** camera or gallery, for every spot (including official and OSM
   spots).
 - **“Does it still exist?” (like Waze):** yes/no per user; only a user's
-  latest vote counts and votes older than 180 days expire. A spot is hidden
-  (from the map **and** the proximity alert) once at least 3 users say “no” and the
-  “no” votes are at least twice the “yes” votes (`ExistencePolicy`).
+  latest vote counts. A spot is hidden (from the map **and** the proximity
+  alert) once at least 3 users say “no” and the “no” votes are at least
+  twice the “yes” votes (`ExistencePolicy`).
+- **The community overrides the data sets.** Official and OSM entries carry
+  a fingerprint of their source data; every vote and closure report stores
+  the fingerprint it was made for. A spot reported gone therefore stays
+  hidden even if the next data update still lists it – until the city (or
+  OSM) changes that entry, which restarts the evaluation. Votes without a
+  data version (user-reported spots, older app versions) expire after 180
+  days.
 - **Temporarily closed (like a Waze report):** users can report a spot as
   temporarily closed (optional reason and expected end date) or as reopened.
   A report expires after 14 days, or at its end date (max. 180 days); only a
@@ -178,7 +192,9 @@ map section (zoom).
   show a banner in the details view and are excluded from proximity alerts and the
   nearest-spot banner. Official entries flagged as closed (e.g. Okayama's
   「工事中のため、休止中」) are shown the same way and can be reopened by the
-  community.
+  community; such an "open again" report holds until the official entry
+  changes. A "closed" report on an officially open spot always expires
+  (temporary by nature – use "gone" for permanent removal).
 - **Multiple users:** every record carries the `userId` of its author. Until a
   server exists there are local profiles (profile icon at the top right) to
   try out the multi-user rules on a single device.

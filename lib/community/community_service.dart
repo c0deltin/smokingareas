@@ -52,7 +52,8 @@ class CommunityService extends ChangeNotifier {
   List<SpotPhoto> _photos = [];
   List<ExistenceVote> _votes = [];
   List<ClosureReport> _closures = [];
-  Set<String>? _hiddenCache;
+  Map<String, List<ExistenceVote>>? _votesBySpot;
+  Map<String, List<ClosureReport>>? _closuresBySpot;
 
   Future<void> init() async {
     _users = await backend.users();
@@ -65,7 +66,8 @@ class CommunityService extends ChangeNotifier {
   }
 
   void _changed() {
-    _hiddenCache = null;
+    _votesBySpot = null;
+    _closuresBySpot = null;
     notifyListeners();
   }
 
@@ -136,6 +138,8 @@ class CommunityService extends ChangeNotifier {
                 'wheelchair': s.wheelchair! ? 'yes' : 'no',
               if (s.changingTable != null)
                 'changing_table': s.changingTable! ? 'yes' : 'no',
+              if (s.notSameAs.isNotEmpty)
+                'community:not_same_as': s.notSameAs.join(','),
               if (s.description != null) 'description': s.description!,
             },
           ),
@@ -153,6 +157,7 @@ class CommunityService extends ChangeNotifier {
     bool? wheelchair,
     bool? changingTable,
     File? photo,
+    Iterable<String> notSameAs = const [],
   }) async {
     final now = _now();
     final spot = CommunitySpot(
@@ -172,6 +177,7 @@ class CommunityService extends ChangeNotifier {
       category: category.name,
       wheelchair: category == SpotCategory.toilet ? wheelchair : null,
       changingTable: category == SpotCategory.toilet ? changingTable : null,
+      notSameAs: notSameAs.toList(),
       createdBy: currentUser.id,
       createdAt: now,
     );
@@ -264,13 +270,35 @@ class CommunityService extends ChangeNotifier {
   // Existence votes (Waze-like)
   // ---------------------------------------------------------------------
 
-  ExistenceStatus statusFor(SmokingArea area) {
-    final keys = keysFor(area);
-    return policy.evaluate(
-      _votes.where((v) => keys.contains(v.spotId)),
-      now: _now(),
-    );
+  List<ExistenceVote> _votesFor(SmokingArea area) {
+    final index = _votesBySpot ??= () {
+      final m = <String, List<ExistenceVote>>{};
+      for (final v in _votes) {
+        (m[v.spotId] ??= []).add(v);
+      }
+      return m;
+    }();
+    return [for (final k in keysFor(area)) ...?index[k]];
   }
+
+  List<ClosureReport> _closuresFor(SmokingArea area) {
+    final index = _closuresBySpot ??= () {
+      final m = <String, List<ClosureReport>>{};
+      for (final r in _closures) {
+        (m[r.spotId] ??= []).add(r);
+      }
+      return m;
+    }();
+    return [for (final k in keysFor(area)) ...?index[k]];
+  }
+
+  /// Votes cast for the current version of the spot's source data never
+  /// expire; see [ExistencePolicy].
+  ExistenceStatus statusFor(SmokingArea area) => policy.evaluate(
+        _votesFor(area),
+        now: _now(),
+        currentFingerprint: area.sourceFingerprint,
+      );
 
   /// Latest vote of the current user (null = not voted).
   bool? myVote(SmokingArea area) {
@@ -284,16 +312,18 @@ class CommunityService extends ChangeNotifier {
   }
 
   Future<void> vote(SmokingArea area, {required bool exists}) async {
-    await _addVote(area.id, exists, _now());
+    await _addVote(area.id, exists, _now(), area.sourceFingerprint);
     _changed();
   }
 
-  Future<void> _addVote(String spotId, bool exists, DateTime now) async {
+  Future<void> _addVote(
+      String spotId, bool exists, DateTime now, [String? fingerprint]) async {
     final vote = ExistenceVote(
       spotId: spotId,
       userId: currentUser.id,
       exists: exists,
       createdAt: now,
+      fingerprint: fingerprint,
     );
     await backend.addVote(vote);
     _votes.add(vote);
@@ -303,13 +333,12 @@ class CommunityService extends ChangeNotifier {
   // Temporary closures
   // ---------------------------------------------------------------------
 
-  ClosureStatus closureFor(SmokingArea area) {
-    final keys = keysFor(area);
-    return closurePolicy.evaluate(
-      _closures.where((r) => keys.contains(r.spotId)),
-      now: _now(),
-    );
-  }
+  ClosureStatus closureFor(SmokingArea area) => closurePolicy.evaluate(
+        _closuresFor(area),
+        now: _now(),
+        currentFingerprint: area.sourceFingerprint,
+        officiallyClosed: area.tags['official:closed'] == 'yes',
+      );
 
   /// Latest active closure report of the current user (null = none).
   bool? myClosureReport(SmokingArea area) {
@@ -335,6 +364,7 @@ class CommunityService extends ChangeNotifier {
       note: closed && (note?.trim().isNotEmpty ?? false) ? note!.trim() : null,
       until: closed ? until : null,
       createdAt: _now(),
+      fingerprint: area.sourceFingerprint,
     );
     await backend.addClosureReport(report);
     _closures.add(report);
@@ -344,8 +374,7 @@ class CommunityService extends ChangeNotifier {
   /// Applies community closure reports to a map entry. A "reopened" majority
   /// also overrides a closure flag that came with official data.
   SmokingArea annotate(SmokingArea area) {
-    final keys = keysFor(area);
-    if (!_closures.any((r) => keys.contains(r.spotId))) return area;
+    if (_closuresFor(area).isEmpty) return area;
     final status = closureFor(area);
     if (status.closed) {
       return area.withTags({
@@ -368,24 +397,8 @@ class CommunityService extends ChangeNotifier {
     return area;
   }
 
-  /// Ids of spots removed by the community.
-  Set<String> get hiddenIds => _hiddenCache ??= () {
-        final bySpot = <String, List<ExistenceVote>>{};
-        for (final v in _votes) {
-          (bySpot[v.spotId] ??= []).add(v);
-        }
-        final now = _now();
-        return {
-          for (final e in bySpot.entries)
-            if (policy.evaluate(e.value, now: now).hidden) e.key,
-        };
-      }();
-
-  /// Whether [area] is removed by the community (checks all its ids, and
-  /// combines the votes cast under each of them).
-  bool isHidden(SmokingArea area) {
-    final keys = keysFor(area);
-    if (keys.length == 1) return hiddenIds.contains(area.id);
-    return statusFor(area).hidden;
-  }
+  /// Whether [area] is removed by the community (votes under all its ids
+  /// count together).
+  bool isHidden(SmokingArea area) =>
+      _votesFor(area).isNotEmpty && statusFor(area).hidden;
 }

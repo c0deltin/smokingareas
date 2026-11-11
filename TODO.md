@@ -9,32 +9,19 @@ Agreed order (data first, then the server):
 
 1. ~~Stable ids for official entries~~ – done: content-based ids, former ids
    kept as `aliases` so community data stays attached.
-2. [ ] **Merge user-reported spots with official/OSM entries.** When a
-   reported spot later appears in official data or OSM (same category,
-   ≤ ~25 m, 1:1 nearest first), the official/OSM entry becomes the base
-   (name, position, origin), user details only fill gaps, and the community
-   id is kept as alias so ratings, photos, votes and closures move along.
-   Today only the official ↔ OSM merge keeps ids; a community spot next to
-   an OSM point is dropped by the 8 m de-duplication.
-3. [ ] **Bind community verdicts to the data version** (see below).
+2. ~~Merge user-reported spots with official/OSM entries~~ – done: reports
+   are absorbed into official/OSM entries (≤ 25 m, same category, 1:1), the
+   report id becomes an alias so community data moves along, and "No,
+   report new" answers are respected.
+3. ~~Bind community verdicts to the data version~~ – done: source-data
+   fingerprints; verdicts for the current version never expire, a changed
+   entry restarts the evaluation.
 4. [ ] **Data updates without an app release.** The repository is public
    now, so the app can download a newer official snapshot from GitHub (e.g.
    a release asset or the raw file on `main`) on start and via "Reload",
    store it locally and fall back to the bundled one. Later served by the
    backend.
 
-- [ ] **Community verdicts survive data updates (step 3).** The community
-  must always win over the official "DB", which is only the baseline:
-  - "gone": today the spot stays hidden while the votes are
-    valid (180 days) and reappears afterwards if the official list still
-    contains it. Instead the verdict should hold until the official entry
-    itself changes (store a fingerprint of the entry with each vote; a
-    changed entry restarts the evaluation).
-  - "temporarily closed / open again": a report that contradicts the
-    official status currently expires after 14 days, after which the stale
-    official flag applies again. Such reports should likewise hold until the
-    official entry changes.
-  Relevant code: `ExistencePolicy`, `ClosurePolicy`, `CommunityService`.
 - [ ] **Server backend** for the community features: implement
   `RemoteCommunityBackend`, `PhotoStorage` and `AuthService` against a real
   server (login, one rating per user, Waze rules and rate limiting on the

@@ -28,8 +28,13 @@ class ExistenceStatus {
 /// exist (any more), it disappears from the map.
 ///
 /// * Only the latest vote of each user counts (users can change their mind).
-/// * Votes older than [maxAge] are ignored – a spot confirmed years ago but
-///   reported missing today should go away.
+/// * The community has the upper hand over the data sets: a vote cast for the
+///   current version of the source entry (same fingerprint) does not expire –
+///   a spot reported gone stays hidden even if new data still lists it.
+///   When the source entry changes (new fingerprint), older votes no longer
+///   count and the evaluation starts afresh.
+/// * Votes without fingerprint (user-reported spots, older app versions)
+///   expire after [maxAge].
 /// * A spot is hidden when at least [minRemovals] users say it is gone **and**
 ///   removals outweigh confirmations by [ratio]. A few people who still find
 ///   it keep it alive.
@@ -44,11 +49,15 @@ class ExistencePolicy {
   final double ratio;
   final Duration maxAge;
 
-  ExistenceStatus evaluate(Iterable<ExistenceVote> votes, {DateTime? now}) {
+  ExistenceStatus evaluate(
+    Iterable<ExistenceVote> votes, {
+    DateTime? now,
+    String? currentFingerprint,
+  }) {
     final t = now ?? DateTime.now();
     final latest = <String, ExistenceVote>{};
     for (final v in votes) {
-      if (t.difference(v.createdAt) > maxAge) continue;
+      if (!isValid(v, t, currentFingerprint)) continue;
       final prev = latest[v.userId];
       if (prev == null || v.createdAt.isAfter(prev.createdAt)) {
         latest[v.userId] = v;
@@ -61,5 +70,14 @@ class ExistencePolicy {
     }
     final hidden = no >= minRemovals && no >= yes * ratio;
     return ExistenceStatus(confirmations: yes, removals: no, hidden: hidden);
+  }
+
+  /// Whether [v] still counts at [now] for an entry whose source data has
+  /// [currentFingerprint].
+  bool isValid(ExistenceVote v, DateTime now, String? currentFingerprint) {
+    if (currentFingerprint != null && v.fingerprint != null) {
+      return v.fingerprint == currentFingerprint;
+    }
+    return now.difference(v.createdAt) <= maxAge;
   }
 }
