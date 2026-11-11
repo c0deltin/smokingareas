@@ -55,15 +55,35 @@ class CommunityService extends ChangeNotifier {
   Map<String, List<ExistenceVote>>? _votesBySpot;
   Map<String, List<ClosureReport>>? _closuresBySpot;
 
+  /// Error of the last [init]/[refresh] (e.g. offline), null when loaded.
+  Object? loadError;
+
+  /// Loads all community data. With a server backend this needs the
+  /// network; on failure the previous data stays and [loadError] is set.
   Future<void> init() async {
-    _users = await backend.users();
-    _spots = await backend.spots();
-    _reviews = await backend.reviews();
-    _photos = await backend.photos();
-    _votes = await backend.votes();
-    _closures = await backend.closureReports();
+    try {
+      final results = await Future.wait([
+        backend.users(),
+        backend.spots(),
+        backend.reviews(),
+        backend.photos(),
+        backend.votes(),
+        backend.closureReports(),
+      ]);
+      _users = results[0] as List<UserProfile>;
+      _spots = results[1] as List<CommunitySpot>;
+      _reviews = results[2] as List<SpotReview>;
+      _photos = results[3] as List<SpotPhoto>;
+      _votes = results[4] as List<ExistenceVote>;
+      _closures = results[5] as List<ClosureReport>;
+      loadError = null;
+    } catch (e) {
+      loadError = e;
+    }
     _changed();
   }
+
+  Future<void> refresh() => init();
 
   void _changed() {
     _votesBySpot = null;
@@ -75,8 +95,39 @@ class CommunityService extends ChangeNotifier {
   // Users
   // ---------------------------------------------------------------------
 
-  UserProfile get currentUser => auth.currentUser;
+  /// Null while the user is anonymous (reading only).
+  UserProfile? get currentUser => auth.currentUser;
+  bool get isSignedIn => auth.currentUser != null;
+  List<SignInProvider> get signInProviders => auth.providers;
   List<UserProfile> get users => List.unmodifiable(_users);
+
+  /// Development mode without a server: several local profiles.
+  bool get hasLocalProfiles => auth is LocalAuthService;
+
+  String _requireUserId() {
+    final user = auth.currentUser;
+    if (user == null) throw const SignInRequired();
+    return user.id;
+  }
+
+  /// Returns false when the user cancelled.
+  Future<bool> signIn(SignInProvider provider) async {
+    final ok = await auth.signIn(provider);
+    if (ok) await init();
+    return ok;
+  }
+
+  Future<void> signOut() async {
+    await auth.signOut();
+    _changed();
+  }
+
+  /// Deletes the account with all its ratings, photos, votes and closure
+  /// reports; reported spots stay without author.
+  Future<void> deleteAccount() async {
+    await auth.deleteAccount();
+    await init();
+  }
 
   String userName(String userId) {
     for (final u in _users) {
@@ -86,13 +137,13 @@ class CommunityService extends ChangeNotifier {
   }
 
   Future<void> createUser(String name) async {
-    await auth.createProfile(name);
+    await (auth as LocalAuthService).createProfile(name);
     _users = await backend.users();
     _changed();
   }
 
   Future<void> switchUser(String userId) async {
-    await auth.switchTo(userId);
+    await (auth as LocalAuthService).switchTo(userId);
     _changed();
   }
 
@@ -159,6 +210,7 @@ class CommunityService extends ChangeNotifier {
     File? photo,
     Iterable<String> notSameAs = const [],
   }) async {
+    final userId = _requireUserId();
     final now = _now();
     final spot = CommunitySpot(
       id: 'community:${_uuid.v4()}',
@@ -178,7 +230,7 @@ class CommunityService extends ChangeNotifier {
       wheelchair: category == SpotCategory.toilet ? wheelchair : null,
       changingTable: category == SpotCategory.toilet ? changingTable : null,
       notSameAs: notSameAs.toList(),
-      createdBy: currentUser.id,
+      createdBy: userId,
       createdAt: now,
     );
     await backend.addSpot(spot);
@@ -213,7 +265,8 @@ class CommunityService extends ChangeNotifier {
     final reviews = reviewsFor(area);
     if (reviews.isEmpty) return RatingSummary.empty;
     final sum = reviews.fold<int>(0, (s, r) => s + r.stars);
-    final mine = reviews.where((r) => r.userId == currentUser.id);
+    final me = currentUser?.id;
+    final mine = reviews.where((r) => r.userId == me);
     return RatingSummary(
       average: sum / reviews.length,
       count: reviews.length,
@@ -224,7 +277,7 @@ class CommunityService extends ChangeNotifier {
   Future<void> rate(SmokingArea area, int stars, {String? comment}) async {
     final review = SpotReview(
       spotId: area.id,
-      userId: currentUser.id,
+      userId: _requireUserId(),
       stars: stars.clamp(1, 5),
       comment: comment?.trim().isEmpty ?? true ? null : comment!.trim(),
       createdAt: _now(),
@@ -254,11 +307,12 @@ class CommunityService extends ChangeNotifier {
   }
 
   Future<void> _addPhoto(String spotId, File file, DateTime now) async {
+    final userId = _requireUserId();
     final key = await photos.save(file);
     final photo = SpotPhoto(
       id: _uuid.v4(),
       spotId: spotId,
-      userId: currentUser.id,
+      userId: userId,
       storageKey: key,
       createdAt: now,
     );
@@ -305,7 +359,7 @@ class CommunityService extends ChangeNotifier {
     final keys = keysFor(area);
     ExistenceVote? latest;
     for (final v in _votes) {
-      if (v.userId != currentUser.id || !keys.contains(v.spotId)) continue;
+      if (v.userId != currentUser?.id || !keys.contains(v.spotId)) continue;
       if (latest == null || v.createdAt.isAfter(latest.createdAt)) latest = v;
     }
     return latest?.exists;
@@ -320,7 +374,7 @@ class CommunityService extends ChangeNotifier {
       String spotId, bool exists, DateTime now, [String? fingerprint]) async {
     final vote = ExistenceVote(
       spotId: spotId,
-      userId: currentUser.id,
+      userId: _requireUserId(),
       exists: exists,
       createdAt: now,
       fingerprint: fingerprint,
@@ -345,7 +399,7 @@ class CommunityService extends ChangeNotifier {
     final keys = keysFor(area);
     ClosureReport? latest;
     for (final r in _closures) {
-      if (r.userId != currentUser.id || !keys.contains(r.spotId)) continue;
+      if (r.userId != currentUser?.id || !keys.contains(r.spotId)) continue;
       if (latest == null || r.createdAt.isAfter(latest.createdAt)) latest = r;
     }
     return latest?.closed;
@@ -359,7 +413,7 @@ class CommunityService extends ChangeNotifier {
   }) async {
     final report = ClosureReport(
       spotId: area.id,
-      userId: currentUser.id,
+      userId: _requireUserId(),
       closed: closed,
       note: closed && (note?.trim().isNotEmpty ?? false) ? note!.trim() : null,
       until: closed ? until : null,

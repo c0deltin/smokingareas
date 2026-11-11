@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'community/auth_service.dart';
 import 'community/community_backend.dart';
 import 'community/community_service.dart';
 import 'community/photo_storage.dart';
+import 'community/server_backend.dart';
 import 'services/heading_service.dart';
 import 'services/proximity_monitor.dart';
 import 'services/smoking_area_repository.dart';
@@ -33,16 +35,33 @@ Future<void> main() async {
   // on the very first frame, before any network request.
   await repository.warmUp();
 
-  // Community features – local adapters for now (no server yet).
-  final backend = LocalCommunityBackend(getApplicationSupportDirectory);
-  final auth = LocalAuthService(backend);
-  await auth.init();
-  final community = CommunityService(
-    backend: backend,
-    photos: LocalPhotoStorage(getApplicationSupportDirectory),
-    auth: auth,
-  );
-  await community.init();
+  // Community features: the server when configured at build time, else
+  // local adapters (development).
+  final CommunityService community;
+  if (ServerConfig.isConfigured) {
+    await Supabase.initialize(
+        url: ServerConfig.url, publishableKey: ServerConfig.anonKey);
+    final client = Supabase.instance.client;
+    final auth = ServerAuthService(client);
+    await auth.init();
+    community = CommunityService(
+      backend: ServerCommunityBackend(client),
+      photos: ServerPhotoStorage(client, getApplicationCacheDirectory),
+      auth: auth,
+    );
+    // Network: do not delay the first frame.
+    unawaited(community.init());
+  } else {
+    final backend = LocalCommunityBackend(getApplicationSupportDirectory);
+    final auth = LocalAuthService(backend);
+    await auth.init();
+    community = CommunityService(
+      backend: backend,
+      photos: LocalPhotoStorage(getApplicationSupportDirectory),
+      auth: auth,
+    );
+    await community.init();
+  }
   void syncCommunity() => repository.setCommunity(
         spots: community.spotsAsAreas,
         isHidden: community.isHidden,

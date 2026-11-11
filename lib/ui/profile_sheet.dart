@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../community/community_service.dart';
+import 'sign_in_sheet.dart';
 
-/// Local profiles: rename the active one, create more, switch between them.
+/// Account (server backend: sign in / out, rename, delete account) or, in
+/// development without a server, local profiles.
 Future<void> showProfileSheet(BuildContext context, CommunityService community) {
   return showModalBottomSheet<void>(
     context: context,
@@ -11,8 +13,11 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
     builder: (context) => ListenableBuilder(
       listenable: community,
       builder: (context, _) {
+        if (!community.hasLocalProfiles) {
+          return AccountView(community: community);
+        }
         final theme = Theme.of(context);
-        final current = community.currentUser;
+        final current = community.currentUser!;
         return SafeArea(
           child: Padding(
             padding: EdgeInsets.fromLTRB(
@@ -104,4 +109,107 @@ Future<String?> _askName(BuildContext context, String initial) {
       ],
     ),
   );
+}
+
+/// Account of a signed-in user (or the invitation to sign in).
+class AccountView extends StatelessWidget {
+  const AccountView({super.key, required this.community});
+  final CommunityService community;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final user = community.currentUser;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Account', style: theme.textTheme.titleLarge),
+            const SizedBox(height: 8),
+            if (user == null) ...[
+              const Text('You are using the app without an account. Sign '
+                  'in with Apple or Google to rate, report and add photos.'),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => showSignInSheet(context, community),
+                child: const Text('Sign in'),
+              ),
+            ] else ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  child: Text(user.displayName.characters.first.toUpperCase()),
+                ),
+                title: Text(user.displayName),
+                subtitle: const Text('Shown with your contributions'),
+                trailing: IconButton(
+                  tooltip: 'Rename',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () async {
+                    final name = await _askName(context, user.displayName);
+                    if (name == null || !context.mounted) return;
+                    await contribute(context, community,
+                        () => community.renameCurrentUser(name));
+                  },
+                ),
+              ),
+              const Divider(),
+              OutlinedButton.icon(
+                onPressed: community.signOut,
+                icon: const Icon(Icons.logout),
+                label: const Text('Sign out'),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error),
+                onPressed: () => _deleteAccount(context),
+                icon: const Icon(Icons.delete_forever_outlined),
+                label: const Text('Delete account'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'Your account, ratings, photos, votes and closure reports are '
+          'deleted for good. Places you reported stay on the map without '
+          'your name.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await community.deleteAccount();
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Your account was deleted.')));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(
+          content: Text('Could not delete the account – please try again.')));
+    }
+  }
 }

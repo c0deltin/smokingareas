@@ -134,7 +134,7 @@ void main() {
         );
 
     test('a first local profile is created automatically', () {
-      expect(service.currentUser.displayName, 'Me');
+      expect(service.currentUser!.displayName, 'Me');
       expect(service.users, hasLength(1));
     });
 
@@ -251,7 +251,7 @@ void main() {
     test('switching users keeps data separate per user', () async {
       final a = osmArea();
       await service.vote(a, exists: true);
-      final first = service.currentUser.id;
+      final first = service.currentUser!.id;
       await service.createUser('Zweiter');
       expect(service.myVote(a), isNull);
       await service.switchUser(first);
