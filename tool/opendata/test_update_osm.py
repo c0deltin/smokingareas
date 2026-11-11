@@ -50,6 +50,28 @@ class OsmExportTest(unittest.TestCase):
         _, newer = osm.build(changed, first, t2)
         self.assertGreater(newer["generated"], first["generated"])
 
+    def test_busy_servers_are_retried(self):
+        calls = []
+
+        def fetch(url):
+            calls.append(url)
+            if len(calls) < 5:
+                raise RuntimeError("HTTP Error 504: Gateway Timeout")
+            return {"elements": [{"type": "node", "id": 1}]}
+
+        pauses = []
+        out = osm.overpass("q", sleep=pauses.append, fetch=fetch)
+        self.assertEqual(out, [{"type": "node", "id": 1}])
+        self.assertEqual(len(calls), 5)
+        self.assertIn(osm.RETRY_PAUSE_SECONDS, pauses)
+
+    def test_gives_up_after_all_retries(self):
+        def fetch(url):
+            raise RuntimeError("HTTP Error 504")
+
+        with self.assertRaises(RuntimeError):
+            osm.overpass("q", sleep=lambda s: None, fetch=fetch)
+
     def test_partial_results_are_refused(self):
         self.assertFalse(osm.plausible(0, None))
         self.assertTrue(osm.plausible(100, None))

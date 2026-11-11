@@ -42,8 +42,12 @@ ENDPOINTS = [
 ]
 USER_AGENT = "smokingareas/1.0 (+https://github.com/c0deltin/smokingareas)"
 FORMAT = 1
-CITIES_PER_QUERY = 8
+CITIES_PER_QUERY = 4
 PAUSE_SECONDS = 10
+# Busy public servers answer with 429/504 now and then: retry each request
+# a few times with growing pauses before giving up.
+RETRIES = 4
+RETRY_PAUSE_SECONDS = 30
 
 # Tags the app reads (lib/models/smoking_area.dart); everything else is
 # dropped to keep the download small.
@@ -107,21 +111,29 @@ def content_hash(elements: list[dict]) -> str:
         json.dumps(elements, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 
-def overpass(query: str) -> list[dict]:
+def overpass(query: str, sleep=time.sleep, fetch=None) -> list[dict]:
     body = urllib.parse.urlencode({"data": query}).encode()
+
+    def default_fetch(url: str) -> dict:
+        req = urllib.request.Request(url, data=body, headers={
+            "User-Agent": USER_AGENT, "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=240) as r:
+            return json.loads(r.read().decode("utf-8"))
+
+    fetch = fetch or default_fetch
     last = None
-    for url in ENDPOINTS:
-        try:
-            req = urllib.request.Request(url, data=body, headers={
-                "User-Agent": USER_AGENT, "Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=240) as r:
-                data = json.loads(r.read().decode("utf-8"))
-            if "remark" in data and "error" in str(data["remark"]).lower():
-                raise RuntimeError(data["remark"])
-            return data.get("elements", [])
-        except Exception as e:  # noqa: BLE001
-            last = e
-            time.sleep(PAUSE_SECONDS)
+    for attempt in range(RETRIES):
+        if attempt:
+            sleep(RETRY_PAUSE_SECONDS * attempt)
+        for url in ENDPOINTS:
+            try:
+                data = fetch(url)
+                if "remark" in data and "error" in str(data["remark"]).lower():
+                    raise RuntimeError(data["remark"])
+                return data.get("elements", [])
+            except Exception as e:  # noqa: BLE001
+                last = e
+                sleep(PAUSE_SECONDS)
     raise RuntimeError(f"Overpass unreachable: {last}")
 
 
