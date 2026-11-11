@@ -107,10 +107,7 @@ class CommunityService extends ChangeNotifier {
   /// All ids under which data for [area] may have been stored. A spot that
   /// was rated as plain OSM point and later merged with an official entry
   /// keeps its ratings, photos and votes.
-  static Set<String> keysFor(SmokingArea area) => {
-        area.id,
-        if (area.osmElement != null) 'osm:${area.osmElement}',
-      };
+  static Set<String> keysFor(SmokingArea area) => area.allIds;
 
   // ---------------------------------------------------------------------
   // Community spots

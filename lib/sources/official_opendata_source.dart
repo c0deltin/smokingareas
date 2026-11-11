@@ -141,6 +141,9 @@ class _Snapshot {
         if (a['geocoded'] == true) 'geocoded': 'yes',
         if (a['members'] != null) 'official:rooms': '${a['members']}',
         if (a['category'] == 'toilet') 'amenity': 'toilets',
+        // Former ids of this entry (see importer `carry_aliases`).
+        if (a['aliases'] is List && (a['aliases'] as List).isNotEmpty)
+          'aliases': (a['aliases'] as List).join(','),
         if (a['temporarily_closed'] == true) 'temporarily_closed': 'yes',
         if (a['temporarily_closed'] == true && a['note'] != null)
           'temporarily_closed:note': a['note'] as String,
