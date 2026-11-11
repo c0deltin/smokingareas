@@ -99,6 +99,16 @@ class OfficialOpenDataSource extends SmokingAreaSource {
   /// Date the snapshot was generated.
   Future<String> version() async => (await _load()).generated;
 
+  /// All entries of the snapshot.
+  Future<List<SmokingArea>> allAreas() async => (await _load()).areas;
+
+  @override
+  void invalidate() => _snapshot = null;
+
+  /// Parses a snapshot (throws if it is not readable). Used to validate
+  /// downloaded updates.
+  static void parseSnapshot(String body) => _Snapshot.parse(body);
+
   @override
   Future<List<SmokingArea>> fetch(GeoBounds bounds) async {
     final snap = await _load();

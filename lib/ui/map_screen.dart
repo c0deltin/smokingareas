@@ -14,6 +14,8 @@ import '../models/smoking_area.dart';
 import '../services/notification_service.dart';
 import '../services/proximity_monitor.dart';
 import '../services/smoking_area_repository.dart';
+import '../services/snapshot_updater.dart';
+import '../sources/official_opendata_source.dart';
 import 'area_details_sheet.dart';
 import 'city_picker.dart';
 import 'legend_sheet.dart';
@@ -29,11 +31,15 @@ class MapScreen extends StatefulWidget {
     required this.repository,
     required this.monitor,
     required this.community,
+    this.updater,
   });
 
   final SmokingAreaRepository repository;
   final ProximityMonitor monitor;
   final CommunityService community;
+
+  /// Data updates without an app release (null in tests).
+  final SnapshotUpdater? updater;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -124,6 +130,24 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
     if (mounted) setState(() {});
+  }
+
+  /// "Reload": live data of the current city plus newer official data.
+  Future<void> _reload() async {
+    final updater = widget.updater;
+    final cityLoad = _loadCity(_city, force: true);
+    if (updater != null) {
+      final result = await updater.check(force: true);
+      if (result.updated) {
+        await _repo.reloadBundled();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Official data updated (${result.version}).'),
+          ));
+        }
+      }
+    }
+    await cityLoad;
   }
 
   Future<void> _loadCity(City city, {bool force = false}) async {
@@ -259,7 +283,7 @@ class _MapScreenState extends State<MapScreen> {
           IconButton(
             tooltip: 'Reload',
             icon: const Icon(Icons.refresh),
-            onPressed: _loading ? null : () => _loadCity(_city, force: true),
+            onPressed: _loading ? null : _reload,
           ),
           PopupMenuButton<String>(
             tooltip: 'Menu',
@@ -607,6 +631,14 @@ class _MapScreenState extends State<MapScreen> {
             style: TextStyle(fontWeight: FontWeight.bold)),
         for (final s in _repo.sources)
           Text('• ${s.displayName}: ${s.attribution}'),
+        for (final s in _repo.sources.whereType<OfficialOpenDataSource>())
+          FutureBuilder<String>(
+            future: s.version(),
+            builder: (context, snap) => snap.hasData
+                ? Text('Official data version: ${snap.data} – updated '
+                    'automatically, also via Reload.')
+                : const SizedBox.shrink(),
+          ),
         const SizedBox(height: 8),
         const Text(
           'The legend (menu ⋮) explains all symbols. Official entries (gold '

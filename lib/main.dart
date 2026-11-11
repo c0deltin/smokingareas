@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import 'package:path_provider/path_provider.dart';
 
@@ -9,11 +12,23 @@ import 'community/photo_storage.dart';
 import 'services/heading_service.dart';
 import 'services/proximity_monitor.dart';
 import 'services/smoking_area_repository.dart';
+import 'services/snapshot_updater.dart';
+import 'sources/official_opendata_source.dart';
+import 'sources/overpass_source.dart';
 import 'ui/map_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final repository = SmokingAreaRepository();
+  // Official data: the bundled snapshot, or a newer one downloaded by the
+  // SnapshotUpdater (data updates without an app release).
+  final snapshots = SnapshotStore(getApplicationSupportDirectory);
+  final official = OfficialOpenDataSource(
+    loader: snapshots.preferNewer(() =>
+        rootBundle.loadString('assets/opendata/official_smoking_areas.json')),
+  );
+  final repository =
+      SmokingAreaRepository(sources: [official, OverpassSource()]);
+  final updater = SnapshotUpdater(store: snapshots, source: official);
   // Official data for all of Japan + everything cached on the device: shown
   // on the very first frame, before any network request.
   await repository.warmUp();
@@ -42,7 +57,13 @@ Future<void> main() async {
     repository: repository,
     monitor: monitor,
     community: community,
+    updater: updater,
   ));
+
+  // At most once a day, in the background: newer official data?
+  unawaited(updater.check().then((r) async {
+    if (r.updated) await repository.reloadBundled();
+  }));
 }
 
 class SmokingAreasApp extends StatelessWidget {
@@ -51,11 +72,13 @@ class SmokingAreasApp extends StatelessWidget {
     required this.repository,
     required this.monitor,
     required this.community,
+    this.updater,
   });
 
   final SmokingAreaRepository repository;
   final ProximityMonitor monitor;
   final CommunityService community;
+  final SnapshotUpdater? updater;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +96,7 @@ class SmokingAreasApp extends StatelessWidget {
         repository: repository,
         monitor: monitor,
         community: community,
+        updater: updater,
       ),
     );
   }
