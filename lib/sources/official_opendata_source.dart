@@ -41,22 +41,22 @@ String officialDatasetLabel(String id, String fallback) {
   if (fixed != null) return fixed;
   final m = RegExp(r'^tokyo_([a-z]+)_toilets$').firstMatch(id);
   if (m != null && _tokyoWards[m.group(1)] != null) {
-    return 'Tokio, Bezirk ${_tokyoWards[m.group(1)]} (Open Data)';
+    return 'Tokyo, ${_tokyoWards[m.group(1)]} ward (open data)';
   }
   return fallback;
 }
 
 const kOfficialDatasetLabels = {
-  'kyoto_toilets': 'Stadt Kyoto (Open Data)',
-  'okayama_toilets': 'Stadt Okayama (Open Data)',
-  'kyoto': 'Stadt Kyoto (Open Data)',
-  'osaka': 'Stadt Osaka (Liste der Raucherplätze)',
-  'tokyo_koto': 'Tokio, Bezirk Kōtō (Open Data)',
-  'tokyo_taito': 'Tokio, Bezirk Taitō (Open Data)',
-  'tokyo_chiyoda': 'Tokio, Bezirk Chiyoda (Liste der Raucherplätze)',
-  'tokyo_shinjuku': 'Tokio, Bezirk Shinjuku (Liste der Raucherplätze)',
-  'tokyo_shibuya': 'Tokio, Bezirk Shibuya (Liste der Raucherplätze)',
-  'tokyo_toshima': 'Tokio, Bezirk Toshima (Liste der Raucherplätze)',
+  'kyoto_toilets': 'City of Kyoto (open data)',
+  'okayama_toilets': 'City of Okayama (open data)',
+  'kyoto': 'City of Kyoto (open data)',
+  'osaka': 'City of Osaka (smoking area list)',
+  'tokyo_koto': 'Tokyo, Kōtō ward (open data)',
+  'tokyo_taito': 'Tokyo, Taitō ward (open data)',
+  'tokyo_chiyoda': 'Tokyo, Chiyoda ward (smoking area list)',
+  'tokyo_shinjuku': 'Tokyo, Shinjuku ward (smoking area list)',
+  'tokyo_shibuya': 'Tokyo, Shibuya ward (smoking area list)',
+  'tokyo_toshima': 'Tokyo, Toshima ward (smoking area list)',
 };
 
 /// Official smoking areas published by Japanese cities / Tokyo wards.
@@ -78,18 +78,18 @@ class OfficialOpenDataSource extends SmokingAreaSource {
   String get id => 'official';
 
   @override
-  String get displayName => 'Offizielle Daten der Städte';
+  String get displayName => 'Official city data';
 
   @override
   bool get isBundled => true;
 
   @override
   String get attribution =>
-      'Raucherbereiche: Stadt Kyoto, Stadt Osaka, Tokioter Bezirke Chiyoda, '
-      'Kōtō, Shibuya, Shinjuku, Taitō, Toshima. Öffentliche Toiletten: Stadt '
-      'Kyoto, Stadt Okayama und 14 Tokioter Bezirke (公衆トイレ一覧). Open Data '
-      'CC BY 4.0 bzw. '
-      'Angaben der offiziellen Webseiten; Adress-Geocoding: GSI Japan';
+      'Smoking areas: City of Kyoto, City of Osaka, Tokyo wards Chiyoda, '
+      'Kōtō, Shibuya, Shinjuku, Taitō, Toshima. Public toilets: City of '
+      'Kyoto, City of Okayama and 14 Tokyo wards (公衆トイレ一覧). Open data '
+      'CC BY 4.0 or information published on the official websites; address '
+      'geocoding: GSI Japan';
 
   Future<_Snapshot> _load() => _snapshot ??= _loader().then(_Snapshot.parse);
 
@@ -141,6 +141,9 @@ class _Snapshot {
         if (a['geocoded'] == true) 'geocoded': 'yes',
         if (a['members'] != null) 'official:rooms': '${a['members']}',
         if (a['category'] == 'toilet') 'amenity': 'toilets',
+        // Former ids of this entry (see importer `carry_aliases`).
+        if (a['aliases'] is List && (a['aliases'] as List).isNotEmpty)
+          'aliases': (a['aliases'] as List).join(','),
         if (a['temporarily_closed'] == true) 'temporarily_closed': 'yes',
         if (a['temporarily_closed'] == true && a['note'] != null)
           'temporarily_closed:note': a['note'] as String,

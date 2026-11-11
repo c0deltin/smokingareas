@@ -8,15 +8,15 @@ enum SpotCategory {
   /// Public toilet (公衆トイレ), OSM `amenity=toilets`.
   toilet;
 
-  /// German label for the UI.
+  /// Label for the UI.
   String get label => switch (this) {
-        SpotCategory.smoking => 'Raucherbereich',
-        SpotCategory.toilet => 'Öffentliche Toilette',
+        SpotCategory.smoking => 'Smoking area',
+        SpotCategory.toilet => 'Public toilet',
       };
 
   String get pluralLabel => switch (this) {
-        SpotCategory.smoking => 'Raucherbereiche',
-        SpotCategory.toilet => 'Toiletten',
+        SpotCategory.smoking => 'Smoking areas',
+        SpotCategory.toilet => 'Toilets',
       };
 }
 
@@ -124,6 +124,18 @@ class SmokingArea {
     if (id.startsWith('osm:')) return id.substring(4);
     return tags['osm:element'];
   }
+
+  /// Every id this place has been known under: its own id, former ids from
+  /// earlier data snapshots and ids of entries merged into it. Community data
+  /// (ratings, photos, votes, closures) is looked up under all of them.
+  Set<String> get allIds => {
+        id,
+        if (osmElement != null) 'osm:$osmElement',
+        ...?tags['aliases']
+            ?.split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty),
+      };
 
   /// Web page of the official source, if any.
   String? get officialUrl => tags['official:url'];

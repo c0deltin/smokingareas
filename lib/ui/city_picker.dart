@@ -80,7 +80,7 @@ class _CityPickerState extends State<_CityPicker> {
           child: TextField(
             decoration: const InputDecoration(
               prefixIcon: Icon(Icons.search),
-              hintText: 'Stadt, Viertel oder Präfektur suchen',
+              hintText: 'Search city, district or prefecture',
               border: OutlineInputBorder(),
             ),
             onChanged: (v) => setState(() => _query = v.trim()),
@@ -90,7 +90,7 @@ class _CityPickerState extends State<_CityPicker> {
           child: ListView(
             controller: widget.controller,
             children: [
-              if (districts.isNotEmpty) header('Beliebte Viertel'),
+              if (districts.isNotEmpty) header('Popular districts'),
               for (final d in districts)
                 ListTile(
                   dense: true,
@@ -98,7 +98,7 @@ class _CityPickerState extends State<_CityPicker> {
                   title: Text(d.name),
                   subtitle: Text([
                     d.nameJa,
-                    if (d.ward != null) 'Bezirk ${d.ward}',
+                    if (d.ward != null) '${d.ward} ward',
                     cityById(d.cityId)?.name.split(' ').first,
                   ].join(' · ')),
                   onTap: () {
@@ -112,7 +112,7 @@ class _CityPickerState extends State<_CityPicker> {
                     ));
                   },
                 ),
-              if (cities.isNotEmpty) header('Städte'),
+              if (cities.isNotEmpty) header('Cities'),
               for (final c in cities)
                 ListTile(
                   leading: const Icon(Icons.location_city),

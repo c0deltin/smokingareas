@@ -21,7 +21,7 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Profil', style: theme.textTheme.titleLarge),
+                Text('Profile', style: theme.textTheme.titleLarge),
                 const SizedBox(height: 8),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -30,9 +30,9 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
                         .toUpperCase()),
                   ),
                   title: Text(current.displayName),
-                  subtitle: const Text('Aktives Profil'),
+                  subtitle: const Text('Active profile'),
                   trailing: IconButton(
-                    tooltip: 'Umbenennen',
+                    tooltip: 'Rename',
                     icon: const Icon(Icons.edit_outlined),
                     onPressed: () async {
                       final name = await _askName(context, current.displayName);
@@ -41,7 +41,7 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
                   ),
                 ),
                 const Divider(),
-                Text('Profile auf diesem Gerät',
+                Text('Profiles on this device',
                     style: theme.textTheme.titleSmall),
                 for (final u in community.users)
                   if (u.id != current.id)
@@ -51,7 +51,7 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
                       title: Text(u.displayName),
                       trailing: TextButton(
                         onPressed: () => community.switchUser(u.id),
-                        child: const Text('Wechseln'),
+                        child: const Text('Switch'),
                       ),
                     ),
                 TextButton.icon(
@@ -60,15 +60,14 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
                     if (name != null) await community.createUser(name);
                   },
                   icon: const Icon(Icons.person_add_alt),
-                  label: const Text('Neues Profil anlegen'),
+                  label: const Text('Create profile'),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Bewertungen, Fotos und Meldungen werden derzeit nur lokal '
-                  'auf diesem Gerät gespeichert und dem aktiven Profil '
-                  'zugeordnet. Mit mehreren Profilen lässt sich z. B. testen, '
-                  'dass ein Spot nach drei „Gibt es nicht mehr“-Meldungen '
-                  'verschwindet.',
+                  'Ratings, photos and reports are currently stored only on '
+                  'this device and assigned to the active profile. Several '
+                  'profiles let you try out e.g. that a spot disappears after '
+                  'three "gone" reports.',
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -96,7 +95,7 @@ Future<String?> _askName(BuildContext context, String initial) {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Abbrechen'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, controller.text),

@@ -11,7 +11,7 @@ import '../models/city.dart';
 /// while keeping Overpass queries reasonably small.
 const List<City> kCities = [
   // --- Kantō -------------------------------------------------------------
-  City(id: 'tokyo', name: 'Tokyo (23 Bezirke)', nameJa: '東京23区', prefecture: 'Tokyo', center: LatLng(35.6812, 139.7671), radiusKm: 16, zoom: 12),
+  City(id: 'tokyo', name: 'Tokyo (23 wards)', nameJa: '東京23区', prefecture: 'Tokyo', center: LatLng(35.6812, 139.7671), radiusKm: 16, zoom: 12),
   City(id: 'tokyo_tama', name: 'Tokyo Tama (Hachiōji/Tachikawa)', nameJa: '多摩', prefecture: 'Tokyo', center: LatLng(35.6800, 139.3900), radiusKm: 14, zoom: 12),
   City(id: 'yokohama', name: 'Yokohama', nameJa: '横浜市', prefecture: 'Kanagawa', center: LatLng(35.4660, 139.6220), radiusKm: 13),
   City(id: 'kawasaki', name: 'Kawasaki', nameJa: '川崎市', prefecture: 'Kanagawa', center: LatLng(35.5600, 139.6300), radiusKm: 10),

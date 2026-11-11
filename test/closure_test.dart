@@ -170,8 +170,8 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: AreaDetailsSheet(area: closed)),
     ));
-    expect(find.text('Vorübergehend geschlossen'), findsOneWidget);
+    expect(find.text('Temporarily closed'), findsOneWidget);
     expect(find.text('Bauarbeiten'), findsOneWidget);
-    expect(find.text('voraussichtlich bis 24.12.2026'), findsOneWidget);
+    expect(find.text('expected until 24.12.2026'), findsOneWidget);
   });
 }

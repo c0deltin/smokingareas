@@ -26,8 +26,16 @@ class ProximityMonitor extends ChangeNotifier {
   })  : notifications = notifications ?? NotificationService.instance,
         detector = detector ?? ProximityDetector();
 
-  static const alertRadiusMeters = 30.0;
+  static const defaultAlertRadius = 30.0;
+  static const minAlertRadius = 10.0;
+  static const maxAlertRadius = 150.0;
   static const _prefAlertsEnabled = 'alerts_enabled';
+  static const _prefAlertRadius = 'alert_radius_m';
+
+  double _alertRadius = defaultAlertRadius;
+
+  /// Distance (m) at which the user is notified about a smoking area.
+  double get alertRadius => _alertRadius;
 
   final SmokingAreaRepository repository;
   final NotificationService notifications;
@@ -54,6 +62,10 @@ class ProximityMonitor extends ChangeNotifier {
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _alertsEnabled = prefs.getBool(_prefAlertsEnabled) ?? true;
+    _alertRadius = (prefs.getDouble(_prefAlertRadius) ?? defaultAlertRadius)
+        .clamp(minAlertRadius, maxAlertRadius)
+        .toDouble();
+    detector.setRadius(_alertRadius);
     await notifications.init();
     await _refreshPermissionState();
     if (_state == LocationState.whileInUse || _state == LocationState.always) {
@@ -87,6 +99,19 @@ class ProximityMonitor extends ChangeNotifier {
     }
     notifyListeners();
     return _state;
+  }
+
+  /// User setting: alert radius in metres (clamped to the allowed range).
+  Future<void> setAlertRadius(double meters) async {
+    final value = meters.clamp(minAlertRadius, maxAlertRadius).toDouble();
+    if (value == _alertRadius) return;
+    _alertRadius = value;
+    detector.setRadius(value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_prefAlertRadius, value);
+    // Restart so the background notification shows the new radius.
+    if (_sub != null && _alertsEnabled) await _startStream();
+    notifyListeners();
   }
 
   Future<void> setAlertsEnabled(bool enabled) async {
@@ -131,11 +156,11 @@ class ProximityMonitor extends ChangeNotifier {
         // A foreground service keeps location updates alive while the app is
         // in the background (required on Android 8+).
         foregroundNotificationConfig: _alertsEnabled
-            ? const ForegroundNotificationConfig(
-                notificationTitle: 'Raucherbereich-Alarm aktiv',
-                notificationText:
-                    'Du wirst benachrichtigt, wenn ein Raucherbereich in 30 m Nähe ist.',
-                notificationChannelName: 'Standortüberwachung',
+            ? ForegroundNotificationConfig(
+                notificationTitle: 'Smoking area alerts on',
+                notificationText: 'You will be notified when a smoking area '
+                    'is within ${_alertRadius.round()} m.',
+                notificationChannelName: 'Location monitoring',
                 enableWakeLock: true,
                 setOngoing: true,
               )

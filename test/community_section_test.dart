@@ -44,16 +44,16 @@ void main() {
 
     expect(find.text('Testplatz'), findsOneWidget);
     expect(find.text('Community'), findsOneWidget);
-    expect(find.text('Noch keine Bewertung'), findsOneWidget);
-    expect(find.text('Ja (0)'), findsOneWidget);
+    expect(find.text('No ratings yet'), findsOneWidget);
+    expect(find.text('Yes (0)'), findsOneWidget);
 
     await tester.runAsync(() async {
-      await tester.tap(find.text('Ja (0)'));
+      await tester.tap(find.text('Yes (0)'));
       // Let the file write of the local backend finish.
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
     await tester.pump();
-    expect(find.text('Ja (1)'), findsOneWidget);
+    expect(find.text('Yes (1)'), findsOneWidget);
     expect(service.myVote(area), isTrue);
   });
 }

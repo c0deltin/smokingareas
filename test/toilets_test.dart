@@ -67,7 +67,7 @@ void main() {
         },
       );
       expect(t.category, SpotCategory.toilet);
-      expect(t.title, 'Öffentliche Toilette');
+      expect(t.title, 'Public toilet');
       expect(t.wheelchair, isTrue);
       expect(t.changingTable, isFalse);
       expect(osm('2', _p).category, SpotCategory.smoking);
@@ -159,7 +159,7 @@ void main() {
     test('toilet datasets get readable labels', () async {
       final ds = await source.datasets();
       final sumida = ds.firstWhere((d) => d.id == 'tokyo_sumida_toilets');
-      expect(sumida.label, 'Tokio, Bezirk Sumida (Open Data)');
+      expect(sumida.label, 'Tokyo, Sumida ward (open data)');
     });
   });
 
@@ -212,7 +212,7 @@ void main() {
       );
       final a = service.spotsAsAreas.single;
       expect(a.isToilet, isTrue);
-      expect(a.title, 'Öffentliche Toilette');
+      expect(a.title, 'Public toilet');
       expect(a.wheelchair, isTrue);
       expect(a.changingTable, isFalse);
       expect(a.isIndoor, isNull);
@@ -233,10 +233,10 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: AreaDetailsSheet(area: toilet)),
     ));
-    expect(find.text('Öffentliche Toilette'), findsOneWidget);
-    expect(find.text('Rollstuhlgerecht'), findsOneWidget);
-    expect(find.text('Wickeltisch'), findsOneWidget);
-    expect(find.text('Überdacht'), findsNothing);
+    expect(find.text('Public toilet'), findsOneWidget);
+    expect(find.text('Wheelchair accessible'), findsOneWidget);
+    expect(find.text('Baby changing'), findsOneWidget);
+    expect(find.text('Covered'), findsNothing);
     expect(find.byIcon(Icons.wc), findsOneWidget);
   });
 }

@@ -134,7 +134,7 @@ void main() {
         );
 
     test('a first local profile is created automatically', () {
-      expect(service.currentUser.displayName, 'Ich');
+      expect(service.currentUser.displayName, 'Me');
       expect(service.users, hasLength(1));
     });
 

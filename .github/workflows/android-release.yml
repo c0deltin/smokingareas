@@ -35,6 +35,9 @@ jobs:
       # Refresh the bundled snapshot of official municipal smoking-area lists
       # (Tokyo wards, Kyoto, Osaka). Failing sources keep their previous data;
       # the tests below validate the result before anything is released.
+      - name: Test open-data importer
+        run: python3 -m unittest discover -s tool/opendata -p 'test_*.py'
+
       - name: Refresh official open data
         continue-on-error: true
         run: python3 tool/opendata/update_opendata.py
@@ -103,4 +106,4 @@ jobs:
                or file manager.
             3. If Play Protect shows a warning: choose "Install anyway".
             4. On first start allow location "Allow all the time" and
-               notifications, so the 30 m alert also works in the background.
+               notifications, so proximity alerts also work in the background.

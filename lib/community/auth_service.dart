@@ -42,7 +42,7 @@ class LocalAuthService implements AuthService {
       _current = users.first;
       await (await _prefs).setString(_prefKey, _current.id);
     } else {
-      _current = await createProfile('Ich');
+      _current = await createProfile('Me');
     }
   }
 
@@ -56,7 +56,7 @@ class LocalAuthService implements AuthService {
   Future<UserProfile> createProfile(String displayName) async {
     final user = UserProfile(
       id: 'local-${_uuid.v4()}',
-      displayName: displayName.trim().isEmpty ? 'Nutzer' : displayName.trim(),
+      displayName: displayName.trim().isEmpty ? 'User' : displayName.trim(),
       createdAt: DateTime.now(),
     );
     await _backend.saveUser(user);
