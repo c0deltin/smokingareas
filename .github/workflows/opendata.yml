@@ -36,17 +36,25 @@ jobs:
       - name: Package snapshot
         run: python3 tool/opendata/package_snapshot.py dist/opendata
 
+      # OpenStreetMap data of all covered cities, so installed apps do not
+      # query the public Overpass servers themselves. Skipped (published
+      # data stays) when Overpass fails or the result looks incomplete.
+      - name: Export OpenStreetMap data
+        run: python3 tool/opendata/update_osm.py dist/opendata
+
       - name: Publish data release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: opendata
-          name: Official open data (for in-app updates)
+          name: Map data (for in-app updates)
           target_commitish: ${{ github.sha }}
           make_latest: false
           files: dist/opendata/*
           body: |
-            Snapshot of the official smoking-area and public-toilet data
-            used by the app. Installed apps check `opendata-manifest.json`
-            once a day (and on "Reload") and download the snapshot only when
-            it is newer than the data they have. Updated weekly by
-            `.github/workflows/opendata.yml`; not an app release.
+            Data used by the app: the official smoking-area and public-toilet
+            lists (`official_smoking_areas.json.gz`) and the OpenStreetMap
+            export of all covered cities (`osm_spots.json.gz`, © OpenStreetMap
+            contributors, ODbL). Installed apps check the manifests once a day
+            (and on "Reload") and download data only when it is newer than
+            what they have. Updated weekly by `.github/workflows/opendata.yml`;
+            not an app release.

@@ -86,7 +86,7 @@ works automatically. Official data needs a source in
 
 | Source | Area | Access | Licence |
 |---|---|---|---|
-| **OpenStreetMap** via the public **Overpass API** – `amenity=smoking_area`, `amenity=smoking_room`, `smoking=dedicated`, and `amenity=toilets` without `access=private/no/customers/permit` | all of Japan | live in the app | ODbL |
+| **OpenStreetMap** via the public **Overpass API** – `amenity=smoking_area`, `amenity=smoking_room`, `smoking=dedicated`, and `amenity=toilets` without `access=private/no/customers/permit` | all covered cities | weekly export by CI (`tool/opendata/update_osm.py`), downloaded by the app like the official data; live queries only until the first export is on the device | ODbL |
 | City of Kyoto – open data portal, dataset “施設情報一覧”, category 喫煙場所 | Kyoto | snapshot | CC BY 4.0 |
 | City of Osaka – list of 大阪市指定喫煙所 (coordinates taken from the GIS links) | Osaka | snapshot | published by the city |
 | Tokyo, Kōtō ward – open data “公共喫煙所一覧” | Kameido, Tōyōchō, Shin-Kiba … | snapshot | CC BY 4.0 |
@@ -256,7 +256,8 @@ lib/
   data/districts.dart                popular districts for quick jumps
   models/                            SmokingArea, City, GeoBounds
   sources/
-    overpass_source.dart             OSM/Overpass query + parser
+    osm_snapshot_source.dart         weekly OSM export (downloaded)
+    overpass_source.dart             OSM/Overpass parser + live fallback
     official_opendata_source.dart    bundled official snapshot
   services/
     smoking_area_repository.dart     loading, merging, de-duplication, file cache
@@ -414,9 +415,9 @@ Local builds read the key from the environment variable `MAPS_API_KEY`
 
 - The public Overpass servers have a
   [usage policy](https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances).
-  An app with many users should use its own Overpass instance
-  (`OverpassSource.defaultEndpoints`) or ship the OSM data with the data
-  release.
+  Installed apps therefore do not query them: CI exports the OSM data once a
+  week (a few requests with pauses) and publishes it with the data release
+  (`osm_spots.json.gz` + `osm-manifest.json`).
 - Android is currently **not distributed through the Play Store** but
   installed directly as an APK from the GitHub Releases (sideloading). Google
   Play Protect may show an “unknown app” warning on first installation –

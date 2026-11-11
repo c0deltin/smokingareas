@@ -197,8 +197,11 @@ Run `flutter analyze` and `flutter test` before every commit.
   same painters as the legend (`MarkerIcons`); clustering is our own
   (`map_clustering.dart`, per category, visible region only). Keys come only
   from secrets (`MAPS_API_KEY`), never from the repository.
-- **OSM servers:** keep the user agent, respect the Overpass usage policy, do
-  not add aggressive polling.
+- **OSM servers:** apps do not query Overpass: `tool/opendata/update_osm.py`
+  exports the OSM data of all cities weekly (`opendata.yml`) into the data
+  release; `OsmSnapshotSource` serves it, `OverpassSource` is only the live
+  fallback until the first export is on the device. Keep the user agent and
+  the pauses between requests; no aggressive polling.
 - **Privacy:** location stays on the device; no analytics or tracking SDKs.
   Do not log precise user positions.
 - **Dependencies:** prefer well-maintained packages; pin versions via

@@ -3,7 +3,33 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../sources/official_opendata_source.dart';
+/// A data set that is published as `<data>.json.gz` plus a small manifest
+/// (release `opendata`) and updated on the device without an app release.
+abstract class SnapshotDataset {
+  /// File names in the release.
+  String get manifestName;
+  String get dataName;
+
+  /// Version of the data in use ('' when there is none).
+  Future<String> version();
+
+  /// Number of entries in use (to refuse suspiciously small downloads).
+  Future<int> entryCount();
+
+  /// The entries of a downloaded snapshot (null when missing).
+  List<dynamic>? entriesOf(Map<String, dynamic> snapshot);
+
+  /// Throws when [json] cannot be used.
+  void validate(String json);
+
+  /// Drops loaded data so the next read uses the new snapshot.
+  void invalidate();
+}
+
+/// Something that can check for newer data (one or several data sets).
+abstract class DataUpdater {
+  Future<SnapshotUpdateResult> check({bool force = false});
+}
 
 /// Where over-the-air snapshots are published: assets of the GitHub release
 /// with tag `opendata` (see `.github/workflows/opendata.yml`).
@@ -17,11 +43,14 @@ const int supportedSnapshotFormat = 1;
 String? snapshotVersion(String json) =>
     RegExp(r'"generated"\s*:\s*"([^"]+)"').firstMatch(json)?.group(1);
 
-/// Downloaded official snapshot on the device.
+/// A downloaded snapshot on the device.
 class SnapshotStore {
-  SnapshotStore(this._directory);
+  SnapshotStore(this._directory,
+      {this.fileName = 'official_snapshot.json', this.metaName = 'meta.json'});
 
   final Future<Directory> Function() _directory;
+  final String fileName;
+  final String metaName;
 
   Future<Directory> _dir() async {
     final d = Directory('${(await _directory()).path}/opendata');
@@ -29,9 +58,8 @@ class SnapshotStore {
     return d;
   }
 
-  Future<File> get _snapshot async =>
-      File('${(await _dir()).path}/official_snapshot.json');
-  Future<File> get _meta async => File('${(await _dir()).path}/meta.json');
+  Future<File> get _snapshot async => File('${(await _dir()).path}/$fileName');
+  Future<File> get _meta async => File('${(await _dir()).path}/$metaName');
 
   /// The downloaded snapshot (JSON text), or null.
   Future<String?> read() async {
@@ -93,10 +121,10 @@ class SnapshotUpdateResult {
   bool get updated => status == SnapshotUpdateStatus.updated;
 }
 
-/// Updates the official data without an app release: polls a tiny manifest
-/// and downloads the (gzip) snapshot only when it is newer than the data in
-/// use. Every download is validated before it replaces anything.
-class SnapshotUpdater {
+/// Updates a data set without an app release: polls a tiny manifest and
+/// downloads the (gzip) snapshot only when it is newer than the data in use.
+/// Every download is validated before it replaces anything.
+class SnapshotUpdater implements DataUpdater {
   SnapshotUpdater({
     required this.store,
     required this.source,
@@ -109,13 +137,14 @@ class SnapshotUpdater {
         _now = clock ?? DateTime.now;
 
   final SnapshotStore store;
-  final OfficialOpenDataSource source;
+  final SnapshotDataset source;
   final http.Client _client;
   final Uri _base;
   final Duration minInterval;
   final DateTime Function() _now;
 
   /// Checks for newer data. Without [force] at most once per [minInterval].
+  @override
   Future<SnapshotUpdateResult> check({bool force = false}) async {
     final now = _now();
     if (!force) {
@@ -135,7 +164,7 @@ class SnapshotUpdater {
 
   Future<SnapshotUpdateResult> _check() async {
     final manifestRes = await _client
-        .get(_base.resolve('opendata-manifest.json'))
+        .get(_base.resolve(source.manifestName))
         .timeout(const Duration(seconds: 20));
     if (manifestRes.statusCode != 200) {
       throw HttpException('manifest: HTTP ${manifestRes.statusCode}');
@@ -157,7 +186,7 @@ class SnapshotUpdater {
     }
 
     final res = await _client
-        .get(_base.resolve('official_smoking_areas.json.gz'))
+        .get(_base.resolve(source.dataName))
         .timeout(const Duration(seconds: 60));
     if (res.statusCode != 200) {
       throw HttpException('snapshot: HTTP ${res.statusCode}');
@@ -172,20 +201,36 @@ class SnapshotUpdater {
     if (data['generated'] != version) {
       throw const FormatException('snapshot does not match the manifest');
     }
-    final areas = data['areas'] as List?;
+    final areas = source.entriesOf(data);
     if (areas == null || (count != null && areas.length != count)) {
       throw const FormatException('incomplete snapshot');
     }
-    final currentCount = (await source.allAreas()).length;
+    final currentCount = await source.entryCount();
     if (areas.length < currentCount * 0.5) {
       throw FormatException(
           'suspiciously small snapshot (${areas.length} vs $currentCount)');
     }
-    OfficialOpenDataSource.parseSnapshot(json); // throws if unreadable
+    source.validate(json); // throws if unreadable
 
     await store.write(json);
     source.invalidate();
     return SnapshotUpdateResult(SnapshotUpdateStatus.updated,
         version: version);
+  }
+}
+
+/// Checks several data sets; "updated" when any of them was updated.
+class DataUpdaters implements DataUpdater {
+  DataUpdaters(this.updaters);
+  final List<DataUpdater> updaters;
+
+  @override
+  Future<SnapshotUpdateResult> check({bool force = false}) async {
+    final results = await Future.wait(
+        [for (final u in updaters) u.check(force: force)]);
+    for (final r in results) {
+      if (r.updated) return r;
+    }
+    return results.first;
   }
 }

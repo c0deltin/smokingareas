@@ -20,8 +20,7 @@ Agreed order (data first, then the server):
    release (manifest + gzip snapshot), checked by the app daily and on
    Reload, validated before use.
 
-- [ ] **Before publishing:** deliver the OSM data with the data release
-  instead of live Overpass queries from every app; paid backend plan (free
+- [ ] **Before publishing:** paid backend plan (free
   projects pause after a week without traffic); privacy policy, imprint and
   terms (GitHub Pages); App Store listing (texts, screenshots, privacy
   details, age rating, reason for "Always" location, review notes); decide
@@ -41,7 +40,9 @@ Agreed order (data first, then the server):
   recomputes the clusters).
 - [ ] Google Maps: restrict the Android API key to the release SHA-1 (the
   fixed signing key exists now); optional dark map style.
-- [ ] Verify on a real device: Google sign-in (iOS + Android), live Overpass query incl. toilets, camera and
+- [ ] Check the size of the first OSM export (`osm-manifest.json`); if it is
+  small enough, also bundle it with the app for the very first start.
+- [ ] Verify on a real device: Google sign-in (iOS + Android), OSM export incl. toilets, camera and
   gallery for photos, background location and proximity alerts (incl. the radius setting), direction cone
   (compass accuracy, flat vs. upright, map rotation) – on Android and iOS.
 
