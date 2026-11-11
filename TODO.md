@@ -19,18 +19,18 @@ Agreed order (data first, then the server):
 3. [ ] **Bind community verdicts to the data version** (see below).
 4. [ ] **Data updates without an app release.** The repository is public
    now, so the app can download a newer official snapshot from GitHub (e.g.
-   a release asset or the raw file on `main`) on start and via "Neu laden",
+   a release asset or the raw file on `main`) on start and via "Reload",
    store it locally and fall back to the bundled one. Later served by the
    backend.
 
 - [ ] **Community verdicts survive data updates (step 3).** The community
   must always win over the official "DB", which is only the baseline:
-  - "gibt es nicht mehr": today the spot stays hidden while the votes are
+  - "gone": today the spot stays hidden while the votes are
     valid (180 days) and reappears afterwards if the official list still
     contains it. Instead the verdict should hold until the official entry
     itself changes (store a fingerprint of the entry with each vote; a
     changed entry restarts the evaluation).
-  - "vorübergehend geschlossen / wieder offen": a report that contradicts the
+  - "temporarily closed / open again": a report that contradicts the
     official status currently expires after 14 days, after which the stale
     official flag applies again. Such reports should likewise hold until the
     official entry changes.
@@ -54,7 +54,7 @@ Agreed order (data first, then the server):
   entries plus OSM smoking areas and toilets); consider viewport-based
   marker building if it stutters.
 - [ ] Verify on a real device: live Overpass query incl. toilets, camera and
-  gallery for photos, background location and the 30 m alert, direction cone
+  gallery for photos, background location and proximity alerts (incl. the radius setting), direction cone
   (compass accuracy, flat vs. upright, map rotation).
 
 ## Distribution

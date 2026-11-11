@@ -39,9 +39,9 @@ Rules:
 ## Project overview
 
 Flutter app (iOS + Android) showing public smoking areas and public toilets in
-major Japanese cities, with a background 30 m proximity notification (smoking
-areas) and community features.
-UI language: **German**. Docs and code comments: **English**.
+major Japanese cities, with a background proximity notification (smoking
+areas, radius configurable, default 30 m) and community features.
+Everything is **English**: UI, docs and code comments.
 
 Key design decisions – keep them:
 
@@ -62,7 +62,8 @@ Key design decisions – keep them:
   (`SpotCategory`, derived from OSM `amenity=toilets`). Merging and duplicate
   checks only ever happen within one category. Colours: green = smoking,
   blue = toilet (`lib/ui/spot_style.dart`); ring gold = official, pink =
-  community. 30 m alerts are for smoking areas only.
+  community. Proximity alerts are for smoking areas only; the radius is a
+  user setting (`ProximityMonitor.alertRadius`, 10–150 m).
 - **Waze-like moderation** lives only in `ExistencePolicy` (pure, tested):
   latest vote per user, 180-day expiry, hidden at ≥ 3 "gone" and ≥ 2× the
   "exists" votes. Hidden spots disappear from the map *and* proximity alerts.
@@ -114,9 +115,9 @@ Run `flutter analyze` and `flutter test` before every commit.
 
 ## Working rules
 
-- **Language:** commit messages, PR titles and descriptions, release notes,
-  docs and code comments are written in **English**. Only user-facing app
-  text is German.
+- **Language:** everything is written in **English** – app UI, commit
+  messages, PR titles and descriptions, release notes, docs and code
+  comments (`test/ui_language_test.dart` guards the UI strings).
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `ci:`, `chore:`, optional
   scope such as `feat(community): …`). Commit small, coherent steps regularly.
@@ -126,7 +127,7 @@ Run `flutter analyze` and `flutter test` before every commit.
   parsing) free of Flutter/plugin dependencies so it stays testable. Inject
   directories, clocks and loaders (see existing tests) instead of using
   platform channels in tests.
-- **Strings:** user-facing text in German; keep it short.
+- **Strings:** user-facing text in English; keep it short.
 - **Data sources:** only public, openly accessible sources. Respect licences
   and attribution (ODbL for OSM, CC BY for open data) and keep the info dialog
   and README source table up to date. No scraping behind logins, no bypassing

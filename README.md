@@ -2,10 +2,11 @@
 
 Flutter app for **iOS and Android** that shows public smoking areas (喫煙所)
 and public toilets (公衆トイレ) in all major Japanese cities on a map and sends a
-**push notification** as soon as you get within **30 m** of a smoking area –
+**push notification** as soon as you get close to a smoking area (default
+**30 m**, configurable) –
 even while the app runs in the background.
 
-The app's user interface is in German.
+The app's user interface is in English.
 
 ## Features
 
@@ -18,7 +19,7 @@ The app's user interface is in German.
   category has its own coloured cluster layer and a filter chip to show or
   hide it. Marker rings show the origin: gold = official list, pink =
   reported by a user. The status banner shows the nearest smoking area and
-  the nearest toilet. A **legend** (menu ⋮ → Legende) explains every symbol
+  the nearest toilet. A **legend** (menu ⋮ → Legend) explains every symbol
   with one sentence; it uses the same marker widgets as the map
   (`SpotMarker`, `ClusterBubble` in `lib/ui/spot_style.dart`).
 - 55 cities / metropolitan areas: Tokyo (23 wards + Tama), all 20 designated
@@ -31,9 +32,11 @@ The app's user interface is in German.
 - Automatic city selection based on your location, manual selection with
   search – including quick jumps to popular districts (Shinjuku, Shibuya,
   Ikebukuro, Akihabara, Kanda, Ueno, Asakusa, Ginza, Umeda, Namba, Gion …).
-- 30 m proximity alert as a local push notification (smoking areas only –
+- Proximity alert as a local push notification, radius configurable in
+  *Settings* (10–150 m, default 30 m; smoking areas only –
   toilets are far too dense for alerts)
-  - hysteresis (a new alert only after moving > 60 m away) and a 30 min
+  - hysteresis (a new alert only after moving twice the radius away, at
+    least radius + 30 m) and a 30 min
     cooldown per smoking area, so GPS jitter does not cause a flood of alerts
   - inaccurate location fixes (accuracy > 50 m) are ignored
   - tapping the notification opens the smoking area on the map
@@ -165,14 +168,14 @@ map section (zoom).
   spots).
 - **“Does it still exist?” (like Waze):** yes/no per user; only a user's
   latest vote counts and votes older than 180 days expire. A spot is hidden
-  (from the map **and** the 30 m alert) once at least 3 users say “no” and the
+  (from the map **and** the proximity alert) once at least 3 users say “no” and the
   “no” votes are at least twice the “yes” votes (`ExistencePolicy`).
 - **Temporarily closed (like a Waze report):** users can report a spot as
   temporarily closed (optional reason and expected end date) or as reopened.
   A report expires after 14 days, or at its end date (max. 180 days); only a
   user's latest report counts and the majority wins (newest report on a tie,
   `ClosurePolicy`). Closed spots stay on the map in grey with a pause badge,
-  show a banner in the details view and are excluded from 30 m alerts and the
+  show a banner in the details view and are excluded from proximity alerts and the
   nearest-spot banner. Official entries flagged as closed (e.g. Okayama's
   「工事中のため、休止中」) are shown the same way and can be reopened by the
   community.
@@ -219,7 +222,7 @@ lib/
     official_opendata_source.dart    bundled official snapshot
   services/
     smoking_area_repository.dart     loading, merging, de-duplication, file cache
-    proximity_detector.dart          pure 30 m logic (tested)
+    proximity_detector.dart          pure proximity logic (tested)
     proximity_monitor.dart           location stream (also in background) → alert
     notification_service.dart        local push notifications
   community/                         community features (see above)
