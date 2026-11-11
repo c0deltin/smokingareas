@@ -48,6 +48,7 @@ class CommunitySpot {
     this.category = 'smoking',
     this.wheelchair,
     this.changingTable,
+    this.notSameAs = const [],
   });
 
   /// Always starts with `community:`.
@@ -71,6 +72,10 @@ class CommunitySpot {
   /// Toilets: wheelchair accessible / baby changing table.
   final bool? wheelchair;
   final bool? changingTable;
+
+  /// Ids of places the reporter explicitly said this is *not* (answer "No,
+  /// report new" to "Already on the map?"); never merged with those.
+  final List<String> notSameAs;
   final String createdBy;
   final DateTime createdAt;
 
@@ -87,6 +92,7 @@ class CommunitySpot {
         if (category != 'smoking') 'category': category,
         if (wheelchair != null) 'wheelchair': wheelchair,
         if (changingTable != null) 'changingTable': changingTable,
+        if (notSameAs.isNotEmpty) 'notSameAs': notSameAs,
         'createdBy': createdBy,
         'createdAt': createdAt.toIso8601String(),
       };
@@ -106,6 +112,7 @@ class CommunitySpot {
         category: j['category'] as String? ?? 'smoking',
         wheelchair: j['wheelchair'] as bool?,
         changingTable: j['changingTable'] as bool?,
+        notSameAs: ((j['notSameAs'] as List?) ?? const []).cast<String>(),
         createdBy: j['createdBy'] as String,
         createdAt: DateTime.parse(j['createdAt'] as String),
       );

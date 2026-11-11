@@ -136,6 +136,8 @@ class CommunityService extends ChangeNotifier {
                 'wheelchair': s.wheelchair! ? 'yes' : 'no',
               if (s.changingTable != null)
                 'changing_table': s.changingTable! ? 'yes' : 'no',
+              if (s.notSameAs.isNotEmpty)
+                'community:not_same_as': s.notSameAs.join(','),
               if (s.description != null) 'description': s.description!,
             },
           ),
@@ -153,6 +155,7 @@ class CommunityService extends ChangeNotifier {
     bool? wheelchair,
     bool? changingTable,
     File? photo,
+    Iterable<String> notSameAs = const [],
   }) async {
     final now = _now();
     final spot = CommunitySpot(
@@ -172,6 +175,7 @@ class CommunityService extends ChangeNotifier {
       category: category.name,
       wheelchair: category == SpotCategory.toilet ? wheelchair : null,
       changingTable: category == SpotCategory.toilet ? changingTable : null,
+      notSameAs: notSameAs.toList(),
       createdBy: currentUser.id,
       createdAt: now,
     );
