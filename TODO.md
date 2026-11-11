@@ -35,9 +35,11 @@ Agreed order (data first, then the server):
 
 - [ ] Opening a notification while the app was terminated does not jump to
   the smoking area yet (only works while the app is running).
-- [ ] Measure map performance with all markers in Tokyo (≈ 2,600 official
-  entries plus OSM smoking areas and toilets); consider viewport-based
-  marker building if it stutters.
+- [ ] Measure map performance on a device with all of Tokyo visible
+  (markers are clustered per visible region, but every camera stop
+  recomputes the clusters).
+- [ ] Google Maps: restrict the Android API key to the release SHA-1 once
+  the fixed signing key exists; optional dark map style.
 - [ ] Verify on a real device: live Overpass query incl. toilets, camera and
   gallery for photos, background location and proximity alerts (incl. the radius setting), direction cone
   (compass accuracy, flat vs. upright, map rotation) – on Android and iOS.
