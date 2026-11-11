@@ -118,6 +118,7 @@ flutter analyze          # must report "No issues found!"
 flutter test             # all tests must pass
 python3 -m unittest discover -s tool/opendata -p 'test_*.py'  # importer tests
 python3 tool/opendata/update_opendata.py            # refresh official snapshot
+python3 tool/opendata/package_snapshot.py           # manifest + .gz for in-app updates
 python3 tool/opendata/update_opendata.py osaka kyoto # only selected sources
 ```
 
@@ -145,6 +146,11 @@ Run `flutter analyze` and `flutter test` before every commit.
 - **Official snapshot:** `assets/opendata/official_smoking_areas.json` is
   generated – change the importer, not the JSON by hand. A failing source must
   keep its previous entries. Geocoded entries are flagged `geocoded`.
+- **In-app data updates:** the snapshot is published to the release
+  `opendata` (weekly workflow + every app release) and downloaded by
+  `SnapshotUpdater`. If the snapshot structure changes incompatibly, bump
+  `SNAPSHOT_FORMAT` (importer) and `supportedSnapshotFormat` (app) together;
+  older apps then keep their data instead of breaking.
 - **Stable ids:** community data (ratings, photos, votes, closures) is keyed
   by spot id, so official ids must never be row numbers. Use a real id of the
   source or `stable_key(name, address)`. When an id changes anyway, the
