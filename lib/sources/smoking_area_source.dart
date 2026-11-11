@@ -24,6 +24,10 @@ abstract class SmokingAreaSource {
   /// immediately; live sources are fetched and cached per city.
   bool get isBundled => false;
 
+  /// Drops cached data so the next [fetch] reads it again (e.g. after a data
+  /// update was downloaded).
+  void invalidate() {}
+
   Future<List<SmokingArea>> fetch(GeoBounds bounds);
 }
 

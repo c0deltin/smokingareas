@@ -16,11 +16,9 @@ Agreed order (data first, then the server):
 3. ~~Bind community verdicts to the data version~~ – done: source-data
    fingerprints; verdicts for the current version never expire, a changed
    entry restarts the evaluation.
-4. [ ] **Data updates without an app release.** The repository is public
-   now, so the app can download a newer official snapshot from GitHub (e.g.
-   a release asset or the raw file on `main`) on start and via "Reload",
-   store it locally and fall back to the bundled one. Later served by the
-   backend.
+4. ~~Data updates without an app release~~ – done: weekly `opendata`
+   release (manifest + gzip snapshot), checked by the app daily and on
+   Reload, validated before use.
 
 - [ ] **Server backend** for the community features: implement
   `RemoteCommunityBackend`, `PhotoStorage` and `AuthService` against a real

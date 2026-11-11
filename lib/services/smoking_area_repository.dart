@@ -159,6 +159,17 @@ class SmokingAreaRepository extends ChangeNotifier {
     _changed();
   }
 
+  /// Re-reads the bundled sources, e.g. after a data update was downloaded.
+  /// Visible immediately; community data follows via ids and aliases.
+  Future<void> reloadBundled() async {
+    for (final s in sources.where((s) => s.isBundled)) {
+      s.invalidate();
+    }
+    _bundledErrors.clear();
+    _bundledLoading = null;
+    await _ensureBundled();
+  }
+
   Future<void> _ensureBundled() => _bundledLoading ??= () async {
         final out = <SmokingArea>[];
         for (final s in sources.where((s) => s.isBundled)) {

@@ -1,0 +1,52 @@
+name: Official open data
+
+# Publishes the official snapshot as assets of the release with tag
+# `opendata`, so installed apps get data updates without an app release
+# (see lib/services/snapshot_updater.dart).
+on:
+  schedule:
+    - cron: '23 18 * * 1'   # weekly, Monday 18:23 UTC (Tuesday morning in Japan)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: opendata
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Test open-data importer
+        run: python3 -m unittest discover -s tool/opendata -p 'test_*.py'
+
+      # Failing sources keep their previous entries; the data version only
+      # changes when entries actually changed.
+      - name: Use last published data as base
+        run: python3 tool/opendata/use_published_base.py
+
+      - name: Refresh official open data
+        run: python3 tool/opendata/update_opendata.py
+
+      - name: Package snapshot
+        run: python3 tool/opendata/package_snapshot.py dist/opendata
+
+      - name: Publish data release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: opendata
+          name: Official open data (for in-app updates)
+          target_commitish: ${{ github.sha }}
+          make_latest: false
+          files: dist/opendata/*
+          body: |
+            Snapshot of the official smoking-area and public-toilet data
+            used by the app. Installed apps check `opendata-manifest.json`
+            once a day (and on "Reload") and download the snapshot only when
+            it is newer than the data they have. Updated weekly by
+            `.github/workflows/opendata.yml`; not an app release.

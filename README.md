@@ -129,6 +129,25 @@ If a source fails, its previous entries are kept. Addresses without
 coordinates are geocoded with the GSI address search (cache:
 `tool/opendata/geocode_cache.json`) and marked as “approximate” in the app.
 
+### Data updates without an app release
+
+- The official snapshot is also published as assets of the GitHub release
+  with tag [`opendata`](https://github.com/c0deltin/smokingareas/releases/tag/opendata):
+  `opendata-manifest.json` (format, version, entry count, sha256) and
+  `official_smoking_areas.json.gz` (~100 KB).
+- `.github/workflows/opendata.yml` refreshes it **weekly** (and on demand);
+  every app release refreshes it too. The data version (`generated`) only
+  changes when entries actually changed. Each run starts from the last
+  published snapshot so ids and aliases stay continuous.
+- The app checks the manifest at most **once a day** at start and on
+  **Reload**, downloads the snapshot only if it is newer, validates it
+  (format, gzip, JSON, entry count, no drop below 50 %), stores it locally and
+  shows it without a restart. The bundled snapshot is used when no download
+  exists or when it is newer (after an app update).
+- Privacy: this is a plain download from GitHub; no user data is sent.
+- Snapshot `format` is versioned; apps ignore formats they do not
+  understand.
+
 ### One map, all data
 
 Users never choose a data source: all sources are merged into a single data

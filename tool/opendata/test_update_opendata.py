@@ -84,5 +84,19 @@ class SameLocationTest(unittest.TestCase):
         self.assertEqual(merged[0]["aliases"], ["s:b"])
 
 
+class DataVersionTest(unittest.TestCase):
+    def test_unchanged_entries_keep_the_version(self):
+        areas = [entry("s:a", "A", 35.0, 139.0)]
+        prev = {"generated": "2026-01-01T00:00:00Z", "areas": [dict(areas[0])]}
+        self.assertEqual(uo.data_version(areas, prev), "2026-01-01T00:00:00Z")
+
+    def test_changed_entries_get_a_new_timestamp(self):
+        prev = {"generated": "2026-01-01T00:00:00Z", "areas": [entry("s:a", "A", 35.0, 139.0)]}
+        v = uo.data_version([entry("s:a", "A (new)", 35.0, 139.0)], prev)
+        self.assertNotEqual(v, "2026-01-01T00:00:00Z")
+        self.assertRegex(v, r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+        self.assertGreater(v, "2026-01-01T00:00:00Z")
+
+
 if __name__ == "__main__":
     unittest.main()
