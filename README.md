@@ -331,28 +331,21 @@ One-time setup:
 `ITSAppUsesNonExemptEncryption = false` (standard HTTPS only) avoids the
 export-compliance question for every build.
 
-## Backend (Supabase)
+## Backend
 
 Community data (reported spots, ratings, photos, votes, closure reports) is
-stored in a Supabase project (region Tokyo). Using the app needs no account;
+stored in a hosted PostgreSQL backend. Using the app needs no account;
 contributing needs Sign in with Apple or Google.
 
-- `supabase/migrations/` – schema and access rules. Everyone can read;
-  writes only as the signed-in account, with limits per hour; banned
-  accounts can no longer write. Reported content goes to `content_reports`
-  (moderation in the Supabase dashboard); users can block other users and
-  delete their account in the app.
-- `supabase/tests/` – tests on a plain PostgreSQL:
-  `PGHOST=localhost PGUSER=postgres supabase/tests/run_tests.sh`.
-- `.github/workflows/database.yml` runs the tests and, on `main`, applies
-  new migrations to the project. Repository secrets:
-  `SUPABASE_PROJECT_REF` (Project Settings → General → Project ID),
-  `SUPABASE_DB_PASSWORD` (the database password chosen at creation) and
-  `SUPABASE_ACCESS_TOKEN` (Account → Access Tokens). Without them the
-  deployment is skipped.
+- Everyone can read; writes only as the signed-in account, with limits per
+  hour; banned accounts can no longer write. Users can report content,
+  block other users and delete their account in the app.
+- Schema, access rules and their tests live in the repository and are
+  tested on a plain PostgreSQL on every change; merges to `main` apply new
+  schema versions automatically.
 
-The app itself only ever uses the public *anon* key; the `service_role` key
-is never used in the app or the repository.
+The app only ever uses public client credentials; administrative keys are
+never part of the app or the repository.
 
 ## Google Maps API keys
 
