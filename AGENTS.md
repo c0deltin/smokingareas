@@ -50,8 +50,11 @@ Key design decisions – keep them:
   in `SmokingAreaRepository.allVisible`. City/district selection only moves the
   map; it never filters data.
 - **No duplicate markers.** `SmokingAreaRepository.merge` matches official
-  entries 1:1 with OSM points (25 m precise / 50 m geocoded); same-building
-  rooms are combined in the snapshot. Do not add a second marker path.
+  entries 1:1 with OSM points (25 m precise / 50 m geocoded), then absorbs
+  user reports into official/OSM entries (25 m, 1:1; the report id becomes
+  an alias, user details only fill gaps, "not same as" answers are
+  respected); same-building rooms are combined in the snapshot. Do not add a
+  second marker path.
 - **Adapters for everything that will later need a server**
   (`CommunityBackend`, `PhotoStorage`, `AuthService`). Today all data is local
   (`LocalCommunityBackend` → `<app support>/community/db.json`).

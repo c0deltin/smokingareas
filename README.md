@@ -148,6 +148,13 @@ map section (zoom).
   coordinates). The resulting marker uses the city's name, address and
   opening hours, the OSM attributes and – for geocoded addresses – the more
   precise OSM position.
+- **User reports that later appear in official or OSM data** (same
+  category, ≤ 25 m, 1:1 closest first) are absorbed: the official/OSM entry
+  stays the base (name, position, gold/white ring), the user's details only
+  fill gaps, a user-placed position beats a geocoded address, and the report
+  id becomes an alias – ratings, photos, "gone" votes and closures move
+  along. If the reporter answered "No, report new" to "Already on the map?"
+  (asked within the same 25 m), the report is never merged with that place.
 - Official entries have a gold ring; the details view links to the city's
   page and to the OSM entry.
 
