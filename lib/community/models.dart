@@ -187,7 +187,7 @@ class SpotPhoto {
       );
 }
 
-/// "Gibt es noch" (exists = true) / "Gibt es nicht mehr" (exists = false).
+/// "Still there" (exists = true) / "gone" (exists = false).
 /// Only the latest vote of each user counts.
 class ExistenceVote {
   const ExistenceVote({
@@ -195,6 +195,7 @@ class ExistenceVote {
     required this.userId,
     required this.exists,
     required this.createdAt,
+    this.fingerprint,
   });
 
   final String spotId;
@@ -202,11 +203,16 @@ class ExistenceVote {
   final bool exists;
   final DateTime createdAt;
 
+  /// Source-data fingerprint of the spot when the vote was cast (null for
+  /// user-reported spots and votes from older app versions).
+  final String? fingerprint;
+
   Map<String, dynamic> toJson() => {
         'spotId': spotId,
         'userId': userId,
         'exists': exists,
         'createdAt': createdAt.toIso8601String(),
+        if (fingerprint != null) 'fingerprint': fingerprint,
       };
 
   factory ExistenceVote.fromJson(Map<String, dynamic> j) => ExistenceVote(
@@ -214,11 +220,12 @@ class ExistenceVote {
         userId: j['userId'] as String,
         exists: j['exists'] as bool,
         createdAt: DateTime.parse(j['createdAt'] as String),
+        fingerprint: j['fingerprint'] as String?,
       );
 }
 
-/// "Vorübergehend geschlossen" (closed = true) or "wieder geöffnet"
-/// (closed = false). Reports expire, see `ClosurePolicy`.
+/// "Temporarily closed" (closed = true) or "open again" (closed = false).
+/// Reports expire, see `ClosurePolicy`.
 class ClosureReport {
   const ClosureReport({
     required this.spotId,
@@ -227,11 +234,15 @@ class ClosureReport {
     required this.createdAt,
     this.note,
     this.until,
+    this.fingerprint,
   });
 
   final String spotId;
   final String userId;
   final bool closed;
+
+  /// Source-data fingerprint of the spot when the report was made.
+  final String? fingerprint;
 
   /// Reason, e.g. "Bauarbeiten".
   final String? note;
@@ -247,6 +258,7 @@ class ClosureReport {
         if (note != null) 'note': note,
         if (until != null) 'until': until!.toIso8601String(),
         'createdAt': createdAt.toIso8601String(),
+        if (fingerprint != null) 'fingerprint': fingerprint,
       };
 
   factory ClosureReport.fromJson(Map<String, dynamic> j) => ClosureReport(
@@ -256,5 +268,6 @@ class ClosureReport {
         note: j['note'] as String?,
         until: j['until'] == null ? null : DateTime.parse(j['until'] as String),
         createdAt: DateTime.parse(j['createdAt'] as String),
+        fingerprint: j['fingerprint'] as String?,
       );
 }

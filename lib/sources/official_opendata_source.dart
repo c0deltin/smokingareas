@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
 
 import '../models/city.dart';
+import '../models/data_fingerprint.dart';
 import '../models/smoking_area.dart';
 import 'smoking_area_source.dart';
 
@@ -145,6 +146,8 @@ class _Snapshot {
         if (a['aliases'] is List && (a['aliases'] as List).isNotEmpty)
           'aliases': (a['aliases'] as List).join(','),
         if (a['temporarily_closed'] == true) 'temporarily_closed': 'yes',
+        // Marks the closure as coming from the data (not the community).
+        if (a['temporarily_closed'] == true) 'official:closed': 'yes',
         if (a['temporarily_closed'] == true && a['note'] != null)
           'temporarily_closed:note': a['note'] as String,
         if (a['wheelchair'] != null)
@@ -152,6 +155,19 @@ class _Snapshot {
         if (a['changing_table'] != null)
           'changing_table': a['changing_table'] == true ? 'yes' : 'no',
       };
+      // Content of the official entry: a change restarts community verdicts.
+      final position = LatLng(
+        (a['lat'] as num).toDouble(),
+        (a['lon'] as num).toDouble(),
+      );
+      tags[fingerprintTag] = dataFingerprint(position: position, fields: {
+        'name': '${a['name'] ?? ''}',
+        'address': '${a['address'] ?? ''}',
+        'hours': '${a['hours'] ?? ''}',
+        'kind': '${a['kind'] ?? ''}',
+        'category': '${a['category'] ?? 'smoking'}',
+        'closed': '${a['temporarily_closed'] == true}',
+      });
       areas.add(SmokingArea(
         id: a['id'] as String,
         position: LatLng(

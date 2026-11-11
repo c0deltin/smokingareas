@@ -109,7 +109,7 @@ class OverpassSource extends SmokingAreaSource {
         source: 'OpenStreetMap',
         name: tags['name'],
         tags: tags,
-      ));
+      ).withOsmFingerprint());
     }
     return result;
   }

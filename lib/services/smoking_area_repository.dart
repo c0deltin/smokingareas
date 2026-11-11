@@ -466,6 +466,8 @@ class SmokingAreaRepository extends ChangeNotifier {
       if ((json['schema'] as int? ?? 1) < cacheSchema) fetchedAt = DateTime(2000);
       List<SmokingArea> parse(Object? list) => (list as List)
           .map((e) => SmokingArea.fromJson(e as Map<String, dynamic>))
+          // Caches written before fingerprints existed.
+          .map((a) => a.id.startsWith('osm:') ? a.withOsmFingerprint() : a)
           .toList();
 
       final raw = <String, List<SmokingArea>>{};
