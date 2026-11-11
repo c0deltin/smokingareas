@@ -18,14 +18,33 @@ class ProximityHit {
 /// * Fixes with a worse accuracy than [maxAccuracyMeters] are ignored.
 class ProximityDetector {
   ProximityDetector({
-    this.alertRadiusMeters = 30,
-    this.rearmRadiusMeters = 60,
+    double alertRadiusMeters = 30,
+    double? rearmRadiusMeters,
     this.cooldown = const Duration(minutes: 30),
     this.maxAccuracyMeters = 50,
-  }) : assert(rearmRadiusMeters >= alertRadiusMeters);
+  }) {
+    setRadius(alertRadiusMeters, rearmRadiusMeters: rearmRadiusMeters);
+  }
 
-  final double alertRadiusMeters;
-  final double rearmRadiusMeters;
+  late double _alert;
+  late double _rearm;
+
+  double get alertRadiusMeters => _alert;
+  double get rearmRadiusMeters => _rearm;
+
+  /// Default re-arm distance: twice the alert radius, but at least 30 m more,
+  /// so small radii do not re-trigger on GPS jitter.
+  static double defaultRearm(double alert) =>
+      alert * 2 > alert + 30 ? alert * 2 : alert + 30;
+
+  /// Changes the alert radius (user setting). Already announced areas stay
+  /// quiet until the user has left them.
+  void setRadius(double alertRadiusMeters, {double? rearmRadiusMeters}) {
+    _alert = alertRadiusMeters;
+    _rearm = rearmRadiusMeters ?? defaultRearm(alertRadiusMeters);
+    assert(_rearm >= _alert);
+  }
+
   final Duration cooldown;
   final double maxAccuracyMeters;
 
@@ -46,12 +65,14 @@ class ProximityDetector {
     }
     final t = now ?? DateTime.now();
 
+    final latMargin = _rearm / 111000 * 1.1;
     ProximityHit? best;
     final stillNear = <String>{};
     for (final area in areas) {
-      // Cheap pre-filter (~0.001° ≈ 110 m) before the exact distance.
-      if ((area.latitude - position.latitude).abs() > 0.001 ||
-          (area.longitude - position.longitude).abs() > 0.0013) {
+      // Cheap pre-filter before the exact distance (1° lat ≈ 111 km; the
+      // longitude margin is generous enough for all of Japan).
+      if ((area.latitude - position.latitude).abs() > latMargin ||
+          (area.longitude - position.longitude).abs() > latMargin * 1.5) {
         continue;
       }
       final d = _distance(position, area.position);

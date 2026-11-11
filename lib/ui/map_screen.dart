@@ -19,6 +19,7 @@ import 'city_picker.dart';
 import 'legend_sheet.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
+import 'settings_sheet.dart';
 import 'spot_style.dart';
 import 'user_location_marker.dart';
 
@@ -140,9 +141,9 @@ class _MapScreenState extends State<MapScreen> {
       if (data.errors.isNotEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(data.fromCache
-              ? 'Offline – zeige gespeicherte Daten vom '
+              ? 'Offline – showing saved data from '
                   '${_formatDate(data.fetchedAt)}.'
-              : 'Einige Quellen nicht erreichbar.'),
+              : 'Some sources are unreachable.'),
         ));
       }
     } catch (e) {
@@ -203,8 +204,8 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(enable
-          ? 'Benachrichtigungen an: Du wirst im Umkreis von 30 m informiert.'
-          : 'Benachrichtigungen aus.'),
+          ? 'Alerts on: you will be notified within ${_monitor.alertRadius.round()} m.'
+          : 'Alerts off.'),
     ));
   }
 
@@ -248,22 +249,23 @@ class _MapScreenState extends State<MapScreen> {
         actions: [
           IconButton(
             tooltip: _monitor.alertsEnabled
-                ? 'Benachrichtigungen ausschalten'
-                : 'Benachrichtigungen einschalten',
+                ? 'Turn alerts off'
+                : 'Turn alerts on',
             icon: Icon(_monitor.alertsEnabled
                 ? Icons.notifications_active
                 : Icons.notifications_off_outlined),
             onPressed: _toggleAlerts,
           ),
           IconButton(
-            tooltip: 'Neu laden',
+            tooltip: 'Reload',
             icon: const Icon(Icons.refresh),
             onPressed: _loading ? null : () => _loadCity(_city, force: true),
           ),
           PopupMenuButton<String>(
-            tooltip: 'Menü',
+            tooltip: 'Menu',
             onSelected: (v) => switch (v) {
               'legend' => showLegendSheet(context),
+              'settings' => showSettingsSheet(context, _monitor),
               'profile' => showProfileSheet(context, _community),
               _ => _showInfo(context),
             },
@@ -272,14 +274,21 @@ class _MapScreenState extends State<MapScreen> {
                 value: 'legend',
                 child: ListTile(
                   leading: Icon(Icons.legend_toggle),
-                  title: Text('Legende'),
+                  title: Text('Legend'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'settings',
+                child: ListTile(
+                  leading: Icon(Icons.settings_outlined),
+                  title: Text('Settings'),
                 ),
               ),
               PopupMenuItem(
                 value: 'profile',
                 child: ListTile(
                   leading: Icon(Icons.account_circle_outlined),
-                  title: Text('Profil'),
+                  title: Text('Profile'),
                 ),
               ),
               PopupMenuItem(
@@ -313,7 +322,7 @@ class _MapScreenState extends State<MapScreen> {
                 CircleLayer(circles: [
                   CircleMarker(
                     point: userPos,
-                    radius: ProximityMonitor.alertRadiusMeters,
+                    radius: _monitor.alertRadius,
                     useRadiusInMeter: true,
                     color: theme.colorScheme.primary.withValues(alpha: 0.12),
                     borderColor: theme.colorScheme.primary,
@@ -356,7 +365,7 @@ class _MapScreenState extends State<MapScreen> {
                 alignment: AttributionAlignment.bottomLeft,
                 attributions: [
                   TextSourceAttribution(
-                    'OpenStreetMap-Mitwirkende',
+                    'OpenStreetMap contributors',
                     onTap: () => launchUrl(
                         Uri.parse('https://openstreetmap.org/copyright')),
                   ),
@@ -428,14 +437,14 @@ class _MapScreenState extends State<MapScreen> {
               children: [
                 FloatingActionButton.small(
                   heroTag: 'report',
-                  tooltip: 'Raucherbereich melden',
+                  tooltip: 'Report a spot',
                   onPressed: _startReport,
                   child: const Icon(Icons.add_location_alt_outlined),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton(
                   heroTag: 'locate',
-                  tooltip: 'Mein Standort',
+                  tooltip: 'My location',
                   onPressed: _centerOnUser,
                   child: const Icon(Icons.my_location),
                 ),
@@ -478,8 +487,8 @@ class _MapScreenState extends State<MapScreen> {
               padding: const EdgeInsets.all(12),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Text(
-                  '${_reportCategory!.label} melden: Karte verschieben, bis '
-                  'das Kreuz genau auf dem Ort liegt.',
+                  'Report ${_reportCategory!.label.toLowerCase()}: move the map '
+                  'until the cross is exactly on the spot.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -487,14 +496,14 @@ class _MapScreenState extends State<MapScreen> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => setState(() => _reportCategory = null),
-                      child: const Text('Abbrechen'),
+                      child: const Text('Cancel'),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton(
                       onPressed: _confirmReportPosition,
-                      child: const Text('Hier melden'),
+                      child: const Text('Report here'),
                     ),
                   ),
                 ]),
@@ -526,17 +535,17 @@ class _MapScreenState extends State<MapScreen> {
       final choice = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Schon vorhanden?'),
-          content: Text('In ${nearestDist.round()} m gibt es bereits '
-              '„${existing.title}“. Ist es derselbe Ort?'),
+          title: const Text('Already on the map?'),
+          content: Text('"${existing.title}" is ${nearestDist.round()} m away. '
+              'Is it the same place?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Nein, neu melden'),
+              child: const Text('No, report new'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Ja, anzeigen'),
+              child: const Text('Yes, show it'),
             ),
           ],
         ),
@@ -569,7 +578,7 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted) return;
     setState(() => _reportCategory = null);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Danke! Dein Eintrag ist jetzt auf der Karte.'),
+      content: Text('Thanks! Your spot is now on the map.'),
     ));
   }
 
@@ -581,32 +590,31 @@ class _MapScreenState extends State<MapScreen> {
       applicationIcon: const Icon(Icons.smoking_rooms, size: 40),
       children: [
         const Text(
-          'Zeigt öffentliche Raucherbereiche (喫煙所, grün) und öffentliche '
-          'Toiletten (公衆トイレ, blau) in allen großen Städten Japans. In '
-          'vielen japanischen Städten ist das Rauchen auf der Straße verboten '
-          'und nur an ausgewiesenen Stellen erlaubt.\n\n'
-          'Ist die Benachrichtigung aktiv, bekommst du eine Push-Mitteilung, '
-          'sobald du dich einem Raucherbereich auf 30 m näherst – auch wenn '
-          'die App im Hintergrund läuft (nicht für Toiletten).\n',
+          'Shows public smoking areas (喫煙所, green) and public toilets '
+          '(公衆トイレ, blue) in all major Japanese cities. Many Japanese '
+          'cities ban smoking on the street and only allow it in designated '
+          'areas.\n\n'
+          'With alerts on you get a notification as soon as you come close '
+          'to a smoking area (radius configurable in Settings) – also while '
+          'the app runs in the background (not for toilets).\n',
         ),
-        const Text('Datenquellen:',
+        const Text('Data sources:',
             style: TextStyle(fontWeight: FontWeight.bold)),
         for (final s in _repo.sources)
           Text('• ${s.displayName}: ${s.attribution}'),
         const SizedBox(height: 8),
         const Text(
-          'Alle Symbole erklärt die Legende (Menü ⋮). Offizielle Einträge '
-          '(gold umrandet) stammen aus Listen der Städte '
-          'und Bezirke; liegt ein OSM-Eintrag am selben Ort, werden beide zu '
-          'einem Marker zusammengeführt. Ohne Koordinaten veröffentlichte '
-          'Adressen wurden über die GSI-Adresssuche verortet und sind als '
-          '„ungefähr“ gekennzeichnet.',
+          'The legend (menu ⋮) explains all symbols. Official entries (gold '
+          'ring) come from lists published by cities and wards; if an OSM '
+          'entry is at the same place, both are merged into one marker. '
+          'Addresses published without coordinates were located with the GSI '
+          'address search and are marked as "approximate".',
         ),
         const SizedBox(height: 8),
         const Text(
-          'Kartenkacheln: © OpenStreetMap-Mitwirkende.\n'
-          'Angaben ohne Gewähr – fehlende oder falsche Einträge kannst du '
-          'direkt auf openstreetmap.org korrigieren (amenity=smoking_area, '
+          'Map tiles: © OpenStreetMap contributors.\n'
+          'No guarantee of accuracy – you can fix missing or wrong entries '
+          'directly on openstreetmap.org (amenity=smoking_area, '
           'amenity=toilets).',
         ),
       ],
@@ -653,8 +661,8 @@ class _StatusBanner extends StatelessWidget {
         Row(children: [
           const Icon(Icons.cloud_off),
           const SizedBox(width: 8),
-          const Expanded(child: Text('Daten konnten nicht geladen werden.')),
-          TextButton(onPressed: onRetry, child: const Text('Erneut')),
+          const Expanded(child: Text('Could not load data.')),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
         ]),
         color: theme.colorScheme.errorContainer,
       );
@@ -670,12 +678,12 @@ class _StatusBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(state == LocationState.serviceDisabled
-                ? 'Standortdienste sind deaktiviert.'
-                : 'Ohne Standortzugriff keine 30-m-Benachrichtigung.'),
+                ? 'Location services are turned off.'
+                : 'Without location access there are no proximity alerts.'),
           ),
           TextButton(
             onPressed: onFixPermissions,
-            child: const Text('Einstellungen'),
+            child: const Text('Settings'),
           ),
         ]),
         color: theme.colorScheme.tertiaryContainer,
@@ -704,16 +712,16 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   nearest == null
                       ? (count == null
-                          ? 'Lade Raucherbereiche …'
-                          : '$count Raucherbereiche in dieser Stadt')
-                      : 'Nächster: ${nearest.area.title}',
+                          ? 'Loading smoking areas …'
+                          : '$count smoking areas in this city')
+                      : 'Nearest: ${nearest.area.title}',
                   style: theme.textTheme.titleSmall,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (nearest != null)
                   Text(
-                    '${formatDistance(nearest.distanceMeters)} entfernt'
-                    '${count != null ? ' · $count in dieser Stadt' : ''}',
+                    '${formatDistance(nearest.distanceMeters)} away'
+                    '${count != null ? ' · $count in this city' : ''}',
                     style: theme.textTheme.bodySmall,
                   ),
                 if (nearestToilet != null)
@@ -725,7 +733,7 @@ class _StatusBanner extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          'Toilette: ${nearestToilet.area.title} · '
+                          'Toilet: ${nearestToilet.area.title} · '
                           '${formatDistance(nearestToilet.distanceMeters)}',
                           style: theme.textTheme.bodySmall,
                           overflow: TextOverflow.ellipsis,
@@ -735,7 +743,7 @@ class _StatusBanner extends StatelessWidget {
                   ),
                 if (state == LocationState.whileInUse && monitor.alertsEnabled)
                   Text(
-                    'Tipp: „Immer“ erlauben für Hinweise im Hintergrund.',
+                    'Tip: allow "Always" for alerts in the background.',
                     style: theme.textTheme.bodySmall,
                   ),
               ],
