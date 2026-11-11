@@ -35,6 +35,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "assets" / "opendata" / "official_smoking_areas.json"
 GEOCODE_CACHE = Path(__file__).resolve().parent / "geocode_cache.json"
+# Bump when the app can no longer read older/newer snapshots (see
+# lib/services/snapshot_updater.dart `supportedFormat`).
+SNAPSHOT_FORMAT = 1
 USER_AGENT = "smokingareas-opendata/1.0 (+https://github.com/c0deltin/smokingareas)"
 
 # --------------------------------------------------------------------------
@@ -646,6 +649,22 @@ def carry_aliases(items: list[dict], previous: list[dict]) -> list[dict]:
 # --------------------------------------------------------------------------
 
 
+def _content_hash(areas: list[dict]) -> str:
+    return hashlib.sha256(json.dumps(areas, ensure_ascii=False, sort_keys=True)
+                          .encode("utf-8")).hexdigest()
+
+
+def data_version(areas: list[dict], previous: dict) -> str:
+    """Timestamp of the last change of the entries (ISO 8601, UTC).
+
+    The app compares it with the version it already has to decide whether to
+    download an update, so it only moves when the entries actually changed –
+    not on every run (source fetch dates are ignored)."""
+    if previous.get("generated") and _content_hash(areas) == _content_hash(previous.get("areas", [])):
+        return previous["generated"]
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def main(only: list[str]) -> int:
     global _geocode_cache
     if GEOCODE_CACHE.exists():
@@ -685,7 +704,10 @@ def main(only: list[str]) -> int:
         metas.append(meta)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps({"generated": today, "sources": metas, "areas": all_areas},
+    OUT.write_text(json.dumps({"format": SNAPSHOT_FORMAT,
+                               "generated": data_version(all_areas, previous),
+                               "sources": metas,
+                               "areas": all_areas},
                               ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     GEOCODE_CACHE.write_text(json.dumps(_geocode_cache, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
                              encoding="utf-8")

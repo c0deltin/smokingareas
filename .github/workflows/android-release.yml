@@ -38,6 +38,9 @@ jobs:
       - name: Test open-data importer
         run: python3 -m unittest discover -s tool/opendata -p 'test_*.py'
 
+      - name: Use last published data as base
+        run: python3 tool/opendata/use_published_base.py
+
       - name: Refresh official open data
         continue-on-error: true
         run: python3 tool/opendata/update_opendata.py
@@ -107,3 +110,17 @@ jobs:
             3. If Play Protect shows a warning: choose "Install anyway".
             4. On first start allow location "Allow all the time" and
                notifications, so proximity alerts also work in the background.
+
+      # The app release also refreshes the in-app data update channel, so
+      # installed older versions get the same data.
+      - name: Package snapshot for in-app updates
+        run: python3 tool/opendata/package_snapshot.py dist/opendata
+
+      - name: Publish data release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: opendata
+          name: Official open data (for in-app updates)
+          target_commitish: ${{ github.sha }}
+          make_latest: false
+          files: dist/opendata/*
