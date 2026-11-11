@@ -4,19 +4,42 @@ import 'package:uuid/uuid.dart';
 import 'community_backend.dart';
 import 'models.dart';
 
-/// Adapter for user identity. Locally there is no login: profiles live in
-/// the [CommunityBackend] and the active one is remembered on the device.
-/// Several local profiles make it possible to try the multi-user rules
-/// (e.g. three users reporting a spot as gone) on one phone.
-/// A server implementation would sign in with a real account instead.
+/// Ways to sign in with a server backend.
+enum SignInProvider { apple, google }
+
+/// Adapter for user identity.
+///
+/// Reading never needs an account; contributing (report, rate, photo, vote)
+/// needs a signed-in [currentUser]. With a server backend users sign in with
+/// Apple or Google ([providers]); [LocalAuthService] (no backend configured,
+/// development and tests) is always signed in with a local profile.
 abstract class AuthService {
-  UserProfile get currentUser;
-  Future<List<UserProfile>> profiles();
-  Future<UserProfile> createProfile(String displayName);
-  Future<void> switchTo(String userId);
-  Future<UserProfile> rename(String displayName);
+  /// Null while the user stays anonymous.
+  UserProfile? get currentUser;
+
+  /// Sign-in methods offered on this device (empty: no sign-in needed).
+  List<SignInProvider> get providers;
+
+  /// Returns false when the user cancelled.
+  Future<bool> signIn(SignInProvider provider);
+  Future<void> signOut();
+
+  /// Deletes the account and its contributions on the server.
+  Future<void> deleteAccount();
+  Future<UserProfile?> rename(String displayName);
 }
 
+/// Thrown when a contribution is attempted without a signed-in user.
+class SignInRequired implements Exception {
+  const SignInRequired();
+  @override
+  String toString() => 'Sign in to contribute.';
+}
+
+/// Local profiles: they live in the [CommunityBackend] and the active one is
+/// remembered on the device. Several local profiles make it possible to try
+/// the multi-user rules (e.g. three users reporting a spot as gone) on one
+/// phone.
 class LocalAuthService implements AuthService {
   LocalAuthService(this._backend, {SharedPreferences? prefs})
       : _prefsOverride = prefs;
@@ -50,9 +73,20 @@ class LocalAuthService implements AuthService {
   UserProfile get currentUser => _current;
 
   @override
-  Future<List<UserProfile>> profiles() => _backend.users();
+  List<SignInProvider> get providers => const [];
 
   @override
+  Future<bool> signIn(SignInProvider provider) async => true;
+
+  /// Local profiles cannot sign out; switch profiles instead.
+  @override
+  Future<void> signOut() async {}
+
+  @override
+  Future<void> deleteAccount() async {}
+
+  Future<List<UserProfile>> profiles() => _backend.users();
+
   Future<UserProfile> createProfile(String displayName) async {
     final user = UserProfile(
       id: 'local-${_uuid.v4()}',
@@ -65,7 +99,6 @@ class LocalAuthService implements AuthService {
     return user;
   }
 
-  @override
   Future<void> switchTo(String userId) async {
     final users = await _backend.users();
     _current = users.firstWhere((u) => u.id == userId);

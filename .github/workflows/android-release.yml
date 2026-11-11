@@ -80,10 +80,18 @@ jobs:
         env:
           # Google Maps key (restricted to this app); empty = map stays blank.
           MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY_ANDROID }}
+          # Server and sign-in settings (public client values, kept out of
+          # the repository); without them the app uses local community data.
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          BACKEND_ANON_KEY: ${{ secrets.BACKEND_ANON_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: |
           flutter build apk --release \
             --build-name=1.0.${{ github.run_number }} \
-            --build-number=${{ github.run_number }}
+            --build-number=${{ github.run_number }} \
+            --dart-define=BACKEND_URL="$BACKEND_URL" \
+            --dart-define=BACKEND_ANON_KEY="$BACKEND_ANON_KEY" \
+            --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk \
             dist/smokingareas-1.0.${{ github.run_number }}.apk

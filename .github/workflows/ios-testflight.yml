@@ -29,6 +29,12 @@ jobs:
       ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
       MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY_IOS }}
+      # Server and sign-in settings (public client values, kept out of the
+      # repository); without them the app uses local community data.
+      BACKEND_URL: ${{ secrets.BACKEND_URL }}
+      BACKEND_ANON_KEY: ${{ secrets.BACKEND_ANON_KEY }}
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+      GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
     steps:
       - name: Check configuration
         id: config
@@ -65,14 +71,26 @@ jobs:
         run: |
           flutter build ios --release --config-only --no-codesign \
             --build-name=1.0.${{ github.run_number }} \
-            --build-number=${{ github.run_number }}
+            --build-number=${{ github.run_number }} \
+            --dart-define=BACKEND_URL="$BACKEND_URL" \
+            --dart-define=BACKEND_ANON_KEY="$BACKEND_ANON_KEY" \
+            --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID" \
+            --dart-define=GOOGLE_IOS_CLIENT_ID="$GOOGLE_IOS_CLIENT_ID"
 
       # Google Maps key as an uncommitted build setting (read by Info.plist);
       # written to a file so it never appears on a command line or in logs.
-      - name: Install Google Maps API key
+      - name: Install Google Maps API key and sign-in settings
         if: steps.config.outputs.skip == 'false'
         run: |
-          printf 'MAPS_API_KEY = %s\n' "$MAPS_API_KEY" > ios/Flutter/Secrets.xcconfig
+          {
+            printf 'MAPS_API_KEY = %s\n' "$MAPS_API_KEY"
+            # Google sign-in callback scheme: the iOS client id reversed
+            # (123-abc.apps.googleusercontent.com → com.googleusercontent.apps.123-abc).
+            if [ -n "$GOOGLE_IOS_CLIENT_ID" ]; then
+              printf 'GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.%s\n' \
+                "${GOOGLE_IOS_CLIENT_ID%.apps.googleusercontent.com}"
+            fi
+          } > ios/Flutter/Secrets.xcconfig
 
       - name: Install App Store Connect API key
         if: steps.config.outputs.skip == 'false'

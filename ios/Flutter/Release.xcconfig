@@ -1,3 +1,6 @@
 #include "Generated.xcconfig"
-// Optional, not committed: MAPS_API_KEY (Google Maps), created by CI.
+// Placeholder; the real value comes from Secrets.xcconfig.
+GOOGLE_REVERSED_CLIENT_ID = smokingareas-google-sign-in
+// Optional, not committed: MAPS_API_KEY (Google Maps) and
+// GOOGLE_REVERSED_CLIENT_ID, created by CI.
 #include? "Secrets.xcconfig"

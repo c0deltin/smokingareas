@@ -46,6 +46,11 @@ dependencies:
   flutter_rotation_sensor: ^0.4.0
   google_maps_flutter: ^2.19.0
   google_maps_flutter_ios_sdk10: ^2.19.0
+  supabase_flutter: ^2.18.3
+  sign_in_with_apple: ^8.2.0
+  google_sign_in: ^7.2.0
+  crypto: ^3.0.8
+  image: ^4.12.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

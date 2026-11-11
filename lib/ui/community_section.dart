@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../community/community_service.dart';
 import '../community/models.dart';
+import 'sign_in_sheet.dart';
 import '../models/smoking_area.dart';
 
 /// Lets the user pick a photo with camera or gallery (null = cancelled).
@@ -93,8 +94,9 @@ class CommunitySection extends StatelessWidget {
             Row(children: [
               Text('Community', style: theme.textTheme.titleMedium),
               const Spacer(),
-              Text('as ${community.currentUser.displayName}',
-                  style: theme.textTheme.bodySmall),
+              if (community.currentUser case final user?)
+                Text('as ${user.displayName}',
+                    style: theme.textTheme.bodySmall),
             ]),
             const SizedBox(height: 8),
 
@@ -152,7 +154,9 @@ class CommunitySection extends StatelessWidget {
                   icon: Icons.check_circle_outline,
                   label: 'Yes (${status.confirmations})',
                   color: Colors.green,
-                  onPressed: () => community.vote(area, exists: true),
+                  onPressed: () => contribute(context, community,
+                      () => community.vote(area, exists: true),
+                      reason: 'Sign in to confirm places.'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -184,21 +188,37 @@ class CommunitySection extends StatelessWidget {
   }
 
   Future<void> _rate(BuildContext context, int? current) async {
+    if (!await ensureSignedIn(context, community,
+            reason: 'Sign in to rate places.') ||
+        !context.mounted) {
+      return;
+    }
     final result = await showDialog<(int, String)>(
       context: context,
       builder: (_) => _RatingDialog(initial: current ?? 0),
     );
-    if (result == null) return;
-    await community.rate(area, result.$1, comment: result.$2);
+    if (result == null || !context.mounted) return;
+    await contribute(context, community,
+        () => community.rate(area, result.$1, comment: result.$2));
   }
 
   Future<void> _addPhoto(BuildContext context) async {
+    if (!await ensureSignedIn(context, community,
+            reason: 'Sign in to add photos.') ||
+        !context.mounted) {
+      return;
+    }
     final file = await pickPhoto(context);
-    if (file == null) return;
-    await community.addPhoto(area, file);
+    if (file == null || !context.mounted) return;
+    await contribute(context, community, () => community.addPhoto(area, file));
   }
 
   Future<void> _voteGone(BuildContext context) async {
+    if (!await ensureSignedIn(context, community,
+            reason: 'Sign in to report places that are gone.') ||
+        !context.mounted) {
+      return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -219,9 +239,10 @@ class CommunitySection extends StatelessWidget {
         ],
       ),
     );
-    if (ok != true) return;
-    await community.vote(area, exists: false);
-    if (community.isHidden(area)) onRemoved?.call();
+    if (ok != true || !context.mounted) return;
+    final saved = await contribute(
+        context, community, () => community.vote(area, exists: false));
+    if (saved && community.isHidden(area)) onRemoved?.call();
   }
 }
 
@@ -448,7 +469,9 @@ class _ClosureControls extends StatelessWidget {
         Expanded(
           child: closed
               ? OutlinedButton.icon(
-                  onPressed: () => community.reportClosure(area, closed: false),
+                  onPressed: () => contribute(context, community,
+                      () => community.reportClosure(area, closed: false),
+                      reason: 'Sign in to report closures.'),
                   icon: const Icon(Icons.play_circle_outline),
                   label: const Text('Open again'),
                 )
@@ -468,13 +491,21 @@ class _ClosureControls extends StatelessWidget {
   }
 
   Future<void> _reportClosed(BuildContext context) async {
+    if (!await ensureSignedIn(context, community,
+            reason: 'Sign in to report closures.') ||
+        !context.mounted) {
+      return;
+    }
     final result = await showDialog<(String, DateTime?)>(
       context: context,
       builder: (_) => const _ClosureDialog(),
     );
-    if (result == null) return;
-    await community.reportClosure(area,
-        closed: true, note: result.$1, until: result.$2);
+    if (result == null || !context.mounted) return;
+    await contribute(
+        context,
+        community,
+        () => community.reportClosure(area,
+            closed: true, note: result.$1, until: result.$2));
   }
 }
 

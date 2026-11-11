@@ -24,6 +24,7 @@ import 'marker_icons.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
 import 'settings_sheet.dart';
+import 'sign_in_sheet.dart';
 import 'spot_style.dart';
 
 class MapScreen extends StatefulWidget {
@@ -249,8 +250,11 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _askPermissions() async {
-    if (_monitor.locationState == LocationState.always) return;
-    await _monitor.requestPermissions();
+    if (_monitor.locationState != LocationState.always) {
+      await _monitor.requestPermissions();
+    }
+    // Once after installation: sign in or stay anonymous.
+    if (mounted) await maybeShowInitialSignIn(context, _community);
   }
 
   void _onMonitorChanged() {
@@ -273,6 +277,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _reload() async {
     final updater = widget.updater;
     final cityLoad = _loadCity(_city, force: true);
+    unawaited(_community.refresh());
     if (updater != null) {
       final result = await updater.check(force: true);
       if (result.updated) {
@@ -412,7 +417,7 @@ class _MapScreenState extends State<MapScreen> {
             tooltip: 'Menu',
             onSelected: (v) => switch (v) {
               'legend' => showLegendSheet(context),
-              'settings' => showSettingsSheet(context, _monitor),
+              'settings' => showSettingsSheet(context, _monitor, _community),
               'profile' => showProfileSheet(context, _community),
               _ => _showInfo(context),
             },
@@ -584,6 +589,11 @@ class _MapScreenState extends State<MapScreen> {
   // ---------------------------------------------------------------------
 
   Future<void> _startReport() async {
+    if (!await ensureSignedIn(context, _community,
+            reason: 'Sign in to report new places.') ||
+        !mounted) {
+      return;
+    }
     final category = await askSpotCategory(context);
     if (category == null || !mounted) return;
     _visible.add(category);
@@ -693,7 +703,7 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted) return;
     final input = await showReportSpotSheet(context, category);
     if (!mounted || input == null) return;
-    await _community.reportSpot(
+    final saved = await contribute(context, _community, () => _community.reportSpot(
       position: position,
       name: input.name,
       description: input.description,
@@ -706,8 +716,8 @@ class _MapScreenState extends State<MapScreen> {
       changingTable: input.changingTable,
       photo: input.photo,
       notSameAs: notSameAs,
-    );
-    if (!mounted) return;
+    ));
+    if (!mounted || !saved) return;
     setState(() => _reportCategory = null);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Thanks! Your spot is now on the map.'),

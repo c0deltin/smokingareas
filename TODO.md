@@ -46,10 +46,17 @@ Agreed order (data first, then the server):
 
 ## Later
 
+- [ ] **Translations:** offer the app in several languages (UI strings via
+  Flutter localisation). Some data fields are Japanese only (e.g. opening
+  hours, notes and addresses of the official datasets) – translate or
+  normalise them (opening hours into the OSM `opening_hours` format, shown
+  localised) together with the UI.
+
 - [ ] Native iOS look (Liquid Glass): native glass controls via platform
   views, or a separate SwiftUI app.
 
 ## Distribution
 
 - [ ] Fixed Android signing key as GitHub secrets so updates install over the
-  previous version (see README, "APK download & CI").
+  previous version and Google sign-in works – run the workflow *Create
+  Android signing key* (see README, "APK download & CI").
