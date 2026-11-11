@@ -112,7 +112,7 @@ class OsmExportTest(unittest.TestCase):
         t = [0.0]
 
         def query(q):
-            t[0] += osm.DEADLINE_SECONDS  # every query takes the whole budget
+            t[0] += osm.DEADLINE_SECONDS + 1  # every query uses up the budget
             return [{"type": "node", "id": 1, "lat": 35.05, "lon": 139.05}]
 
         cities = [(str(i), (35.0, 139.0, 35.1, 139.1)) for i in range(8)]
