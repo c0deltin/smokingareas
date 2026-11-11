@@ -102,6 +102,34 @@ class ServerCommunityBackend implements CommunityBackend {
   @override
   Future<void> addClosureReport(ClosureReport report) =>
       _client.from('closures').insert(ServerRows.closureInsert(report));
+
+  @override
+  Future<void> reportContent(
+          ReportTarget target, String targetId, String reason) =>
+      _client.from('content_reports').insert(
+          {'target_type': target.name, 'target_id': targetId, 'reason': reason});
+
+  @override
+  Future<List<String>> blockedUsers(String userId) async {
+    final rows = await _client
+        .from('blocks')
+        .select('blocked_id')
+        .eq('user_id', userId);
+    return [for (final r in rows) r['blocked_id'] as String];
+  }
+
+  @override
+  Future<void> blockUser(String userId, String blockedId) => _client
+      .from('blocks')
+      .upsert({'blocked_id': blockedId},
+          onConflict: 'user_id,blocked_id', ignoreDuplicates: true);
+
+  @override
+  Future<void> unblockUser(String userId, String blockedId) => _client
+      .from('blocks')
+      .delete()
+      .eq('user_id', userId)
+      .eq('blocked_id', blockedId);
 }
 
 /// Sign in with Apple (iOS) and Google (iOS + Android). The account's

@@ -156,6 +156,22 @@ class AccountView extends StatelessWidget {
                   },
                 ),
               ),
+              if (community.blockedUsers.isNotEmpty) ...[
+                const Divider(),
+                Text('Blocked users', style: theme.textTheme.titleSmall),
+                for (final id in community.blockedUsers)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: const Icon(Icons.block),
+                    title: Text(community.userName(id)),
+                    trailing: TextButton(
+                      onPressed: () => contribute(
+                          context, community, () => community.unblock(id)),
+                      child: const Text('Unblock'),
+                    ),
+                  ),
+              ],
               const Divider(),
               OutlinedButton.icon(
                 onPressed: community.signOut,

@@ -5,8 +5,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../community/community_service.dart';
+import '../community/models.dart';
 import '../models/smoking_area.dart';
 import 'community_section.dart';
+import 'moderation.dart';
 import 'spot_style.dart';
 
 String formatDistance(double meters) {
@@ -164,6 +166,16 @@ class AreaDetailsSheet extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Places reported by users can be reported to moderators.
+                if (community != null && area.tags['community'] == 'yes')
+                  ContentMenu(
+                    community: community!,
+                    target: ReportTarget.spot,
+                    targetId: area.id,
+                    authorId: area.tags['community:by_id'] ?? '',
+                    authorName: area.tags['community:by'] ?? 'this user',
+                    onBlocked: () => Navigator.of(context).maybePop(),
+                  ),
               ],
             ),
             const SizedBox(height: 12),

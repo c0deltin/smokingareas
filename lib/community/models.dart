@@ -271,3 +271,18 @@ class ClosureReport {
         fingerprint: j['fingerprint'] as String?,
       );
 }
+
+/// What a content report is about (`content_reports.target_type`).
+enum ReportTarget { spot, review, photo, user }
+
+/// Reasons offered when reporting content.
+const reportReasons = [
+  'Offensive or inappropriate',
+  'Spam or advertising',
+  'Personal data of others',
+  'Wrong or misleading',
+  'Other',
+];
+
+/// Id of a review as a report target (reviews have no own id).
+String reviewTargetId(SpotReview r) => '${r.spotId}#${r.userId}';

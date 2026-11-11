@@ -34,6 +34,15 @@ abstract class CommunityBackend {
 
   /// Append-only, like votes; see `ClosurePolicy`.
   Future<void> addClosureReport(ClosureReport report);
+
+  /// Reports objectionable content to the moderators.
+  Future<void> reportContent(
+      ReportTarget target, String targetId, String reason);
+
+  /// Users the current user has blocked (their content is hidden for them).
+  Future<List<String>> blockedUsers(String userId);
+  Future<void> blockUser(String userId, String blockedId);
+  Future<void> unblockUser(String userId, String blockedId);
 }
 
 /// Local, single-device implementation: one JSON document with one list per
@@ -148,6 +157,77 @@ class LocalCommunityBackend implements CommunityBackend {
     (await _db()).closures.add(report);
     await _persist();
   }
+
+  @override
+  Future<void> reportContent(
+      ReportTarget target, String targetId, String reason) async {
+    (await _db()).reports.add({
+      'target_type': target.name,
+      'target_id': targetId,
+      'reason': reason,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+    await _persist();
+  }
+
+  @override
+  Future<List<String>> blockedUsers(String userId) async =>
+      [...?(await _db()).blocks[userId]];
+
+  @override
+  Future<void> blockUser(String userId, String blockedId) async {
+    final list = (await _db()).blocks.putIfAbsent(userId, () => []);
+    if (!list.contains(blockedId)) list.add(blockedId);
+    await _persist();
+  }
+
+  @override
+  Future<void> unblockUser(String userId, String blockedId) async {
+    (await _db()).blocks[userId]?.remove(blockedId);
+    await _persist();
+  }
+
+  /// True when the device holds community data (e.g. from before accounts
+  /// existed).
+  Future<bool> get hasData async {
+    final t = await _db();
+    return t.spots.isNotEmpty ||
+        t.reviews.isNotEmpty ||
+        t.photos.isNotEmpty ||
+        t.votes.isNotEmpty ||
+        t.closures.isNotEmpty;
+  }
+
+  /// Removes all community data from the device (after it was uploaded or
+  /// discarded). Photo files are deleted separately by the caller.
+  Future<void> clear() async {
+    final t = await _db();
+    t.spots.clear();
+    t.reviews.clear();
+    t.photos.clear();
+    t.votes.clear();
+    t.closures.clear();
+    t.reports.clear();
+    t.blocks.clear();
+    await _persist();
+  }
+
+  /// Removes single rows once they were uploaded (resumable migration).
+  Future<void> remove({
+    CommunitySpot? spot,
+    SpotReview? review,
+    SpotPhoto? photo,
+    ExistenceVote? vote,
+    ClosureReport? closure,
+  }) async {
+    final t = await _db();
+    if (spot != null) t.spots.removeWhere((s) => s.id == spot.id);
+    if (review != null) t.reviews.remove(review);
+    if (photo != null) t.photos.removeWhere((p) => p.id == photo.id);
+    if (vote != null) t.votes.remove(vote);
+    if (closure != null) t.closures.remove(closure);
+    await _persist();
+  }
 }
 
 class _Tables {
@@ -157,6 +237,8 @@ class _Tables {
   final List<SpotPhoto> photos = [];
   final List<ExistenceVote> votes = [];
   final List<ClosureReport> closures = [];
+  final List<Map<String, dynamic>> reports = [];
+  final Map<String, List<String>> blocks = {};
 
   Map<String, dynamic> toJson() => {
         'schemaVersion': LocalCommunityBackend.schemaVersion,
@@ -166,6 +248,8 @@ class _Tables {
         'photos': photos.map((e) => e.toJson()).toList(),
         'votes': votes.map((e) => e.toJson()).toList(),
         'closures': closures.map((e) => e.toJson()).toList(),
+        'reports': reports,
+        'blocks': blocks,
       };
 
   static _Tables fromJson(Map<String, dynamic> j) {
@@ -177,6 +261,11 @@ class _Tables {
       ..reviews.addAll(rows('reviews').map(SpotReview.fromJson))
       ..photos.addAll(rows('photos').map(SpotPhoto.fromJson))
       ..votes.addAll(rows('votes').map(ExistenceVote.fromJson))
-      ..closures.addAll(rows('closures').map(ClosureReport.fromJson));
+      ..closures.addAll(rows('closures').map(ClosureReport.fromJson))
+      ..reports.addAll(rows('reports'))
+      ..blocks.addAll({
+        for (final e in ((j['blocks'] as Map?) ?? const {}).entries)
+          e.key as String: (e.value as List).cast<String>(),
+      });
   }
 }
