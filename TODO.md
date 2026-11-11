@@ -5,14 +5,36 @@ when it is picked up and delete it here once it is merged.
 
 ## Community / data
 
-- [ ] **Community always overrides official closure flags.** A "reopened"
-  report on a spot that official data marks as temporarily closed currently
-  expires after 14 days (like every closure report); afterwards the stale
-  official flag applies again. Reports that contradict the official status
-  should stay valid much longer (e.g. up to 180 days) and only lose their
-  effect when the official dataset itself changes (new snapshot value). Same
-  idea the other way round: a "closed" report on an officially open spot.
-  Relevant code: `ClosurePolicy`, `CommunityService.annotate`.
+Agreed order (data first, then the server):
+
+1. ~~Stable ids for official entries~~ – done: content-based ids, former ids
+   kept as `aliases` so community data stays attached.
+2. [ ] **Merge user-reported spots with official/OSM entries.** When a
+   reported spot later appears in official data or OSM (same category,
+   ≤ ~25 m, 1:1 nearest first), the official/OSM entry becomes the base
+   (name, position, origin), user details only fill gaps, and the community
+   id is kept as alias so ratings, photos, votes and closures move along.
+   Today only the official ↔ OSM merge keeps ids; a community spot next to
+   an OSM point is dropped by the 8 m de-duplication.
+3. [ ] **Bind community verdicts to the data version** (see below).
+4. [ ] **Data updates without an app release.** The repository is public
+   now, so the app can download a newer official snapshot from GitHub (e.g.
+   a release asset or the raw file on `main`) on start and via "Neu laden",
+   store it locally and fall back to the bundled one. Later served by the
+   backend.
+
+- [ ] **Community verdicts survive data updates (step 3).** The community
+  must always win over the official "DB", which is only the baseline:
+  - "gibt es nicht mehr": today the spot stays hidden while the votes are
+    valid (180 days) and reappears afterwards if the official list still
+    contains it. Instead the verdict should hold until the official entry
+    itself changes (store a fingerprint of the entry with each vote; a
+    changed entry restarts the evaluation).
+  - "vorübergehend geschlossen / wieder offen": a report that contradicts the
+    official status currently expires after 14 days, after which the stale
+    official flag applies again. Such reports should likewise hold until the
+    official entry changes.
+  Relevant code: `ExistencePolicy`, `ClosurePolicy`, `CommunityService`.
 - [ ] **Server backend** for the community features: implement
   `RemoteCommunityBackend`, `PhotoStorage` and `AuthService` against a real
   server (login, one rating per user, Waze rules and rate limiting on the
@@ -41,6 +63,3 @@ when it is picked up and delete it here once it is merged.
   previous version (see README, "APK download & CI").
 - [ ] iOS distribution: TestFlight pipeline (App Store Connect API key) or
   local install via Xcode.
-- [ ] Public download links: the repository is private, so release downloads
-  need a GitHub login; options are a public releases repository or Firebase
-  App Distribution.

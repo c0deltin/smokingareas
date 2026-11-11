@@ -105,6 +105,7 @@ test/                              unit + widget tests
 flutter pub get
 flutter analyze          # must report "No issues found!"
 flutter test             # all tests must pass
+python3 -m unittest discover -s tool/opendata -p 'test_*.py'  # importer tests
 python3 tool/opendata/update_opendata.py            # refresh official snapshot
 python3 tool/opendata/update_opendata.py osaka kyoto # only selected sources
 ```
@@ -133,6 +134,11 @@ Run `flutter analyze` and `flutter test` before every commit.
 - **Official snapshot:** `assets/opendata/official_smoking_areas.json` is
   generated – change the importer, not the JSON by hand. A failing source must
   keep its previous entries. Geocoded entries are flagged `geocoded`.
+- **Stable ids:** community data (ratings, photos, votes, closures) is keyed
+  by spot id, so official ids must never be row numbers. Use a real id of the
+  source or `stable_key(name, address)`. When an id changes anyway, the
+  importer keeps the old one in `aliases` (`carry_aliases`); the app looks up
+  community data under `SmokingArea.allIds`.
 - **OSM servers:** keep the user agent, respect the tile and Overpass usage
   policies, do not add aggressive polling.
 - **Privacy:** location stays on the device; no analytics or tracking SDKs.
