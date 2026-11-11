@@ -69,3 +69,7 @@ GoogleService-Info.plist
 
 # Packaged open-data snapshot (CI artefact)
 /dist/
+
+# Supabase CLI state
+supabase/.temp/
+supabase/.branches/

@@ -1,0 +1,3 @@
+# Supabase CLI configuration (only used to apply the migrations with
+# `supabase db push`; see .github/workflows/database.yml).
+project_id = "smokingareas"
