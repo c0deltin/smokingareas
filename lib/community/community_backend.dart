@@ -212,20 +212,24 @@ class LocalCommunityBackend implements CommunityBackend {
     await _persist();
   }
 
-  /// Removes single rows once they were uploaded (resumable migration).
+  /// Removes rows once they were uploaded (resumable migration). For
+  /// ratings, votes and closure reports all rows of the place go, since
+  /// only the latest one was uploaded.
   Future<void> remove({
     CommunitySpot? spot,
-    SpotReview? review,
     SpotPhoto? photo,
-    ExistenceVote? vote,
-    ClosureReport? closure,
+    String? reviewsOf,
+    String? votesOf,
+    String? closuresOf,
   }) async {
     final t = await _db();
     if (spot != null) t.spots.removeWhere((s) => s.id == spot.id);
-    if (review != null) t.reviews.remove(review);
     if (photo != null) t.photos.removeWhere((p) => p.id == photo.id);
-    if (vote != null) t.votes.remove(vote);
-    if (closure != null) t.closures.remove(closure);
+    if (reviewsOf != null) t.reviews.removeWhere((r) => r.spotId == reviewsOf);
+    if (votesOf != null) t.votes.removeWhere((v) => v.spotId == votesOf);
+    if (closuresOf != null) {
+      t.closures.removeWhere((c) => c.spotId == closuresOf);
+    }
     await _persist();
   }
 }

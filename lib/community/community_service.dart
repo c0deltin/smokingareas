@@ -9,6 +9,7 @@ import 'auth_service.dart';
 import 'community_backend.dart';
 import 'closure_policy.dart';
 import 'existence_policy.dart';
+import 'local_migration.dart';
 import 'models.dart';
 import 'photo_storage.dart';
 
@@ -156,6 +157,15 @@ class CommunityService extends ChangeNotifier {
     await backend.unblockUser(me, userId);
     _blocked.remove(userId);
     _changed();
+  }
+
+  /// Uploads device-only data of earlier versions to the signed-in account.
+  Future<MigrationResult> uploadLocalData(LocalDataMigration migration) async {
+    final userId = _requireUserId();
+    final result = await migration.upload(
+        target: backend, targetPhotos: photos, userId: userId);
+    await init();
+    return result;
   }
 
   /// Deletes the account with all its ratings, photos, votes and closure

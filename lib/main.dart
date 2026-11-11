@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -9,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'community/auth_service.dart';
 import 'community/community_backend.dart';
 import 'community/community_service.dart';
+import 'community/local_migration.dart';
 import 'community/photo_storage.dart';
 import 'community/server_backend.dart';
 import 'services/heading_service.dart';
@@ -38,6 +40,7 @@ Future<void> main() async {
   // Community features: the server when configured at build time, else
   // local adapters (development).
   final CommunityService community;
+  LocalDataMigration? localMigration;
   if (ServerConfig.isConfigured) {
     await Supabase.initialize(
         url: ServerConfig.url, publishableKey: ServerConfig.anonKey);
@@ -51,6 +54,13 @@ Future<void> main() async {
     );
     // Network: do not delay the first frame.
     unawaited(community.init());
+    // Data earlier versions kept only on this device.
+    localMigration = LocalDataMigration(
+      local: LocalCommunityBackend(getApplicationSupportDirectory),
+      localPhotos: LocalPhotoStorage(getApplicationSupportDirectory),
+      photosDirectory: () async => Directory(
+          '${(await getApplicationSupportDirectory()).path}/community/photos'),
+    );
   } else {
     final backend = LocalCommunityBackend(getApplicationSupportDirectory);
     final auth = LocalAuthService(backend);
@@ -77,6 +87,7 @@ Future<void> main() async {
     monitor: monitor,
     community: community,
     updater: updater,
+    localMigration: localMigration,
   ));
 
   // At most once a day, in the background: newer official data?
@@ -92,12 +103,14 @@ class SmokingAreasApp extends StatelessWidget {
     required this.monitor,
     required this.community,
     this.updater,
+    this.localMigration,
   });
 
   final SmokingAreaRepository repository;
   final ProximityMonitor monitor;
   final CommunityService community;
   final SnapshotUpdater? updater;
+  final LocalDataMigration? localMigration;
 
   @override
   Widget build(BuildContext context) {
@@ -116,6 +129,7 @@ class SmokingAreasApp extends StatelessWidget {
         monitor: monitor,
         community: community,
         updater: updater,
+        localMigration: localMigration,
       ),
     );
   }
