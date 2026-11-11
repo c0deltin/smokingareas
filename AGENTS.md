@@ -18,8 +18,10 @@ Secrets include, but are not limited to:
 - API keys, tokens, passwords, OAuth client secrets, service-account JSON
   (`google-services.json`, `GoogleService-Info.plist`, `*-credentials.json` …)
 - GitHub Actions secrets (`ANDROID_KEYSTORE_BASE64`,
-  `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`)
-  and their values in any form (base64, logs, screenshots)
+  `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`,
+  `APPLE_TEAM_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`,
+  `APP_STORE_CONNECT_API_KEY_P8`) and their values in any form (base64,
+  logs, screenshots)
 
 Rules:
 
@@ -97,7 +99,9 @@ lib/
 assets/opendata/                   bundled official snapshot (generated – see below)
 tool/opendata/                     importer for official municipal data (Python, stdlib only)
 test/                              unit + widget tests
-.github/workflows/                 android-release.yml (APK → GitHub Release)
+.github/workflows/                 android-release.yml (APK → GitHub Release),
+                                   ios-testflight.yml (iOS → TestFlight),
+                                   opendata.yml (weekly data release)
 ```
 
 ## Toolchain

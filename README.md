@@ -305,6 +305,32 @@ and add it under *Settings → Secrets and variables → Actions*:
 | `ANDROID_KEY_ALIAS` | e.g. `smokingareas` |
 | `ANDROID_KEY_PASSWORD` | key password (empty = keystore password) |
 
+## iOS via TestFlight
+
+`.github/workflows/ios-testflight.yml` builds the app on a GitHub-hosted Mac
+(free for public repositories) on every push to `main` and on demand, signs
+it with Xcode **cloud signing** and uploads it to **TestFlight**; install it
+with the TestFlight app. No certificate or provisioning profile has to be
+created by hand.
+
+One-time setup:
+
+1. Apple Developer Program (paid). Register the App ID
+   `de.c0deltin.smokingAreas` (explicit, no capabilities needed).
+2. App Store Connect → Apps → New App (iOS, that bundle ID). The App Store
+   listing (keywords, texts, screenshots) is **not** needed for TestFlight.
+3. App Store Connect → Users and Access → Integrations → App Store Connect
+   API → Team key with role **Admin** (needed for cloud signing); download
+   the `.p8` once.
+4. Repository secrets: `APPLE_TEAM_ID`, `APP_STORE_CONNECT_KEY_ID`,
+   `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_API_KEY_P8` (full text of
+   the `.p8`). Without them the workflow skips itself.
+5. TestFlight → Internal Testing → add yourself. Internal testers need no
+   App Review; builds expire after 90 days.
+
+`ITSAppUsesNonExemptEncryption = false` (standard HTTPS only) avoids the
+export-compliance question for every build.
+
 ## Permissions & background operation
 
 - **Android**: location (fine + background), foreground service (type
