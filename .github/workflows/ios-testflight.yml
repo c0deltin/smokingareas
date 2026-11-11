@@ -62,7 +62,7 @@ jobs:
       - name: Configure iOS build
         if: steps.config.outputs.skip == 'false'
         run: |
-          flutter build ios --release --config-only \
+          flutter build ios --release --config-only --no-codesign \
             --build-name=1.0.${{ github.run_number }} \
             --build-number=${{ github.run_number }}
 
