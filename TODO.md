@@ -46,5 +46,4 @@ Agreed order (data first, then the server):
 
 - [ ] Fixed Android signing key as GitHub secrets so updates install over the
   previous version (see README, "APK download & CI").
-- [ ] iOS: verify the first TestFlight build (`ios-testflight.yml`) – the
-  iOS app has never been built so far; expect fixes in the first run.
+- [ ] iOS: verify the first TestFlight build (`ios-testflight.yml`).

@@ -305,7 +305,7 @@ and add it under *Settings → Secrets and variables → Actions*:
 | `ANDROID_KEY_ALIAS` | e.g. `smokingareas` |
 | `ANDROID_KEY_PASSWORD` | key password (empty = keystore password) |
 
-## iOS via TestFlight (no Mac needed)
+## iOS via TestFlight
 
 `.github/workflows/ios-testflight.yml` builds the app on a GitHub-hosted Mac
 (free for public repositories) on every push to `main` and on demand, signs
@@ -313,7 +313,7 @@ it with Xcode **cloud signing** and uploads it to **TestFlight**; install it
 with the TestFlight app. No certificate or provisioning profile has to be
 created by hand.
 
-One-time setup (all in the browser, also on an iPhone):
+One-time setup:
 
 1. Apple Developer Program (paid). Register the App ID
    `de.c0deltin.smokingAreas` (explicit, no capabilities needed).

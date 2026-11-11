@@ -2,8 +2,8 @@ name: iOS TestFlight
 
 # Builds the iOS app on a GitHub-hosted Mac and uploads it to TestFlight.
 # Signing uses Xcode cloud signing with an App Store Connect API key, so no
-# certificate or provisioning profile has to be created by hand (no Mac
-# needed). Required repository secrets:
+# certificate or provisioning profile has to be created by hand.
+# Required repository secrets:
 #   APPLE_TEAM_ID, APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID,
 #   APP_STORE_CONNECT_API_KEY_P8 (content of the .p8 file, API key role Admin)
 on:
