@@ -16,12 +16,12 @@ Future<File?> pickPhoto(BuildContext context) async {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
           leading: const Icon(Icons.photo_camera_outlined),
-          title: const Text('Foto aufnehmen'),
+          title: const Text('Take photo'),
           onTap: () => Navigator.pop(context, ImageSource.camera),
         ),
         ListTile(
           leading: const Icon(Icons.photo_library_outlined),
-          title: const Text('Aus Galerie wählen'),
+          title: const Text('Choose from gallery'),
           onTap: () => Navigator.pop(context, ImageSource.gallery),
         ),
       ]),
@@ -93,7 +93,7 @@ class CommunitySection extends StatelessWidget {
             Row(children: [
               Text('Community', style: theme.textTheme.titleMedium),
               const Spacer(),
-              Text('als ${community.currentUser.displayName}',
+              Text('as ${community.currentUser.displayName}',
                   style: theme.textTheme.bodySmall),
             ]),
             const SizedBox(height: 8),
@@ -105,15 +105,15 @@ class CommunitySection extends StatelessWidget {
               Expanded(
                 child: Text(
                   rating.count == 0
-                      ? 'Noch keine Bewertung'
+                      ? 'No ratings yet'
                       : '${rating.average.toStringAsFixed(1)} '
-                          '(${rating.count} Bewertung${rating.count == 1 ? '' : 'en'})',
+                          '(${rating.count} rating${rating.count == 1 ? '' : 's'})',
                 ),
               ),
               TextButton.icon(
                 onPressed: () => _rate(context, rating.mine),
                 icon: const Icon(Icons.star_outline),
-                label: Text(rating.mine == null ? 'Bewerten' : 'Ändern'),
+                label: Text(rating.mine == null ? 'Rate' : 'Change'),
               ),
             ]),
             for (final r in reviews.where((r) => r.comment != null).take(3))
@@ -141,8 +141,8 @@ class CommunitySection extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
                 area.isToilet
-                    ? 'Gibt es diese Toilette noch?'
-                    : 'Gibt es diesen Raucherbereich noch?',
+                    ? 'Is this toilet still there?'
+                    : 'Is this smoking area still there?',
                 style: theme.textTheme.bodyMedium),
             const SizedBox(height: 6),
             Row(children: [
@@ -150,7 +150,7 @@ class CommunitySection extends StatelessWidget {
                 child: _VoteButton(
                   selected: myVote == true,
                   icon: Icons.check_circle_outline,
-                  label: 'Ja (${status.confirmations})',
+                  label: 'Yes (${status.confirmations})',
                   color: Colors.green,
                   onPressed: () => community.vote(area, exists: true),
                 ),
@@ -160,7 +160,7 @@ class CommunitySection extends StatelessWidget {
                 child: _VoteButton(
                   selected: myVote == false,
                   icon: Icons.highlight_off,
-                  label: 'Nein (${status.removals})',
+                  label: 'No (${status.removals})',
                   color: theme.colorScheme.error,
                   onPressed: () => _voteGone(context),
                 ),
@@ -170,9 +170,9 @@ class CommunitySection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '${status.removals} Nutzer melden, dass es '
-                  '${area.isToilet ? 'diese Toilette' : 'diesen Raucherbereich'} '
-                  'nicht mehr gibt.',
+                  '${status.removals} user${status.removals == 1 ? '' : 's'} '
+                  'reported that this '
+                  '${area.isToilet ? 'toilet' : 'smoking area'} is gone.',
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.error),
                 ),
@@ -202,19 +202,19 @@ class CommunitySection extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Gibt es nicht mehr?'),
+        title: const Text('Gone?'),
         content: const Text(
-          'Wenn genug Nutzer melden, dass es diesen Ort nicht mehr gibt, '
-          'wird er von der Karte entfernt.',
+          'If enough users report that this place is gone, it is removed '
+          'from the map.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Melden'),
+            child: const Text('Report'),
           ),
         ],
       ),
@@ -275,7 +275,7 @@ class _AddPhotoButton extends StatelessWidget {
               Icon(Icons.add_a_photo_outlined,
                   color: theme.colorScheme.primary),
               const SizedBox(height: 4),
-              Text('Foto', style: theme.textTheme.bodySmall),
+              Text('Photo', style: theme.textTheme.bodySmall),
             ],
           ),
         ),
@@ -326,7 +326,7 @@ class _PhotoThumb extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(8),
             child: Text(
-              'von ${community.userName(photo.userId)} · '
+              'by ${community.userName(photo.userId)} · '
               '${photo.createdAt.day}.${photo.createdAt.month}.${photo.createdAt.year}',
             ),
           ),
@@ -388,7 +388,7 @@ class _RatingDialogState extends State<_RatingDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Bewerten'),
+      title: const Text('Rate'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           for (var i = 1; i <= 5; i++)
@@ -404,7 +404,7 @@ class _RatingDialogState extends State<_RatingDialog> {
           maxLength: 280,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: 'Kommentar (optional): sauber, voll, gut zu finden …',
+            hintText: 'Comment (optional): clean, crowded, easy to find …',
             border: OutlineInputBorder(),
           ),
         ),
@@ -412,20 +412,20 @@ class _RatingDialogState extends State<_RatingDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Abbrechen'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _stars == 0
               ? null
               : () => Navigator.pop(context, (_stars, _comment.text)),
-          child: const Text('Speichern'),
+          child: const Text('Save'),
         ),
       ],
     );
   }
 }
 
-/// "Vorübergehend geschlossen" / "Wieder geöffnet" reports.
+/// "Temporarily closed" / "open again" reports.
 class _ClosureControls extends StatelessWidget {
   const _ClosureControls({required this.area, required this.community});
   final SmokingArea area;
@@ -438,11 +438,11 @@ class _ClosureControls extends StatelessWidget {
     // Closed by official data or by the community (live state).
     final closed = community.annotate(area).isTemporarilyClosed;
     final info = closed
-        ? '${status.closedReports} Meldung${status.closedReports == 1 ? '' : 'en'} '
-            '„geschlossen“'
-            '${status.reopenedReports > 0 ? ', ${status.reopenedReports} „wieder offen“' : ''}'
-        : 'Gesperrt, Baustelle, defekt? Melde es – die Meldung läuft '
-            'automatisch nach 14 Tagen oder zum angegebenen Datum ab.';
+        ? '${status.closedReports} "closed" '
+            'report${status.closedReports == 1 ? '' : 's'}'
+            '${status.reopenedReports > 0 ? ', ${status.reopenedReports} "reopened"' : ''}'
+        : 'Blocked, construction, out of order? Report it – the report '
+            'expires after 14 days or on the date you set.';
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(
@@ -450,17 +450,17 @@ class _ClosureControls extends StatelessWidget {
               ? OutlinedButton.icon(
                   onPressed: () => community.reportClosure(area, closed: false),
                   icon: const Icon(Icons.play_circle_outline),
-                  label: const Text('Ist wieder offen'),
+                  label: const Text('Open again'),
                 )
               : OutlinedButton.icon(
                   onPressed: () => _reportClosed(context),
                   icon: const Icon(Icons.pause_circle_outline),
-                  label: const Text('Vorübergehend geschlossen'),
+                  label: const Text('Temporarily closed'),
                 ),
         ),
       ]),
       if (closed && status.closedReports == 0 && area.isOfficial)
-        Text('Laut offizieller Liste geschlossen.',
+        Text('Closed according to the official list.',
             style: theme.textTheme.bodySmall)
       else
         Text(info, style: theme.textTheme.bodySmall),
@@ -498,22 +498,22 @@ class _ClosureDialogState extends State<_ClosureDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Vorübergehend geschlossen'),
+      title: const Text('Temporarily closed'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         TextField(
           controller: _note,
           maxLength: 120,
           decoration: const InputDecoration(
-            labelText: 'Grund (optional)',
-            hintText: 'z. B. Bauarbeiten, defekt, abgesperrt',
+            labelText: 'Reason (optional)',
+            hintText: 'e.g. construction, out of order, blocked',
             border: OutlineInputBorder(),
           ),
         ),
         Row(children: [
           Expanded(
             child: Text(_until == null
-                ? 'Ende unbekannt (läuft nach 14 Tagen ab)'
-                : 'voraussichtlich bis ${_until!.day}.${_until!.month}.${_until!.year}'),
+                ? 'End unknown (expires after 14 days)'
+                : 'expected until ${_until!.day}.${_until!.month}.${_until!.year}'),
           ),
           TextButton(
             onPressed: () async {
@@ -526,18 +526,18 @@ class _ClosureDialogState extends State<_ClosureDialog> {
               );
               if (picked != null) setState(() => _until = picked);
             },
-            child: const Text('Datum'),
+            child: const Text('Date'),
           ),
         ]),
       ]),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Abbrechen'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, (_note.text, _until)),
-          child: const Text('Melden'),
+          child: const Text('Report'),
         ),
       ],
     );

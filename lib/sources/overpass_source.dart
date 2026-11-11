@@ -72,14 +72,14 @@ class OverpassSource extends SmokingAreaSource {
         if (response.statusCode == 200) {
           return parse(utf8.decode(response.bodyBytes));
         }
-        lastError = 'HTTP ${response.statusCode} von ${endpoint.host}';
+        lastError = 'HTTP ${response.statusCode} from ${endpoint.host}';
       } on TimeoutException {
-        lastError = 'Zeitüberschreitung bei ${endpoint.host}';
+        lastError = 'Timeout at ${endpoint.host}';
       } catch (e) {
         lastError = e;
       }
     }
-    throw SourceException('OpenStreetMap nicht erreichbar: $lastError');
+    throw SourceException('OpenStreetMap unreachable: $lastError');
   }
 
   /// Parses an Overpass JSON response.

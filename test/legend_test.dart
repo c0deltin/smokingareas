@@ -42,17 +42,17 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: Scaffold(body: LegendView())));
 
     for (final text in [
-      'Raucherbereich im Freien.',
-      'Raucherraum (innen).',
-      'Öffentliche Toilette.',
-      'Weiß: Eintrag aus OpenStreetMap.',
-      'Gold: aus einer offiziellen Liste der Stadt oder des Bezirks.',
-      'Pink: von einem Nutzer gemeldet.',
-      'Grau mit Pause-Zeichen: vorübergehend geschlossen.',
-      'Mehrere Raucherbereiche – zum Vergrößern antippen.',
-      'Mehrere Toiletten – zum Vergrößern antippen.',
-      'Dein Standort – der Kegel zeigt deine Blickrichtung.',
-      '30-m-Umkreis für den Hinweis auf Raucherbereiche.',
+      'Outdoor smoking area.',
+      'Indoor smoking room.',
+      'Public toilet.',
+      'White: entry from OpenStreetMap.',
+      'Gold: from an official list of the city or ward.',
+      'Pink: reported by a user.',
+      'Grey with pause badge: temporarily closed.',
+      'Several smoking areas – tap to zoom in.',
+      'Several toilets – tap to zoom in.',
+      'Your location – the cone shows the direction you are facing.',
+      'Alert radius for nearby smoking areas.',
     ]) {
       await tester.scrollUntilVisible(find.text(text), 100);
       expect(find.text(text), findsOneWidget, reason: text);
@@ -61,7 +61,7 @@ void main() {
     // Every explanation is a single sentence.
     for (final (_, entries) in legendSections()) {
       for (final e in entries) {
-        expect('.'.allMatches(e.text.replaceAll('m-', '')).length,
+        expect('.'.allMatches(e.text).length,
             lessThanOrEqualTo(1),
             reason: e.text);
       }

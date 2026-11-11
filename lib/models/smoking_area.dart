@@ -8,15 +8,15 @@ enum SpotCategory {
   /// Public toilet (公衆トイレ), OSM `amenity=toilets`.
   toilet;
 
-  /// German label for the UI.
+  /// Label for the UI.
   String get label => switch (this) {
-        SpotCategory.smoking => 'Raucherbereich',
-        SpotCategory.toilet => 'Öffentliche Toilette',
+        SpotCategory.smoking => 'Smoking area',
+        SpotCategory.toilet => 'Public toilet',
       };
 
   String get pluralLabel => switch (this) {
-        SpotCategory.smoking => 'Raucherbereiche',
-        SpotCategory.toilet => 'Toiletten',
+        SpotCategory.smoking => 'Smoking areas',
+        SpotCategory.toilet => 'Toilets',
       };
 }
 

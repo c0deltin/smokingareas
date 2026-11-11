@@ -16,47 +16,47 @@ class LegendEntry {
 /// the legend cannot get out of date.
 List<(String, List<LegendEntry>)> legendSections() => [
       (
-        'Kategorie (Füllfarbe)',
+        'Category (fill colour)',
         const [
           LegendEntry(SpotMarker(category: SpotCategory.smoking),
-              'Raucherbereich im Freien.'),
+              'Outdoor smoking area.'),
           LegendEntry(SpotMarker(category: SpotCategory.smoking, indoor: true),
-              'Raucherraum (innen).'),
+              'Indoor smoking room.'),
           LegendEntry(SpotMarker(category: SpotCategory.toilet),
-              'Öffentliche Toilette.'),
+              'Public toilet.'),
         ],
       ),
       (
-        'Herkunft (Ring)',
+        'Origin (ring)',
         const [
           LegendEntry(SpotMarker(category: SpotCategory.smoking),
-              'Weiß: Eintrag aus OpenStreetMap.'),
+              'White: entry from OpenStreetMap.'),
           LegendEntry(
               SpotMarker(
                   category: SpotCategory.smoking, origin: SpotOrigin.official),
-              'Gold: aus einer offiziellen Liste der Stadt oder des Bezirks.'),
+              'Gold: from an official list of the city or ward.'),
           LegendEntry(
               SpotMarker(
                   category: SpotCategory.smoking, origin: SpotOrigin.community),
-              'Pink: von einem Nutzer gemeldet.'),
+              'Pink: reported by a user.'),
         ],
       ),
       (
         'Status',
         const [
           LegendEntry(SpotMarker(category: SpotCategory.toilet, closed: true),
-              'Grau mit Pause-Zeichen: vorübergehend geschlossen.'),
+              'Grey with pause badge: temporarily closed.'),
         ],
       ),
       (
-        'Karte',
+        'Map',
         [
           const LegendEntry(
               ClusterBubble(category: SpotCategory.smoking, count: 12),
-              'Mehrere Raucherbereiche – zum Vergrößern antippen.'),
+              'Several smoking areas – tap to zoom in.'),
           const LegendEntry(
               ClusterBubble(category: SpotCategory.toilet, count: 8),
-              'Mehrere Toiletten – zum Vergrößern antippen.'),
+              'Several toilets – tap to zoom in.'),
           LegendEntry(
             SizedBox(
               width: 44,
@@ -75,7 +75,7 @@ List<(String, List<LegendEntry>)> legendSections() => [
                 ),
               ),
             ),
-            'Dein Standort – der Kegel zeigt deine Blickrichtung.',
+            'Your location – the cone shows the direction you are facing.',
           ),
           LegendEntry(
             Container(
@@ -87,7 +87,7 @@ List<(String, List<LegendEntry>)> legendSections() => [
                 border: Border.all(color: Colors.blue, width: 1.5),
               ),
             ),
-            '30-m-Umkreis für den Hinweis auf Raucherbereiche.',
+            'Alert radius for nearby smoking areas.',
           ),
         ],
       ),
@@ -118,7 +118,7 @@ class LegendView extends StatelessWidget {
       controller: controller,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Text('Legende', style: theme.textTheme.titleLarge),
+        Text('Legend', style: theme.textTheme.titleLarge),
         for (final (title, entries) in legendSections()) ...[
           Padding(
             padding: const EdgeInsets.only(top: 16, bottom: 4),

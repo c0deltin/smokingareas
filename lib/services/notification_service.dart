@@ -14,7 +14,7 @@ class NotificationService {
   bool _initialized = false;
 
   static const _channelId = 'smoking_area_nearby';
-  static const _channelName = 'Raucherbereich in der Nähe';
+  static const _channelName = 'Smoking area nearby';
 
   /// Called with the area id when the user taps a notification.
   void Function(String areaId)? onTap;
@@ -65,14 +65,14 @@ class NotificationService {
     final meters = distanceMeters.round();
     await _plugin.show(
       id: area.id.hashCode & 0x7fffffff,
-      title: 'Raucherbereich in der Nähe 🚬',
-      body: '${area.title} – ca. $meters m entfernt. Tippen für die Karte.',
+      title: 'Smoking area nearby 🚬',
+      body: '${area.title} – about $meters m away. Tap to open the map.',
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
           channelDescription:
-              'Benachrichtigt, wenn du dich einem Raucherbereich auf 30 m näherst.',
+              'Notifies you when you come close to a smoking area.',
           importance: Importance.high,
           priority: Priority.high,
           category: AndroidNotificationCategory.navigation,

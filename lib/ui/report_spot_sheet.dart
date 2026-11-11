@@ -42,18 +42,18 @@ Future<SpotCategory?> askSpotCategory(BuildContext context) {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Padding(
           padding: EdgeInsets.only(bottom: 8),
-          child: Text('Was möchtest du melden?'),
+          child: Text('What do you want to report?'),
         ),
         ListTile(
           leading: Icon(categoryIcon(SpotCategory.smoking),
               color: categoryColor(SpotCategory.smoking)),
-          title: const Text('Raucherbereich'),
+          title: const Text('Smoking area'),
           onTap: () => Navigator.pop(context, SpotCategory.smoking),
         ),
         ListTile(
           leading: Icon(categoryIcon(SpotCategory.toilet),
               color: categoryColor(SpotCategory.toilet)),
-          title: const Text('Öffentliche Toilette'),
+          title: const Text('Public toilet'),
           onTap: () => Navigator.pop(context, SpotCategory.toilet),
         ),
       ]),
@@ -113,7 +113,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('${widget.category.label} melden',
+            Text('Report ${widget.category.label.toLowerCase()}',
                 style: theme.textTheme.titleLarge),
             const SizedBox(height: 12),
             TextField(
@@ -121,10 +121,10 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
               textCapitalization: TextCapitalization.sentences,
               maxLength: 80,
               decoration: InputDecoration(
-                labelText: 'Name / Ort',
+                labelText: 'Name / place',
                 hintText: _toilet
-                    ? 'z. B. „Toilette am Parkeingang“'
-                    : 'z. B. „Raucherecke neben FamilyMart“',
+                    ? 'e.g. "Toilet at the park entrance"'
+                    : 'e.g. "Smoking corner next to FamilyMart"',
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -133,24 +133,24 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 contentPadding: EdgeInsets.zero,
                 value: _wheelchair,
                 onChanged: (v) => setState(() => _wheelchair = v ?? false),
-                title: const Text('Rollstuhlgerecht'),
+                title: const Text('Wheelchair accessible'),
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _changingTable,
                 onChanged: (v) => setState(() => _changingTable = v ?? false),
-                title: const Text('Wickeltisch'),
+                title: const Text('Baby changing'),
               ),
             ],
             if (!_toilet) ...[
             const SizedBox(height: 8),
-            Text('Art', style: theme.textTheme.labelLarge),
+            Text('Type', style: theme.textTheme.labelLarge),
             const SizedBox(height: 4),
             SegmentedButton<bool?>(
               segments: const [
-                ButtonSegment(value: false, label: Text('Im Freien')),
-                ButtonSegment(value: true, label: Text('Raucherraum')),
-                ButtonSegment(value: null, label: Text('Weiß nicht')),
+                ButtonSegment(value: false, label: Text('Outdoors')),
+                ButtonSegment(value: true, label: Text('Smoking room')),
+                ButtonSegment(value: null, label: Text('Not sure')),
               ],
               selected: {_indoor},
               onSelectionChanged: (v) => setState(() => _indoor = v.first),
@@ -162,7 +162,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 value: _covered ?? false,
                 tristate: false,
                 onChanged: (v) => setState(() => _covered = v),
-                title: const Text('Überdacht'),
+                title: const Text('Covered'),
               ),
             ],
             ],
@@ -170,16 +170,16 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
               contentPadding: EdgeInsets.zero,
               value: _public,
               onChanged: (v) => setState(() => _public = v ?? true),
-              title: const Text('Öffentlich zugänglich'),
-              subtitle: const Text('ohne Ticket, Eintritt oder Einkauf'),
+              title: const Text('Publicly accessible'),
+              subtitle: const Text('no ticket, entry fee or purchase needed'),
             ),
             if (!_public) ...[
               TextField(
                 controller: _accessNote,
                 maxLength: 120,
                 decoration: const InputDecoration(
-                  labelText: 'Zugang (optional)',
-                  hintText: 'z. B. Bahnsteig – nur mit Ticket, im Museum',
+                  labelText: 'Access (optional)',
+                  hintText: 'e.g. station platform – ticket only, inside a museum',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -190,8 +190,8 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
               maxLines: 3,
               maxLength: 280,
               decoration: const InputDecoration(
-                labelText: 'Hinweis (optional)',
-                hintText: 'Öffnungszeiten, Aschenbecher, Zugang …',
+                labelText: 'Note (optional)',
+                hintText: 'Opening hours, ashtray, access …',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -203,7 +203,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                   if (file != null) setState(() => _photo = file);
                 },
                 icon: const Icon(Icons.add_a_photo_outlined),
-                label: Text(_photo == null ? 'Foto hinzufügen' : 'Foto ändern'),
+                label: Text(_photo == null ? 'Add photo' : 'Change photo'),
               ),
               const SizedBox(width: 12),
               if (_photo != null)
@@ -231,12 +231,12 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 ),
               ),
               icon: const Icon(Icons.send),
-              label: const Text('Melden'),
+              label: const Text('Report'),
             ),
             const SizedBox(height: 4),
             Text(
-              'Gemeldete Spots sind sofort sichtbar. Melden genug Nutzer, '
-              'dass es ihn nicht gibt, wird er wieder entfernt.',
+              'Reported spots are visible right away. If enough users report '
+              'that a spot does not exist, it is removed again.',
               style: theme.textTheme.bodySmall,
             ),
           ],

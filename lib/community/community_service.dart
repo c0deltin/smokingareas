@@ -80,7 +80,7 @@ class CommunityService extends ChangeNotifier {
     for (final u in _users) {
       if (u.id == userId) return u.displayName;
     }
-    return 'Unbekannt';
+    return 'Unknown';
   }
 
   Future<void> createUser(String name) async {

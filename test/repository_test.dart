@@ -47,7 +47,7 @@ void main() {
     expect(areas[0].isCovered, isTrue);
     expect(areas[1].id, 'osm:way/2');
     expect(areas[1].isIndoor, isTrue);
-    expect(areas[1].title, 'Raucherbereich');
+    expect(areas[1].title, 'Smoking area');
   });
 
   test('query contains bbox and smoking tags', () {

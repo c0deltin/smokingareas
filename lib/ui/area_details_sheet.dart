@@ -86,52 +86,52 @@ class AreaDetailsSheet extends StatelessWidget {
     final nameEn = area.tags['name:en'];
 
     String yesNo(bool? v, String yes, String no) =>
-        v == null ? 'unbekannt' : (v ? yes : no);
+        v == null ? 'unknown' : (v ? yes : no);
 
     final rows = <(IconData, String, String)>[
       if (distance != null)
-        (Icons.near_me, 'Entfernung', formatDistance(distance)),
-      if (area.address != null) (Icons.place_outlined, 'Adresse', area.address!),
+        (Icons.near_me, 'Distance', formatDistance(distance)),
+      if (area.address != null) (Icons.place_outlined, 'Address', area.address!),
       if (area.isApproximate)
         (Icons.gps_not_fixed, 'Position',
-            'ungefähr (aus der Adresse ermittelt, ± ca. 50 m)'),
+            'approximate (from the address, ± approx. 50 m)'),
       if (!area.isToilet && area.roomCount > 1)
-        (Icons.layers_outlined, 'Raucherräume',
-            '${area.roomCount} im selben Gebäude'),
+        (Icons.layers_outlined, 'Smoking rooms',
+            '${area.roomCount} in the same building'),
       if (!area.isToilet) ...[
-        (Icons.meeting_room_outlined, 'Art',
-            yesNo(area.isIndoor, 'Raucherraum (innen)', 'im Freien')),
-        (Icons.roofing, 'Überdacht', yesNo(area.isCovered, 'ja', 'nein')),
+        (Icons.meeting_room_outlined, 'Type',
+            yesNo(area.isIndoor, 'Smoking room (indoors)', 'Outdoors')),
+        (Icons.roofing, 'Covered', yesNo(area.isCovered, 'yes', 'no')),
       ],
       if (area.isToilet) ...[
-        (Icons.accessible, 'Rollstuhlgerecht',
-            yesNo(area.wheelchair, 'ja', 'nein')),
-        (Icons.baby_changing_station, 'Wickeltisch',
-            yesNo(area.changingTable, 'ja', 'nein')),
+        (Icons.accessible, 'Wheelchair accessible',
+            yesNo(area.wheelchair, 'yes', 'no')),
+        (Icons.baby_changing_station, 'Baby changing',
+            yesNo(area.changingTable, 'yes', 'no')),
       ],
       if (area.isPublic != null || area.accessNote != null)
         (
           Icons.lock_open_outlined,
-          'Zugang',
+          'Access',
           [
             if (area.isPublic != null)
               area.isPublic!
-                  ? 'öffentlich'
-                  : 'nicht öffentlich (Ticket/Eintritt/Einkauf nötig)',
+                  ? 'public'
+                  : 'not public (ticket, entry fee or purchase needed)',
             if (area.accessNote != null) area.accessNote!,
           ].join(' – '),
         ),
-      (Icons.payments_outlined, 'Kostenpflichtig',
-          yesNo(area.requiresFee, 'ja', 'nein')),
+      (Icons.payments_outlined, 'Fee',
+          yesNo(area.requiresFee, 'yes', 'no')),
       if (area.openingHours != null)
-        (Icons.schedule, 'Öffnungszeiten', area.openingHours!),
-      if (area.operator != null) (Icons.business, 'Betreiber', area.operator!),
+        (Icons.schedule, 'Opening hours', area.openingHours!),
+      if (area.operator != null) (Icons.business, 'Operator', area.operator!),
       if (area.description != null)
-        (Icons.info_outline, 'Hinweis', area.description!),
+        (Icons.info_outline, 'Note', area.description!),
       if (area.tags['community:by'] != null)
-        (Icons.person_outline, 'Gemeldet von', area.tags['community:by']!),
-      (Icons.storage, 'Quelle',
-          area.isOfficial ? '${area.source} (offiziell)' : area.source),
+        (Icons.person_outline, 'Reported by', area.tags['community:by']!),
+      (Icons.storage, 'Source',
+          area.isOfficial ? '${area.source} (official)' : area.source),
     ];
 
     return SafeArea(
@@ -217,7 +217,7 @@ class AreaDetailsSheet extends StatelessWidget {
                       onPressed: () => launchUrl(_officialUri!,
                           mode: LaunchMode.externalApplication),
                       icon: const Icon(Icons.account_balance_outlined),
-                      label: const Text('Stadt'),
+                      label: const Text('City'),
                     ),
                   ),
                 ],
@@ -242,8 +242,8 @@ class AreaDetailsSheet extends StatelessWidget {
                   final messenger = ScaffoldMessenger.of(context);
                   Navigator.of(context).pop();
                   messenger.showSnackBar(const SnackBar(
-                    content: Text('Danke! Der Ort wurde nach den '
-                        'Meldungen der Community entfernt.'),
+                    content: Text('Thanks! The place was removed after '
+                        'community reports.'),
                   ));
                 },
               ),
@@ -280,7 +280,7 @@ class ClosedBanner extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Vorübergehend geschlossen',
+            Text('Temporarily closed',
                 style: theme.textTheme.titleSmall
                     ?.copyWith(color: theme.colorScheme.onErrorContainer)),
             if (note != null)
@@ -288,7 +288,7 @@ class ClosedBanner extends StatelessWidget {
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.onErrorContainer)),
             if (until != null)
-              Text('voraussichtlich bis ${formatDate(until)}',
+              Text('expected until ${formatDate(until)}',
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.onErrorContainer)),
           ]),
