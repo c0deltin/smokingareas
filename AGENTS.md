@@ -74,6 +74,13 @@ Key design decisions – keep them:
   asks to sign in (Apple on iOS, Google on iOS + Android); the service
   throws `SignInRequired` as a safety net. The sign-in sheet is shown once
   after installation, never repeatedly.
+- **User content moderation** (required by the App Store): every rating,
+  photo and user-reported place has a `ContentMenu` (`lib/ui/moderation.dart`)
+  to report it (`content_reports`) or block its author; blocked users'
+  content is hidden for the blocking user only (`CommunityService`). Keep
+  this menu on any new kind of user content.
+- **Device-only data of earlier versions** is offered for upload once after
+  sign-in (`LocalDataMigration`, resumable, latest rating/vote per place).
 - **OSM tag schema** for attributes (`indoor`, `covered`, `access`,
   `access:note`, `opening_hours`, `fee` …) so data stays compatible with OSM.
 - **Categories:** every spot is a smoking area or a public toilet

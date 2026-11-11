@@ -9,6 +9,7 @@ import 'auth_service.dart';
 import 'community_backend.dart';
 import 'closure_policy.dart';
 import 'existence_policy.dart';
+import 'local_migration.dart';
 import 'models.dart';
 import 'photo_storage.dart';
 
@@ -53,6 +54,10 @@ class CommunityService extends ChangeNotifier {
   List<ExistenceVote> _votes = [];
   List<ClosureReport> _closures = [];
   Map<String, List<ExistenceVote>>? _votesBySpot;
+
+  /// Users the current user blocked: their spots, ratings and photos are
+  /// hidden for them (votes still count for everyone).
+  Set<String> _blocked = {};
   Map<String, List<ClosureReport>>? _closuresBySpot;
 
   /// Error of the last [init]/[refresh] (e.g. offline), null when loaded.
@@ -76,6 +81,8 @@ class CommunityService extends ChangeNotifier {
       _photos = results[3] as List<SpotPhoto>;
       _votes = results[4] as List<ExistenceVote>;
       _closures = results[5] as List<ClosureReport>;
+      final me = auth.currentUser?.id;
+      _blocked = me == null ? {} : {...await backend.blockedUsers(me)};
       loadError = null;
     } catch (e) {
       loadError = e;
@@ -119,7 +126,46 @@ class CommunityService extends ChangeNotifier {
 
   Future<void> signOut() async {
     await auth.signOut();
+    _blocked = {};
     _changed();
+  }
+
+  // ---------------------------------------------------------------------
+  // Moderation: report content, block users
+  // ---------------------------------------------------------------------
+
+  Set<String> get blockedUsers => Set.unmodifiable(_blocked);
+  bool isBlocked(String userId) => _blocked.contains(userId);
+
+  /// Reports objectionable content to the moderators.
+  Future<void> report(ReportTarget target, String targetId, String reason) {
+    _requireUserId();
+    return backend.reportContent(target, targetId, reason.trim());
+  }
+
+  /// Hides all spots, ratings and photos of [userId] for the current user.
+  Future<void> block(String userId) async {
+    final me = _requireUserId();
+    if (userId == me || userId.isEmpty) return;
+    await backend.blockUser(me, userId);
+    _blocked.add(userId);
+    _changed();
+  }
+
+  Future<void> unblock(String userId) async {
+    final me = _requireUserId();
+    await backend.unblockUser(me, userId);
+    _blocked.remove(userId);
+    _changed();
+  }
+
+  /// Uploads device-only data of earlier versions to the signed-in account.
+  Future<MigrationResult> uploadLocalData(LocalDataMigration migration) async {
+    final userId = _requireUserId();
+    final result = await migration.upload(
+        target: backend, targetPhotos: photos, userId: userId);
+    await init();
+    return result;
   }
 
   /// Deletes the account with all its ratings, photos, votes and closure
@@ -168,33 +214,35 @@ class CommunityService extends ChangeNotifier {
 
   /// User-reported spots as map entries.
   List<SmokingArea> get spotsAsAreas => [
-        for (final s in _spots)
-          SmokingArea(
-            id: s.id,
-            position: s.position,
-            source: 'Community',
-            name: s.name,
-            tags: {
-              'community': 'yes',
-              'community:by': userName(s.createdBy),
-              'community:created': s.createdAt.toIso8601String(),
-              if (s.indoor != null) 'indoor': s.indoor! ? 'yes' : 'no',
-              if (s.covered != null) 'covered': s.covered! ? 'yes' : 'no',
-              // OSM schema: access=yes / access=customers (ticket, entry …)
-              if (s.publicAccess != null)
-                'access': s.publicAccess! ? 'yes' : 'customers',
-              if (s.accessNote != null) 'access:note': s.accessNote!,
-              if (s.category == SpotCategory.toilet.name) 'amenity': 'toilets',
-              if (s.wheelchair != null)
-                'wheelchair': s.wheelchair! ? 'yes' : 'no',
-              if (s.changingTable != null)
-                'changing_table': s.changingTable! ? 'yes' : 'no',
-              if (s.notSameAs.isNotEmpty)
-                'community:not_same_as': s.notSameAs.join(','),
-              if (s.description != null) 'description': s.description!,
-            },
-          ),
-      ];
+    for (final s in _spots)
+      if (!_blocked.contains(s.createdBy))
+        SmokingArea(
+          id: s.id,
+          position: s.position,
+          source: 'Community',
+          name: s.name,
+          tags: {
+            'community': 'yes',
+            'community:by': userName(s.createdBy),
+            if (s.createdBy.isNotEmpty) 'community:by_id': s.createdBy,
+            'community:created': s.createdAt.toIso8601String(),
+            if (s.indoor != null) 'indoor': s.indoor! ? 'yes' : 'no',
+            if (s.covered != null) 'covered': s.covered! ? 'yes' : 'no',
+            // OSM schema: access=yes / access=customers (ticket, entry …)
+            if (s.publicAccess != null)
+              'access': s.publicAccess! ? 'yes' : 'customers',
+            if (s.accessNote != null) 'access:note': s.accessNote!,
+            if (s.category == SpotCategory.toilet.name) 'amenity': 'toilets',
+            if (s.wheelchair != null)
+              'wheelchair': s.wheelchair! ? 'yes' : 'no',
+            if (s.changingTable != null)
+              'changing_table': s.changingTable! ? 'yes' : 'no',
+            if (s.notSameAs.isNotEmpty)
+              'community:not_same_as': s.notSameAs.join(','),
+            if (s.description != null) 'description': s.description!,
+          },
+        ),
+  ];
 
   Future<CommunitySpot> reportSpot({
     required LatLng position,
@@ -216,12 +264,14 @@ class CommunityService extends ChangeNotifier {
       id: 'community:${_uuid.v4()}',
       position: position,
       name: name.trim().isEmpty ? category.label : name.trim(),
-      description:
-          description?.trim().isEmpty ?? true ? null : description!.trim(),
+      description: description?.trim().isEmpty ?? true
+          ? null
+          : description!.trim(),
       indoor: category == SpotCategory.smoking ? indoor : null,
       covered: category == SpotCategory.smoking ? covered : null,
       publicAccess: publicAccess,
-      accessNote: publicAccess == false &&
+      accessNote:
+          publicAccess == false &&
               accessNote != null &&
               accessNote.trim().isNotEmpty
           ? accessNote.trim()
@@ -251,7 +301,7 @@ class CommunityService extends ChangeNotifier {
     // One review per user – the newest across all ids of the spot.
     final byUser = <String, SpotReview>{};
     for (final r in _reviews) {
-      if (!keys.contains(r.spotId)) continue;
+      if (!keys.contains(r.spotId) || _blocked.contains(r.userId)) continue;
       final prev = byUser[r.userId];
       if (prev == null || r.createdAt.isAfter(prev.createdAt)) {
         byUser[r.userId] = r;
@@ -284,7 +334,8 @@ class CommunityService extends ChangeNotifier {
     );
     await backend.saveReview(review);
     _reviews.removeWhere(
-        (r) => r.spotId == review.spotId && r.userId == review.userId);
+      (r) => r.spotId == review.spotId && r.userId == review.userId,
+    );
     _reviews.add(review);
     _changed();
   }
@@ -295,7 +346,9 @@ class CommunityService extends ChangeNotifier {
 
   List<SpotPhoto> photosFor(SmokingArea area) {
     final keys = keysFor(area);
-    return _photos.where((p) => keys.contains(p.spotId)).toList()
+    return _photos
+        .where((p) => keys.contains(p.spotId) && !_blocked.contains(p.userId))
+        .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
@@ -349,10 +402,10 @@ class CommunityService extends ChangeNotifier {
   /// Votes cast for the current version of the spot's source data never
   /// expire; see [ExistencePolicy].
   ExistenceStatus statusFor(SmokingArea area) => policy.evaluate(
-        _votesFor(area),
-        now: _now(),
-        currentFingerprint: area.sourceFingerprint,
-      );
+    _votesFor(area),
+    now: _now(),
+    currentFingerprint: area.sourceFingerprint,
+  );
 
   /// Latest vote of the current user (null = not voted).
   bool? myVote(SmokingArea area) {
@@ -371,7 +424,11 @@ class CommunityService extends ChangeNotifier {
   }
 
   Future<void> _addVote(
-      String spotId, bool exists, DateTime now, [String? fingerprint]) async {
+    String spotId,
+    bool exists,
+    DateTime now, [
+    String? fingerprint,
+  ]) async {
     final vote = ExistenceVote(
       spotId: spotId,
       userId: _requireUserId(),
@@ -388,11 +445,11 @@ class CommunityService extends ChangeNotifier {
   // ---------------------------------------------------------------------
 
   ClosureStatus closureFor(SmokingArea area) => closurePolicy.evaluate(
-        _closuresFor(area),
-        now: _now(),
-        currentFingerprint: area.sourceFingerprint,
-        officiallyClosed: area.tags['official:closed'] == 'yes',
-      );
+    _closuresFor(area),
+    now: _now(),
+    currentFingerprint: area.sourceFingerprint,
+    officiallyClosed: area.tags['official:closed'] == 'yes',
+  );
 
   /// Latest active closure report of the current user (null = none).
   bool? myClosureReport(SmokingArea area) {
@@ -441,12 +498,15 @@ class CommunityService extends ChangeNotifier {
       });
     }
     if (area.isTemporarilyClosed && status.reopenedReports > 0) {
-      return area.withTags(const {}, remove: {
-        'temporarily_closed',
-        'temporarily_closed:note',
-        'temporarily_closed:until',
-        'temporarily_closed:since',
-      });
+      return area.withTags(
+        const {},
+        remove: {
+          'temporarily_closed',
+          'temporarily_closed:note',
+          'temporarily_closed:until',
+          'temporarily_closed:since',
+        },
+      );
     }
     return area;
   }

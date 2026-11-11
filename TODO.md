@@ -20,11 +20,12 @@ Agreed order (data first, then the server):
    release (manifest + gzip snapshot), checked by the app daily and on
    Reload, validated before use.
 
-- [ ] **Server backend**: ~~schema, access rules, rate
-  limits, moderation tables, account deletion~~ – done. Next: Sign in with
-  Apple / Google, server `CommunityBackend` + photo storage in the app
-  (read without login, contribute only when signed in), upload of existing
-  local reports, report/block/delete-account UI.
+- [ ] **Before publishing:** deliver the OSM data with the data release
+  instead of live Overpass queries from every app; paid backend plan (free
+  projects pause after a week without traffic); privacy policy, imprint and
+  terms (GitHub Pages); App Store listing (texts, screenshots, privacy
+  details, age rating, reason for "Always" location, review notes); decide
+  Play Store vs. APK.
 - [ ] **Okayama official data** is a manual download
   (`tool/opendata/manual/`) because the GIS refuses connections from abroad;
   refresh it occasionally from within Japan.
@@ -38,9 +39,9 @@ Agreed order (data first, then the server):
 - [ ] Measure map performance on a device with all of Tokyo visible
   (markers are clustered per visible region, but every camera stop
   recomputes the clusters).
-- [ ] Google Maps: restrict the Android API key to the release SHA-1 once
-  the fixed signing key exists; optional dark map style.
-- [ ] Verify on a real device: live Overpass query incl. toilets, camera and
+- [ ] Google Maps: restrict the Android API key to the release SHA-1 (the
+  fixed signing key exists now); optional dark map style.
+- [ ] Verify on a real device: Google sign-in (iOS + Android), live Overpass query incl. toilets, camera and
   gallery for photos, background location and proximity alerts (incl. the radius setting), direction cone
   (compass accuracy, flat vs. upright, map rotation) – on Android and iOS.
 
@@ -54,9 +55,3 @@ Agreed order (data first, then the server):
 
 - [ ] Native iOS look (Liquid Glass): native glass controls via platform
   views, or a separate SwiftUI app.
-
-## Distribution
-
-- [ ] Fixed Android signing key as GitHub secrets so updates install over the
-  previous version and Google sign-in works – run the workflow *Create
-  Android signing key* (see README, "APK download & CI").

@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../community/community_service.dart';
+import '../community/local_migration.dart';
 import '../data/cities.dart';
 import '../models/city.dart';
 import '../models/smoking_area.dart';
@@ -20,6 +21,7 @@ import '../sources/official_opendata_source.dart';
 import 'area_details_sheet.dart';
 import 'city_picker.dart';
 import 'legend_sheet.dart';
+import 'local_data_sheet.dart';
 import 'marker_icons.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
@@ -34,6 +36,7 @@ class MapScreen extends StatefulWidget {
     required this.monitor,
     required this.community,
     this.updater,
+    this.localMigration,
   });
 
   final SmokingAreaRepository repository;
@@ -42,6 +45,9 @@ class MapScreen extends StatefulWidget {
 
   /// Data updates without an app release (null in tests).
   final SnapshotUpdater? updater;
+
+  /// Device-only data of earlier versions, offered for upload after sign-in.
+  final LocalDataMigration? localMigration;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -86,6 +92,7 @@ class _MapScreenState extends State<MapScreen> {
     _monitor.addListener(_onMonitorChanged);
     _monitor.heading?.addListener(_onHeadingChanged);
     _repo.addListener(_onRepoChanged);
+    _community.addListener(_onCommunityChanged);
     NotificationService.instance.onTap = _openAreaById;
     _loadCity(_city);
     WidgetsBinding.instance.addPostFrameCallback((_) => _askPermissions());
@@ -96,6 +103,7 @@ class _MapScreenState extends State<MapScreen> {
     _monitor.removeListener(_onMonitorChanged);
     _monitor.heading?.removeListener(_onHeadingChanged);
     _repo.removeListener(_onRepoChanged);
+    _community.removeListener(_onCommunityChanged);
     NotificationService.instance.onTap = null;
     super.dispose();
   }
@@ -107,6 +115,13 @@ class _MapScreenState extends State<MapScreen> {
       final icons = MarkerIcons(MediaQuery.devicePixelRatioOf(context));
       _icons = icons;
       icons.prepareBase().then((_) => _updateClusters());
+    }
+  }
+
+  /// After signing in: offer to upload device-only data (once).
+  void _onCommunityChanged() {
+    if (_community.isSignedIn && mounted) {
+      maybeOfferLocalUpload(context, _community, widget.localMigration);
     }
   }
 
@@ -255,6 +270,9 @@ class _MapScreenState extends State<MapScreen> {
     }
     // Once after installation: sign in or stay anonymous.
     if (mounted) await maybeShowInitialSignIn(context, _community);
+    if (mounted) {
+      await maybeOfferLocalUpload(context, _community, widget.localMigration);
+    }
   }
 
   void _onMonitorChanged() {

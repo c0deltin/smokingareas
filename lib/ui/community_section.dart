@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../community/community_service.dart';
 import '../community/models.dart';
+import 'moderation.dart';
 import 'sign_in_sheet.dart';
 import '../models/smoking_area.dart';
 
@@ -119,7 +120,7 @@ class CommunitySection extends StatelessWidget {
               ),
             ]),
             for (final r in reviews.where((r) => r.comment != null).take(3))
-              _ReviewTile(review: r, author: community.userName(r.userId)),
+              _ReviewTile(review: r, community: community),
 
             // --- photos -------------------------------------------------
             const SizedBox(height: 8),
@@ -247,13 +248,14 @@ class CommunitySection extends StatelessWidget {
 }
 
 class _ReviewTile extends StatelessWidget {
-  const _ReviewTile({required this.review, required this.author});
+  const _ReviewTile({required this.review, required this.community});
   final SpotReview review;
-  final String author;
+  final CommunityService community;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final author = community.userName(review.userId);
     return Padding(
       padding: const EdgeInsets.only(top: 4, left: 4),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -266,6 +268,17 @@ class _ReviewTile extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             TextSpan(text: review.comment),
           ]), style: theme.textTheme.bodySmall),
+        ),
+        SizedBox(
+          height: 24,
+          child: ContentMenu(
+            community: community,
+            target: ReportTarget.review,
+            targetId: reviewTargetId(review),
+            authorId: review.userId,
+            authorName: author,
+            iconSize: 16,
+          ),
         ),
       ]),
     );
@@ -345,11 +358,23 @@ class _PhotoThumb extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           InteractiveViewer(child: Image.file(file)),
           Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text(
-              'by ${community.userName(photo.userId)} · '
-              '${photo.createdAt.day}.${photo.createdAt.month}.${photo.createdAt.year}',
-            ),
+            padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+            child: Row(children: [
+              Expanded(
+                child: Text(
+                  'by ${community.userName(photo.userId)} · '
+                  '${photo.createdAt.day}.${photo.createdAt.month}.${photo.createdAt.year}',
+                ),
+              ),
+              ContentMenu(
+                community: community,
+                target: ReportTarget.photo,
+                targetId: photo.id,
+                authorId: photo.userId,
+                authorName: community.userName(photo.userId),
+                onBlocked: () => Navigator.of(context).pop(),
+              ),
+            ]),
           ),
         ]),
       ),
