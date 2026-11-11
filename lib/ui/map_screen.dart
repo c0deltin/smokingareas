@@ -1,8 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:latlong2/latlong.dart';
@@ -11,6 +11,7 @@ import '../community/community_service.dart';
 import '../data/cities.dart';
 import '../models/city.dart';
 import '../models/smoking_area.dart';
+import '../services/map_clustering.dart';
 import '../services/notification_service.dart';
 import '../services/proximity_monitor.dart';
 import '../services/smoking_area_repository.dart';
@@ -19,11 +20,11 @@ import '../sources/official_opendata_source.dart';
 import 'area_details_sheet.dart';
 import 'city_picker.dart';
 import 'legend_sheet.dart';
+import 'marker_icons.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
 import 'settings_sheet.dart';
 import 'spot_style.dart';
-import 'user_location_marker.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({
@@ -45,8 +46,16 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
+LatLng _ll(gm.LatLng p) => LatLng(p.latitude, p.longitude);
+gm.LatLng _gm(LatLng p) => gm.LatLng(p.latitude, p.longitude);
+
 class _MapScreenState extends State<MapScreen> {
-  final _mapController = MapController();
+  gm.GoogleMapController? _map;
+  late gm.CameraPosition _camera =
+      gm.CameraPosition(target: _gm(_city.center), zoom: _city.zoom);
+  GeoBounds? _visibleRegion;
+  MarkerIcons? _icons;
+  List<MapCluster> _clusters = const [];
   City _city = kCities.first;
   CityAreas? _data;
   bool _loading = false;
@@ -74,6 +83,7 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _monitor.addListener(_onMonitorChanged);
+    _monitor.heading?.addListener(_onHeadingChanged);
     _repo.addListener(_onRepoChanged);
     NotificationService.instance.onTap = _openAreaById;
     _loadCity(_city);
@@ -83,32 +93,159 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _monitor.removeListener(_onMonitorChanged);
+    _monitor.heading?.removeListener(_onHeadingChanged);
     _repo.removeListener(_onRepoChanged);
     NotificationService.instance.onTap = null;
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_icons == null) {
+      final icons = MarkerIcons(MediaQuery.devicePixelRatioOf(context));
+      _icons = icons;
+      icons.prepareBase().then((_) => _updateClusters());
+    }
+  }
+
   /// New data from any source/city: redraw the (single, merged) map.
-  void _onRepoChanged() {
+  void _onRepoChanged() => _updateClusters();
+
+  /// Redraw the location cone only for noticeable turns (the map diffs all
+  /// markers on every rebuild).
+  double? _drawnHeading;
+  void _onHeadingChanged() {
+    final h = _monitor.heading?.heading;
+    final old = _drawnHeading;
+    if (h == null && old == null) return;
+    if (h != null && old != null) {
+      final diff = ((h - old + 540) % 360 - 180).abs();
+      if (diff < 3) return;
+    }
+    _drawnHeading = h;
+    final spread = _monitor.heading?.spread;
+    if (h != null && spread != null && _icons?.cone(spread) == null) {
+      _icons?.ensureCone(spread).then((_) {
+        if (mounted) setState(() {});
+      });
+    }
     if (mounted) setState(() {});
   }
 
-  // Markers are rebuilt only when the merged data set changes, not on every
-  // position update. One list per category (own cluster layer and colour).
-  List<SmokingArea>? _markerSource;
-  Map<SpotCategory, List<Marker>> _markerCache = const {};
-  Map<Key, SmokingArea> _markerAreas = const {};
+  void _moveTo(LatLng position, double zoom) {
+    _camera = gm.CameraPosition(target: _gm(position), zoom: zoom);
+    _map?.animateCamera(gm.CameraUpdate.newLatLngZoom(_gm(position), zoom));
+  }
 
-  Map<SpotCategory, List<Marker>> _markersFor(List<SmokingArea> areas) {
-    if (!identical(areas, _markerSource)) {
-      _markerSource = areas;
-      _markerCache = {
-        for (final c in SpotCategory.values)
-          c: _markers(areas.where((a) => a.category == c)),
-      };
-      _markerAreas = {for (final a in areas) ValueKey(a.id): a};
+  Future<void> _onCameraIdle() async {
+    final map = _map;
+    if (map == null) return;
+    final r = await map.getVisibleRegion();
+    _visibleRegion = GeoBounds(
+      south: r.southwest.latitude,
+      west: r.southwest.longitude,
+      north: r.northeast.latitude,
+      east: r.northeast.longitude,
+    );
+    await _updateClusters();
+  }
+
+  /// One merged data set for all of Japan – every source, every city –
+  /// clustered for the visible part of the map.
+  Future<void> _updateClusters() async {
+    final icons = _icons;
+    final region = _visibleRegion;
+    if (icons == null || region == null || !mounted) {
+      if (mounted) setState(() {});
+      return;
     }
-    return _markerCache;
+    final clusters = clusterAreas(
+      _repo.allVisible.where((a) => _visible.contains(a.category)),
+      visible: region,
+      zoom: _camera.zoom,
+    );
+    await Future.wait([
+      for (final c in clusters)
+        if (c.isSingle)
+          icons.ensureSpot(SpotMarker.fromArea(c.areas.single))
+        else
+          icons.ensureCluster(c.category, ClusterBubble.label(c.areas.length)),
+    ]);
+    if (!mounted) return;
+    setState(() => _clusters = clusters);
+  }
+
+  void _onClusterTap(MapCluster c) {
+    if (c.isSingle) {
+      showAreaDetails(context, c.areas.single,
+          userPosition: _monitor.position, community: _community);
+      return;
+    }
+    final b = c.bounds;
+    final tiny = b.north - b.south < 0.0002 && b.east - b.west < 0.0002;
+    if (tiny) {
+      _moveTo(c.center, math.max(_camera.zoom + 2, 17));
+      return;
+    }
+    _map?.animateCamera(gm.CameraUpdate.newLatLngBounds(
+      gm.LatLngBounds(
+        southwest: gm.LatLng(b.south, b.west),
+        northeast: gm.LatLng(b.north, b.east),
+      ),
+      64,
+    ));
+  }
+
+  Set<gm.Marker> _mapMarkers() {
+    final icons = _icons;
+    if (icons == null) return const {};
+    final markers = <gm.Marker>{};
+    for (final c in _clusters) {
+      final icon = c.isSingle
+          ? icons.spot(SpotMarker.fromArea(c.areas.single))
+          : icons.cluster(c.category, ClusterBubble.label(c.areas.length));
+      if (icon == null) continue;
+      markers.add(gm.Marker(
+        markerId: gm.MarkerId(c.id),
+        position: _gm(c.center),
+        icon: icon,
+        anchor: const Offset(0.5, 0.5),
+        consumeTapEvents: true,
+        zIndexInt: c.isSingle ? 1 : 2,
+        onTap: () => _onClusterTap(c),
+      ));
+    }
+    final pos = _monitor.position;
+    if (pos != null) {
+      final service = _monitor.heading;
+      final heading = service?.heading;
+      final cone = service == null ? null : icons.cone(service.spread);
+      if (heading != null && cone != null) {
+        markers.add(gm.Marker(
+          markerId: const gm.MarkerId('me:cone'),
+          position: _gm(pos),
+          icon: cone,
+          anchor: const Offset(0.5, 0.5),
+          flat: true,
+          rotation: heading,
+          zIndexInt: 10,
+          consumeTapEvents: true,
+        ));
+      }
+      final dot = icons.dot;
+      if (dot != null) {
+        markers.add(gm.Marker(
+          markerId: const gm.MarkerId('me:dot'),
+          position: _gm(pos),
+          icon: dot,
+          anchor: const Offset(0.5, 0.5),
+          zIndexInt: 11,
+          consumeTapEvents: true,
+        ));
+      }
+    }
+    return markers;
   }
 
   Future<void> _askPermissions() async {
@@ -126,7 +263,7 @@ class _MapScreenState extends State<MapScreen> {
       }
       if (!_centeredOnUser && city != null) {
         _centeredOnUser = true;
-        _mapController.move(pos, 16);
+        _moveTo(pos, 16);
       }
     }
     if (mounted) setState(() {});
@@ -185,7 +322,7 @@ class _MapScreenState extends State<MapScreen> {
       _city = city;
       _data = _repo.cached(city.id);
     });
-    if (moveMap) _mapController.move(city.center, city.zoom);
+    if (moveMap) _moveTo(city.center, city.zoom);
     _loadCity(city);
   }
 
@@ -196,13 +333,13 @@ class _MapScreenState extends State<MapScreen> {
     _selectCity(place.city, moveMap: false);
     setState(() =>
         _placeLabel = place.district == null ? null : place.label);
-    _mapController.move(place.center, place.zoom);
+    _moveTo(place.center, place.zoom);
   }
 
   void _openAreaById(String id) {
     for (final a in _repo.allLoaded) {
       if (a.id == id) {
-        _mapController.move(a.position, 18);
+        _moveTo(a.position, 18);
         showAreaDetails(context, a,
             userPosition: _monitor.position, community: _community);
         return;
@@ -218,7 +355,7 @@ class _MapScreenState extends State<MapScreen> {
     }
     _userPickedCity = false;
     _lastAutoCity = null;
-    _mapController.move(pos, 17);
+    _moveTo(pos, 17);
     _onMonitorChanged();
   }
 
@@ -236,23 +373,9 @@ class _MapScreenState extends State<MapScreen> {
   String _formatDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
-  List<Marker> _markers(Iterable<SmokingArea> areas) => [
-        for (final a in areas)
-          Marker(
-            key: ValueKey(a.id),
-            point: a.position,
-            width: 36,
-            height: 36,
-            child: SpotMarker.fromArea(a),
-          ),
-      ];
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // One merged data set for all of Japan – every source, every city.
-    final markers = _markersFor(_repo.allVisible);
-    final byKey = _markerAreas;
     final userPos = _monitor.position;
 
     return Scaffold(
@@ -328,74 +451,50 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _city.center,
-              initialZoom: _city.zoom,
-              minZoom: 5,
-              maxZoom: 19,
+          gm.GoogleMap(
+            initialCameraPosition: _camera,
+            minMaxZoomPreference: const gm.MinMaxZoomPreference(5, 20),
+            // Own location symbol (dot + direction cone) and own buttons.
+            myLocationEnabled: false,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            // Room for the data attribution below the Google logo.
+            padding: const EdgeInsets.only(bottom: 18),
+            onMapCreated: (c) {
+              _map = c;
+              c.moveCamera(gm.CameraUpdate.newCameraPosition(_camera));
+            },
+            onCameraMove: (p) => _camera = p,
+            onCameraIdle: _onCameraIdle,
+            markers: _mapMarkers(),
+            circles: {
+              if (userPos != null)
+                gm.Circle(
+                  circleId: const gm.CircleId('alert-radius'),
+                  center: _gm(userPos),
+                  radius: _monitor.alertRadius,
+                  fillColor:
+                      theme.colorScheme.primary.withValues(alpha: 0.12),
+                  strokeColor: theme.colorScheme.primary,
+                  strokeWidth: 2,
+                ),
+            },
+          ),
+          Positioned(
+            left: 8,
+            bottom: 2,
+            child: GestureDetector(
+              onTap: () =>
+                  launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+              child: Text(
+                'Data © OpenStreetMap contributors',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: Colors.black87,
+                  backgroundColor: Colors.white70,
+                ),
+              ),
             ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'de.c0deltin.smoking_areas',
-                maxNativeZoom: 19,
-              ),
-              if (userPos != null)
-                CircleLayer(circles: [
-                  CircleMarker(
-                    point: userPos,
-                    radius: _monitor.alertRadius,
-                    useRadiusInMeter: true,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    borderColor: theme.colorScheme.primary,
-                    borderStrokeWidth: 1.5,
-                  ),
-                ]),
-              for (final c in SpotCategory.values)
-                if (_visible.contains(c))
-                  MarkerClusterLayerWidget(
-                    key: ValueKey('cluster-${c.name}'),
-                    options: MarkerClusterLayerOptions(
-                      markers: markers[c] ?? const [],
-                      maxClusterRadius: 60,
-                      disableClusteringAtZoom: 17,
-                      size: const Size(42, 42),
-                      showPolygon: false,
-                      onMarkerTap: (m) {
-                        final a = byKey[m.key];
-                        if (a != null) {
-                          showAreaDetails(context, a,
-                              userPosition: userPos, community: _community);
-                        }
-                      },
-                      builder: (context, cluster) =>
-                          ClusterBubble(category: c, count: cluster.length),
-                    ),
-                  ),
-              if (userPos != null)
-                MarkerLayer(markers: [
-                  // Dot + direction cone; not counter-rotated, so the cone
-                  // keeps its geographic direction when the map rotates.
-                  Marker(
-                    point: userPos,
-                    width: UserLocationMarker.size,
-                    height: UserLocationMarker.size,
-                    child: UserLocationMarker(heading: _monitor.heading),
-                  ),
-                ]),
-              RichAttributionWidget(
-                alignment: AttributionAlignment.bottomLeft,
-                attributions: [
-                  TextSourceAttribution(
-                    'OpenStreetMap contributors',
-                    onTap: () => launchUrl(
-                        Uri.parse('https://openstreetmap.org/copyright')),
-                  ),
-                ],
-              ),
-            ],
           ),
           if (_loading)
             const Positioned(
@@ -442,9 +541,12 @@ class _MapScreenState extends State<MapScreen> {
                     selectedColor:
                         categoryColor(c).withValues(alpha: 0.22),
                     side: BorderSide(color: categoryColor(c)),
-                    onSelected: (on) => setState(() {
-                      on ? _visible.add(c) : _visible.remove(c);
-                    }),
+                    onSelected: (on) {
+                      setState(() {
+                        on ? _visible.add(c) : _visible.remove(c);
+                      });
+                      _updateClusters();
+                    },
                   ),
               ]),
             ),
@@ -485,11 +587,12 @@ class _MapScreenState extends State<MapScreen> {
     final category = await askSpotCategory(context);
     if (category == null || !mounted) return;
     _visible.add(category);
+    _updateClusters();
     final pos = _monitor.position;
     if (pos != null) {
-      _mapController.move(pos, 18);
-    } else if (_mapController.camera.zoom < 16) {
-      _mapController.move(_mapController.camera.center, 17);
+      _moveTo(pos, 18);
+    } else if (_camera.zoom < 16) {
+      _moveTo(_ll(_camera.target), 17);
     }
     setState(() => _reportCategory = category);
   }
@@ -538,7 +641,7 @@ class _MapScreenState extends State<MapScreen> {
       ];
 
   Future<void> _confirmReportPosition() async {
-    final position = _mapController.camera.center;
+    final position = _ll(_camera.target);
     final category = _reportCategory!;
 
     // Avoid duplicates: offer the existing spot instead.
@@ -649,7 +752,8 @@ class _MapScreenState extends State<MapScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Map tiles: © OpenStreetMap contributors.\n'
+          'Map: Google Maps. Spot data from OpenStreetMap: © OpenStreetMap '
+          'contributors (ODbL).\n'
           'No guarantee of accuracy – you can fix missing or wrong entries '
           'directly on openstreetmap.org (amenity=smoking_area, '
           'amenity=toilets).',
