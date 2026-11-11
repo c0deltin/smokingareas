@@ -288,7 +288,18 @@ from unknown sources. The pipeline can also be started manually (*Actions* →
 
 **Fixed signing key (recommended):** without it every APK is signed with a
 different debug key, so an update can only be installed after uninstalling
-the old version. Create it once:
+the old version. It is also required for Google sign-in on Android.
+
+*Without a computer:* create a fine-grained personal access token (GitHub →
+Settings → Developer settings → Fine-grained tokens; only this repository;
+permission *Secrets: Read and write*; short expiry), store it as repository
+secret `SIGNING_SETUP_TOKEN` and run *Actions → Create Android signing key*.
+The workflow creates the key on the runner, stores it as the secrets below
+and shows only the public SHA-1/SHA-256 fingerprints in the run summary.
+Delete the token and the secret afterwards. The key itself can never be read
+back from GitHub – keep the secrets; replacing the key breaks updates.
+
+*With a computer:* create it once:
 
 ```bash
 keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 \

@@ -23,7 +23,7 @@ Secrets include, but are not limited to:
   `APPLE_TEAM_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`,
   `APP_STORE_CONNECT_API_KEY_P8`, `GOOGLE_MAPS_API_KEY_ANDROID`,
   `GOOGLE_MAPS_API_KEY_IOS`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
-  `SUPABASE_PROJECT_REF`) and their values in any form (base64, logs,
+  `SUPABASE_PROJECT_REF`, `SIGNING_SETUP_TOKEN`) and their values in any form (base64, logs,
   screenshots)
 - the Supabase `service_role` key – never used in the app or the repository
 
