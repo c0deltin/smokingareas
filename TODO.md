@@ -40,10 +40,9 @@ Agreed order (data first, then the server):
   marker building if it stutters.
 - [ ] Verify on a real device: live Overpass query incl. toilets, camera and
   gallery for photos, background location and proximity alerts (incl. the radius setting), direction cone
-  (compass accuracy, flat vs. upright, map rotation).
+  (compass accuracy, flat vs. upright, map rotation) – on Android and iOS.
 
 ## Distribution
 
 - [ ] Fixed Android signing key as GitHub secrets so updates install over the
   previous version (see README, "APK download & CI").
-- [ ] iOS: verify the first TestFlight build (`ios-testflight.yml`).
