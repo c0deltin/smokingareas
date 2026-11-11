@@ -42,6 +42,11 @@ Agreed order (data first, then the server):
   gallery for photos, background location and proximity alerts (incl. the radius setting), direction cone
   (compass accuracy, flat vs. upright, map rotation) – on Android and iOS.
 
+## Later
+
+- [ ] Native iOS look (Liquid Glass): native glass controls via platform
+  views, or a separate SwiftUI app.
+
 ## Distribution
 
 - [ ] Fixed Android signing key as GitHub secrets so updates install over the
