@@ -54,6 +54,8 @@ app.*.map.json
 *.jks
 *.keystore
 key.properties
+# Google Maps API key for iOS builds (created by CI from secrets)
+ios/Flutter/Secrets.xcconfig
 *.p8
 *.p12
 *.pem

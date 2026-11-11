@@ -10,7 +10,7 @@ The app's user interface is in English.
 
 ## Features
 
-- Map (OpenStreetMap tiles) with clustered markers, a details view (indoor /
+- Google Maps base map with clustered markers, a details view (indoor /
   outdoor, covered, fee, opening hours, operator, access; for toilets
   wheelchair access and baby changing table) and walking directions via Apple
   Maps / Google Maps.
@@ -99,7 +99,7 @@ works automatically. Official data needs a source in
 | City of Okayama – 公衆トイレ, おかやま全県統合型GIS (only reachable from within Japan, so kept in `tool/opendata/manual/`) | Okayama (156 toilets) | manual snapshot | CC BY |
 | Tokyo wards – national standard dataset “公衆トイレ一覧” of Chiyoda, Chūō, Shinjuku, Taitō, Sumida, Kōtō, Meguro, Suginami, Toshima, Arakawa, Itabashi, Nerima, Katsushika, Edogawa (URLs resolved via the Tokyo catalog API) | Tokyo (≈ 1,950 toilets) | snapshot | CC BY 4.0 |
 | GSI (国土地理院) address search | geocoding of the address lists | when building the snapshot | – |
-| OpenStreetMap map tiles | – | live | ODbL |
+| Google Maps (base map only, Maps SDK for Android/iOS) | – | live | Google Maps Platform terms |
 
 Where no official data is available the app shows the OSM data:
 
@@ -331,6 +331,27 @@ One-time setup:
 `ITSAppUsesNonExemptEncryption = false` (standard HTTPS only) avoids the
 export-compliance question for every build.
 
+## Google Maps API keys
+
+The base map is Google Maps (Maps SDK for Android and iOS; map loads in
+native apps are free). One-time setup in the Google Cloud console:
+
+1. Create a project with a billing account (required by Google, even though
+   the native map SDKs are free) and enable **Maps SDK for Android** and
+   **Maps SDK for iOS**.
+2. Create two API keys:
+   - Android key: API restriction *Maps SDK for Android*; application
+     restriction *Android apps* with package `de.c0deltin.smoking_areas` and
+     the SHA-1 of the release signing key (needs the fixed signing key).
+   - iOS key: API restriction *Maps SDK for iOS*; application restriction
+     *iOS apps* with bundle ID `de.c0deltin.smokingAreas`.
+3. Repository secrets `GOOGLE_MAPS_API_KEY_ANDROID` and
+   `GOOGLE_MAPS_API_KEY_IOS`.
+
+Local builds read the key from the environment variable `MAPS_API_KEY`
+(Android) or from the uncommitted `ios/Flutter/Secrets.xcconfig`
+(`MAPS_API_KEY = …`). Without a key the app runs but the map stays empty.
+
 ## Permissions & background operation
 
 - **Android**: location (fine + background), foreground service (type
@@ -345,11 +366,11 @@ export-compliance question for every build.
 
 ## Notes for publishing
 
-- The public OSM tile and Overpass servers have
-  [usage policies](https://operations.osmfoundation.org/policies/tiles/). An
-  app with many users should use its own or a commercial tile provider and, if
-  needed, its own Overpass instance (URL in `map_screen.dart` and
-  `OverpassSource.defaultEndpoints`).
+- The public Overpass servers have a
+  [usage policy](https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances).
+  An app with many users should use its own Overpass instance
+  (`OverpassSource.defaultEndpoints`) or ship the OSM data with the data
+  release.
 - Android is currently **not distributed through the Play Store** but
   installed directly as an APK from the GitHub Releases (sideloading). Google
   Play Protect may show an “unknown app” warning on first installation –

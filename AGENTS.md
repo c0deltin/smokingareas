@@ -13,6 +13,7 @@ Secrets include, but are not limited to:
 
 - `.env`, `.env.*`, `*.env` and any other environment/config files with
   credentials
+- `ios/Flutter/Secrets.xcconfig` (Google Maps key for iOS builds)
 - signing material: `*.jks`, `*.keystore`, `android/key.properties`, `*.p12`,
   `*.p8`, `*.pem`, `*.key`, `*.mobileprovision`, `*.cer`
 - API keys, tokens, passwords, OAuth client secrets, service-account JSON
@@ -20,7 +21,8 @@ Secrets include, but are not limited to:
 - GitHub Actions secrets (`ANDROID_KEYSTORE_BASE64`,
   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`,
   `APPLE_TEAM_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`,
-  `APP_STORE_CONNECT_API_KEY_P8`) and their values in any form (base64,
+  `APP_STORE_CONNECT_API_KEY_P8`, `GOOGLE_MAPS_API_KEY_ANDROID`,
+  `GOOGLE_MAPS_API_KEY_IOS`) and their values in any form (base64,
   logs, screenshots)
 
 Rules:
@@ -160,8 +162,13 @@ Run `flutter analyze` and `flutter test` before every commit.
   source or `stable_key(name, address)`. When an id changes anyway, the
   importer keeps the old one in `aliases` (`carry_aliases`); the app looks up
   community data under `SmokingArea.allIds`.
-- **OSM servers:** keep the user agent, respect the tile and Overpass usage
-  policies, do not add aggressive polling.
+- **Map:** the base map is Google Maps (`google_maps_flutter`, iOS via
+  `google_maps_flutter_ios_sdk10`, iOS 16+). Markers are bitmaps drawn by the
+  same painters as the legend (`MarkerIcons`); clustering is our own
+  (`map_clustering.dart`, per category, visible region only). Keys come only
+  from secrets (`MAPS_API_KEY`), never from the repository.
+- **OSM servers:** keep the user agent, respect the Overpass usage policy, do
+  not add aggressive polling.
 - **Privacy:** location stays on the device; no analytics or tracking SDKs.
   Do not log precise user positions.
 - **Dependencies:** prefer well-maintained packages; pin versions via

@@ -42,6 +42,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
+        // Google Maps API key from the environment (CI secret); never commit
+        // it. Without a key the app runs, but the map stays empty.
+        manifestPlaceholders["mapsApiKey"] = System.getenv("MAPS_API_KEY") ?: ""
     }
 
     signingConfigs {

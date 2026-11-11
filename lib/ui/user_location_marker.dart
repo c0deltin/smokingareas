@@ -7,8 +7,8 @@ import '../services/heading_service.dart';
 /// Blue location dot with a translucent cone pointing where the user is
 /// facing (compass) or walking (GPS course) – like in map apps.
 ///
-/// Used as a flutter_map marker *without* counter-rotation, so the cone keeps
-/// its geographic direction when the map is rotated.
+/// Used in the legend; the map draws the same painters into flat marker
+/// bitmaps, so the cone keeps its geographic direction when the map rotates.
 class UserLocationMarker extends StatelessWidget {
   const UserLocationMarker({super.key, required this.heading});
 
@@ -42,18 +42,32 @@ class _Dot extends StatelessWidget {
   const _Dot();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        color: Colors.blue,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 3),
-        boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
-      ),
-    );
+  Widget build(BuildContext context) => CustomPaint(
+        size: const Size.square(LocationDotPainter.size),
+        painter: LocationDotPainter(),
+      );
+}
+
+/// The blue location dot with a white border (also drawn into a map bitmap).
+class LocationDotPainter extends CustomPainter {
+  static const double size = 22;
+
+  @override
+  void paint(Canvas canvas, Size canvasSize) {
+    final c = canvasSize.center(Offset.zero);
+    const r = size / 2;
+    canvas.drawCircle(
+        c.translate(0, 1),
+        r,
+        Paint()
+          ..color = Colors.black26
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    canvas.drawCircle(c, r, Paint()..color = Colors.white);
+    canvas.drawCircle(c, r - 3, Paint()..color = Colors.blue);
   }
+
+  @override
+  bool shouldRepaint(LocationDotPainter old) => false;
 }
 
 /// Paints a cone (circular sector) from the centre towards [headingDegrees]

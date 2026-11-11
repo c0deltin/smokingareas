@@ -28,6 +28,7 @@ jobs:
       ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+      MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY_IOS }}
     steps:
       - name: Check configuration
         id: config
@@ -65,6 +66,13 @@ jobs:
           flutter build ios --release --config-only --no-codesign \
             --build-name=1.0.${{ github.run_number }} \
             --build-number=${{ github.run_number }}
+
+      # Google Maps key as an uncommitted build setting (read by Info.plist);
+      # written to a file so it never appears on a command line or in logs.
+      - name: Install Google Maps API key
+        if: steps.config.outputs.skip == 'false'
+        run: |
+          printf 'MAPS_API_KEY = %s\n' "$MAPS_API_KEY" > ios/Flutter/Secrets.xcconfig
 
       - name: Install App Store Connect API key
         if: steps.config.outputs.skip == 'false'
@@ -120,4 +128,4 @@ jobs:
 
       - name: Remove API key
         if: always()
-        run: rm -rf "$RUNNER_TEMP/asc"
+        run: rm -rf "$RUNNER_TEMP/asc" ios/Flutter/Secrets.xcconfig
