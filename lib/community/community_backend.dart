@@ -7,9 +7,9 @@ import 'models.dart';
 ///
 /// The interface is shaped like the tables of a multi-user database
 /// (users, spots, reviews, photos, existence votes – every row carries the
-/// `userId` of its author). Today [LocalCommunityBackend] keeps everything in
-/// a JSON file on the device; later a server implementation (see
-/// [RemoteCommunityBackend]) can be plugged in without touching the UI.
+/// `userId` of its author). [LocalCommunityBackend] keeps everything in a
+/// JSON file on the device (development builds); `ServerCommunityBackend`
+/// (server_backend.dart) is used when the server is configured.
 abstract class CommunityBackend {
   Future<List<UserProfile>> users();
   Future<void> saveUser(UserProfile user);
@@ -179,48 +179,4 @@ class _Tables {
       ..votes.addAll(rows('votes').map(ExistenceVote.fromJson))
       ..closures.addAll(rows('closures').map(ClosureReport.fromJson));
   }
-}
-
-/// Placeholder for the future server backend (REST/GraphQL, Firebase,
-/// Supabase …). Every call throws until it is implemented; the app uses
-/// [LocalCommunityBackend] meanwhile.
-///
-/// Expected server responsibilities, so the local rules can move there:
-/// * authenticate users and set `userId` server side,
-/// * enforce one review per (spotId, userId),
-/// * evaluate the [ExistencePolicy] server side, rate-limit votes,
-/// * store photos in object storage and return their URL as `storageKey`.
-class RemoteCommunityBackend implements CommunityBackend {
-  RemoteCommunityBackend({required this.baseUrl});
-
-  final Uri baseUrl;
-
-  Never _todo(String op) =>
-      throw UnimplementedError('RemoteCommunityBackend.$op ($baseUrl)');
-
-  @override
-  Future<List<UserProfile>> users() async => _todo('users');
-  @override
-  Future<void> saveUser(UserProfile user) async => _todo('saveUser');
-  @override
-  Future<List<CommunitySpot>> spots() async => _todo('spots');
-  @override
-  Future<void> addSpot(CommunitySpot spot) async => _todo('addSpot');
-  @override
-  Future<List<SpotReview>> reviews() async => _todo('reviews');
-  @override
-  Future<void> saveReview(SpotReview review) async => _todo('saveReview');
-  @override
-  Future<List<SpotPhoto>> photos() async => _todo('photos');
-  @override
-  Future<void> addPhoto(SpotPhoto photo) async => _todo('addPhoto');
-  @override
-  Future<List<ExistenceVote>> votes() async => _todo('votes');
-  @override
-  Future<void> addVote(ExistenceVote vote) async => _todo('addVote');
-  @override
-  Future<List<ClosureReport>> closureReports() async => _todo('closureReports');
-  @override
-  Future<void> addClosureReport(ClosureReport report) async =>
-      _todo('addClosureReport');
 }

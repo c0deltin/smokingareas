@@ -97,11 +97,6 @@ void main() {
       expect(await reopened.votes(), hasLength(1));
     });
 
-    test('remote backend is only a stub', () {
-      final remote =
-          RemoteCommunityBackend(baseUrl: Uri.parse('https://api.example'));
-      expect(remote.spots(), throwsA(isA<UnimplementedError>()));
-    });
   });
 
   group('CommunityService', () {

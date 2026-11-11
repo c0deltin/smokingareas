@@ -214,31 +214,34 @@ map section (zoom).
   community; such an "open again" report holds until the official entry
   changes. A "closed" report on an officially open spot always expires
   (temporary by nature – use "gone" for permanent removal).
-- **Multiple users:** every record carries the `userId` of its author. Until a
-  server exists there are local profiles (profile icon at the top right) to
-  try out the multi-user rules on a single device.
+- **Accounts:** the app can be used without an account. Contributing (report,
+  rate, photo, vote, closure) needs Sign in with Apple (iPhone) or Google;
+  the app asks once after installation, when someone contributes, or via
+  Settings → Account (also sign out and delete account). Only the first name
+  is shown with contributions.
 
-### Architecture: adapters, everything local for now
+### Architecture: adapters
 
 ```
 lib/community/
   models.dart              UserProfile, CommunitySpot, SpotReview, SpotPhoto, ExistenceVote
   existence_policy.dart    Waze-like rule (pure, tested)
   community_backend.dart   CommunityBackend (adapter)
-                             ├ LocalCommunityBackend  → JSON "database" on the device
-                             └ RemoteCommunityBackend → stub for the future server
+                             └ LocalCommunityBackend  → JSON "database" on the device
   photo_storage.dart       PhotoStorage → LocalPhotoStorage (files in the app folder)
   auth_service.dart        AuthService  → LocalAuthService (local profiles)
+  server_backend.dart      server adapters: data, sign-in, photos (re-encoded
+                           JPEG without metadata)
+  server_rows.dart         mapping to the server tables (pure, tested)
   community_service.dart   facade for the UI; feeds community spots and hidden
                            spots into the single data set
 ```
 
-The local database (`<app support>/community/db.json`) is structured like a
-multi-user database (tables `users`, `spots`, `reviews`, `photos`, `votes`, `closures`).
-For a real server, `RemoteCommunityBackend` gets implemented (login, one rating
-per user, Waze rule and rate limiting on the server, photos in object storage)
-and is used in `main.dart` instead of the local adapters – UI and logic stay
-unchanged.
+Release builds use the server adapters when the build gets the server
+settings (`--dart-define`, see "Backend"); development builds without them
+use the local adapters with local profiles (`<app support>/community/db.json`),
+so the multi-user rules can be tried on one device. UI and logic are the same
+for both.
 
 Votes, ratings and photos are attached to the id of the displayed spot. If an
 OSM point is later merged with official data, the data collected under the
@@ -357,6 +360,22 @@ contributing needs Sign in with Apple or Google.
 
 The app only ever uses public client credentials; administrative keys are
 never part of the app or the repository.
+
+Build settings (repository secrets, passed as `--dart-define`; without them
+builds use local community data): `BACKEND_URL`, `BACKEND_ANON_KEY` (public
+client key), `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`.
+
+Sign-in setup:
+
+- Apple Developer: enable *Sign in with Apple* for the App ID
+  `de.c0deltin.smokingAreas` (the app's entitlement requests it).
+- Google Cloud (same project as the Maps key): OAuth consent screen
+  (external, published) and three OAuth clients – *Web* (used by the
+  backend), *iOS* (bundle ID `de.c0deltin.smokingAreas`) and *Android*
+  (package `de.c0deltin.smoking_areas`, SHA-1 of the release signing key).
+- Backend auth settings: Apple and Google enabled with these client IDs
+  (Google: all three, web first; *skip nonce checks* on for iOS); e-mail
+  sign-up disabled.
 
 ## Google Maps API keys
 

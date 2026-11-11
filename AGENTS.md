@@ -23,7 +23,9 @@ Secrets include, but are not limited to:
   `APPLE_TEAM_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`,
   `APP_STORE_CONNECT_API_KEY_P8`, `GOOGLE_MAPS_API_KEY_ANDROID`,
   `GOOGLE_MAPS_API_KEY_IOS`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
-  `SUPABASE_PROJECT_REF`, `SIGNING_SETUP_TOKEN`) and their values in any form (base64, logs,
+  `SUPABASE_PROJECT_REF`, `SIGNING_SETUP_TOKEN`, `BACKEND_URL`,
+  `BACKEND_ANON_KEY`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`) and
+  their values in any form (base64, logs,
   screenshots)
 - the Supabase `service_role` key – never used in the app or the repository
 
@@ -61,10 +63,17 @@ Key design decisions – keep them:
   an alias, user details only fill gaps, "not same as" answers are
   respected); same-building rooms are combined in the snapshot. Do not add a
   second marker path.
-- **Adapters for everything that will later need a server**
-  (`CommunityBackend`, `PhotoStorage`, `AuthService`). Today all data is local
-  (`LocalCommunityBackend` → `<app support>/community/db.json`).
-  `RemoteCommunityBackend` is a stub – keep the UI independent of the backend.
+- **Adapters for everything that needs a server** (`CommunityBackend`,
+  `PhotoStorage`, `AuthService`): server adapters in
+  `lib/community/server_backend.dart` when the build gets the server settings
+  (`ServerConfig`, `--dart-define` from CI secrets), otherwise local adapters
+  (`LocalCommunityBackend` → `<app support>/community/db.json`, local
+  profiles). Keep the UI independent of the backend.
+- **Accounts:** reading never needs an account. Every contribution goes
+  through `contribute`/`ensureSignedIn` (`lib/ui/sign_in_sheet.dart`), which
+  asks to sign in (Apple on iOS, Google on iOS + Android); the service
+  throws `SignInRequired` as a safety net. The sign-in sheet is shown once
+  after installation, never repeatedly.
 - **OSM tag schema** for attributes (`indoor`, `covered`, `access`,
   `access:note`, `opening_hours`, `fee` …) so data stays compatible with OSM.
 - **Categories:** every spot is a smoking area or a public toilet
