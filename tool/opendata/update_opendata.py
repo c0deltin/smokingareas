@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+import hashlib
 import html
 import io
 import json
@@ -132,6 +133,14 @@ def normalise_address(addr: str, prefix: str) -> str:
     return prefix + a
 
 
+def stable_key(*parts: str | None) -> str:
+    """Stable local id from content (name, address …) instead of the row
+    number, so ids survive re-ordered or extended source lists. Collisions
+    are resolved in `assign_unique_ids`."""
+    norm = "|".join(re.sub(r"\s+", "", (p or "")).translate(_KANJI_NUM) for p in parts)
+    return "h" + hashlib.sha1(norm.encode("utf-8")).hexdigest()[:10]
+
+
 def area(*, source: str, local_id: str, name: str, lat: float, lon: float,
          address: str | None = None, hours: str | None = None,
          kind: str | None = None, geocoded: bool = False, note: str | None = None,
@@ -184,6 +193,7 @@ def merge_same_location(areas: list[dict]) -> list[dict]:
         if hours:
             first["hours"] = "\n".join(hours)
         first["members"] = len(items)
+        first["aliases"] = sorted({a for i in items[1:] for a in [i["id"], *i.get("aliases", [])]})
         merged.append(first)
     return merged
 
@@ -254,7 +264,7 @@ def tokyo_koto() -> list[dict]:
                       ("park", "https://www.opendata.metro.tokyo.lg.jp/koto/131083_237_public_smoking_area_park.csv")):
         rows = list(csv.DictReader(io.StringIO(decode(fetch(url)))))
         for i, r in enumerate(rows):
-            out.append(area(source="tokyo_koto", local_id=f"{kind}{i}", name=r["喫煙所名"],
+            out.append(area(source="tokyo_koto", local_id=stable_key(kind, r["喫煙所名"]), name=r["喫煙所名"],
                             lat=float(r["緯度"]), lon=float(r["経度"]),
                             address=(r.get("場所") or None), kind="public"))
     return out
@@ -274,7 +284,7 @@ def tokyo_taito() -> list[dict]:
         hours = r.get("利用開始時間")
         if hours and r.get("利用終了時間") and r["利用終了時間"] != hours:
             hours = f"{hours}～{r['利用終了時間']}"
-        out.append(area(source="tokyo_taito", local_id=r["#"], name=r["名称"],
+        out.append(area(source="tokyo_taito", local_id=stable_key(r["名称"], r.get("設置位置")), name=r["名称"],
                         lat=float(r["緯度"]), lon=float(r["経度"]),
                         address=r.get("設置位置") or None, hours=hours or None,
                         kind="public", note=r.get("特記事項") or None))
@@ -301,7 +311,7 @@ def tokyo_chiyoda() -> list[dict]:
         if not pos:
             print(f"   [chiyoda] not geocoded: {name} / {addr}", file=sys.stderr)
             continue
-        out.append(area(source="tokyo_chiyoda", local_id=str(i), name=name, lat=pos[0], lon=pos[1],
+        out.append(area(source="tokyo_chiyoda", local_id=stable_key(name, addr), name=name, lat=pos[0], lon=pos[1],
                         address="千代田区" + addr.removeprefix("千代田区"),
                         hours=m_hours.group(1).strip() if m_hours else None,
                         kind="public", geocoded=True))
@@ -320,7 +330,7 @@ def tokyo_shinjuku() -> list[dict]:
         if not pos:
             print(f"   [shinjuku] not geocoded: {name} / {addr}", file=sys.stderr)
             continue
-        out.append(area(source="tokyo_shinjuku", local_id=str(i), name=name, lat=pos[0], lon=pos[1],
+        out.append(area(source="tokyo_shinjuku", local_id=stable_key(name, addr), name=name, lat=pos[0], lon=pos[1],
                         address=f"新宿区{addr}", kind="public", geocoded=True,
                         note=place.strip() or None))
     return out
@@ -347,7 +357,7 @@ def tokyo_shibuya() -> list[dict]:
         if not pos:
             print(f"   [shibuya] not geocoded: {name} / {addr}", file=sys.stderr)
             continue
-        out.append(area(source="tokyo_shibuya", local_id=str(i), name=name, lat=pos[0], lon=pos[1],
+        out.append(area(source="tokyo_shibuya", local_id=stable_key(name, addr), name=name, lat=pos[0], lon=pos[1],
                         address=f"渋谷区{addr}", hours=hours, kind="public", geocoded=True))
     return out
 
@@ -369,7 +379,7 @@ def tokyo_toshima() -> list[dict]:
         if not pos:
             print(f"   [toshima] not geocoded: {name} / {addr}", file=sys.stderr)
             continue
-        out.append(area(source="tokyo_toshima", local_id=str(i), name=name, lat=pos[0], lon=pos[1],
+        out.append(area(source="tokyo_toshima", local_id=stable_key(name, addr), name=name, lat=pos[0], lon=pos[1],
                         address=addr, hours=hours, kind="public", geocoded=True, note=note))
     return out
 
@@ -415,7 +425,7 @@ def osaka() -> list[dict]:
                 print(f"   [osaka] no position: {name} / {addr_m.group(1)}", file=sys.stderr)
                 continue
             idx += 1
-            out.append(area(source="osaka", local_id=str(idx), name=name, lat=lat, lon=lon,
+            out.append(area(source="osaka", local_id=stable_key(name, addr_m.group(1)), name=name, lat=lat, lon=lon,
                             address=addr_m.group(1).strip(),
                             hours=hours_m.group(1).strip() if hours_m else None,
                             kind=type_m.group(1).strip() if type_m else "public",
@@ -481,7 +491,10 @@ def parse_standard_toilets(text: str, source_id: str) -> list[dict]:
             hours = f"{hours} {extra}".strip()
         out.append(area(
             source=source_id,
-            local_id=_first(r, "ID", "NO") or str(i),
+            # The standard dataset's "ID" (e.g. 131016C00001) is assigned by the
+            # ward and stable; anything else (row "NO", missing) is not.
+            local_id=(_first(r, "ID") if re.fullmatch(r"\d{6}C\d+", _first(r, "ID"))
+                      else stable_key(name, _first(r, "所在地_連結表記", "住所", "所在地"))),
             name=name,
             lat=lat, lon=lon,
             address=_first(r, "所在地_連結表記", "住所", "所在地") or None,
@@ -581,6 +594,53 @@ def kyoto_toilets() -> list[dict]:
     return out
 
 
+def assign_unique_ids(items: list[dict]) -> list[dict]:
+    """Appends -2, -3 … to colliding ids in a stable (position based) order."""
+    seen: dict[str, int] = {}
+    for a in sorted(items, key=lambda a: (a["id"], a["lat"], a["lon"], a["name"])):
+        n = seen.get(a["id"], 0) + 1
+        seen[a["id"]] = n
+        if n > 1:
+            a["id"] = f"{a['id']}-{n}"
+    return items
+
+
+def _dist_m(a: dict, b: dict) -> float:
+    import math
+    dy = (a["lat"] - b["lat"]) * 111_320
+    dx = (a["lon"] - b["lon"]) * 111_320 * math.cos(math.radians(a["lat"]))
+    return math.hypot(dx, dy)
+
+
+def carry_aliases(items: list[dict], previous: list[dict]) -> list[dict]:
+    """Keeps community data attached when an entry's id changes: if an entry
+    of the previous snapshot (same source and category) is at the same place
+    with the same name, or within 5 m, its id and aliases become aliases of
+    the new entry."""
+    by_id = {p["id"]: p for p in previous}
+    new_ids = {a["id"] for a in items}
+    unmatched = [p for p in previous if p["id"] not in new_ids]
+    for a in items:
+        aliases = set(a.get("aliases", []))
+        prev = by_id.get(a["id"])
+        if prev:
+            aliases |= set(prev.get("aliases", []))
+        else:
+            cands = [p for p in unmatched
+                     if p.get("category", "smoking") == a.get("category", "smoking")
+                     and (_dist_m(p, a) < 5 or (p["name"] == a["name"] and _dist_m(p, a) < 60))]
+            if cands:
+                best = min(cands, key=lambda p: _dist_m(p, a))
+                unmatched.remove(best)
+                aliases |= {best["id"], *best.get("aliases", [])}
+        aliases.discard(a["id"])
+        if aliases:
+            a["aliases"] = sorted(aliases)
+        else:
+            a.pop("aliases", None)
+    return items
+
+
 # --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
@@ -608,7 +668,8 @@ def main(only: list[str]) -> int:
                 metas.append(prev_meta[key])
             continue
         try:
-            items = merge_same_location(src["fn"]())
+            items = carry_aliases(assign_unique_ids(merge_same_location(src["fn"]())),
+                                  prev_by_source.get(key, []))
             if not items:
                 raise RuntimeError("no entries parsed")
             meta["fetched"] = today
