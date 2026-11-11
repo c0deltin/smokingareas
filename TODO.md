@@ -46,5 +46,5 @@ Agreed order (data first, then the server):
 
 - [ ] Fixed Android signing key as GitHub secrets so updates install over the
   previous version (see README, "APK download & CI").
-- [ ] iOS distribution: TestFlight pipeline (App Store Connect API key) or
-  local install via Xcode.
+- [ ] iOS: verify the first TestFlight build (`ios-testflight.yml`) – the
+  iOS app has never been built so far; expect fixes in the first run.
