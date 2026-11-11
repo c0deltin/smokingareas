@@ -72,6 +72,61 @@ class OsmExportTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             osm.overpass("q", sleep=lambda s: None, fetch=fetch)
 
+    def test_failed_chunk_keeps_published_elements(self):
+        cities = [("a", (35.0, 139.0, 35.1, 139.1)), ("b", (34.0, 135.0, 34.1, 135.1)),
+                  ("c", (43.0, 141.0, 43.1, 141.1)), ("d", (33.0, 130.0, 33.1, 130.1)),
+                  ("e", (38.0, 140.0, 38.1, 140.1))]
+        calls = []
+
+        def query(q):
+            calls.append(q)
+            if len(calls) == 2:  # second chunk (city e) fails
+                raise RuntimeError("504")
+            return [{"type": "node", "id": 1, "lat": 35.05, "lon": 139.05}]
+
+        published = [
+            {"type": "node", "id": 7, "lat": 38.05, "lon": 140.05},  # in e
+            {"type": "node", "id": 8, "lat": 35.05, "lon": 139.05},  # in a
+        ]
+        old_pause = osm.PAUSE_SECONDS
+        osm.PAUSE_SECONDS = 0
+        try:
+            raw = osm.collect(cities, query, lambda: published)
+        finally:
+            osm.PAUSE_SECONDS = old_pause
+        self.assertEqual([e["id"] for e in raw], [1, 7])
+
+    def test_failed_chunk_without_published_export_gives_up(self):
+        def query(q):
+            raise RuntimeError("504")
+
+        old_pause = osm.PAUSE_SECONDS
+        osm.PAUSE_SECONDS = 0
+        try:
+            with self.assertRaises(RuntimeError):
+                osm.collect([("a", (35.0, 139.0, 35.1, 139.1))], query, lambda: [])
+        finally:
+            osm.PAUSE_SECONDS = old_pause
+
+    def test_time_budget(self):
+        t = [0.0]
+
+        def query(q):
+            t[0] += osm.DEADLINE_SECONDS  # every query takes the whole budget
+            return [{"type": "node", "id": 1, "lat": 35.05, "lon": 139.05}]
+
+        cities = [(str(i), (35.0, 139.0, 35.1, 139.1)) for i in range(8)]
+        old_pause = osm.PAUSE_SECONDS
+        osm.PAUSE_SECONDS = 0
+        try:
+            raw = osm.collect(cities, query,
+                              lambda: [{"type": "node", "id": 9, "lat": 35.05, "lon": 139.05}],
+                              clock=lambda: t[0])
+        finally:
+            osm.PAUSE_SECONDS = old_pause
+        # first chunk queried, second over budget -> published elements kept
+        self.assertEqual([e["id"] for e in raw], [1, 9])
+
     def test_partial_results_are_refused(self):
         self.assertFalse(osm.plausible(0, None))
         self.assertTrue(osm.plausible(100, None))

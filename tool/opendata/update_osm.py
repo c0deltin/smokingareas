@@ -34,8 +34,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CITIES = ROOT / "lib" / "data" / "cities.dart"
-PUBLISHED = ("https://github.com/c0deltin/smokingareas/releases/download/"
-             "opendata/osm-manifest.json")
+RELEASE = "https://github.com/c0deltin/smokingareas/releases/download/opendata/"
+PUBLISHED = RELEASE + "osm-manifest.json"
+PUBLISHED_DATA = RELEASE + "osm_spots.json.gz"
 ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
@@ -46,8 +47,14 @@ CITIES_PER_QUERY = 4
 PAUSE_SECONDS = 10
 # Busy public servers answer with 429/504 now and then: retry each request
 # a few times with growing pauses before giving up.
-RETRIES = 4
+RETRIES = 3
 RETRY_PAUSE_SECONDS = 30
+# Server-side query timeout and client timeout per request (seconds).
+QUERY_TIMEOUT = 120
+# Stop querying after this long (the CI step has a hard limit of 40 min);
+# remaining chunks then count as failed.
+DEADLINE_SECONDS = 30 * 60
+REQUEST_TIMEOUT = 150
 
 # Tags the app reads (lib/models/smoking_area.dart); everything else is
 # dropped to keep the download small.
@@ -82,7 +89,7 @@ def build_query(boxes: list[tuple[float, float, float, float]]) -> str:
             f'  nwr["smoking"="dedicated"]({bbox});',
             f'  nwr["amenity"="toilets"]["access"!~"^(private|no|customers|permit)$"]({bbox});',
         ]
-    return "[out:json][timeout:180];\n(\n" + "\n".join(parts) + "\n);\nout center tags;"
+    return f"[out:json][timeout:{QUERY_TIMEOUT}];\n(\n" + "\n".join(parts) + "\n);\nout center tags;"
 
 
 def normalize(elements: list[dict]) -> list[dict]:
@@ -117,7 +124,7 @@ def overpass(query: str, sleep=time.sleep, fetch=None) -> list[dict]:
     def default_fetch(url: str) -> dict:
         req = urllib.request.Request(url, data=body, headers={
             "User-Agent": USER_AGENT, "Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=240) as r:
+        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as r:
             return json.loads(r.read().decode("utf-8"))
 
     fetch = fetch or default_fetch
@@ -135,6 +142,52 @@ def overpass(query: str, sleep=time.sleep, fetch=None) -> list[dict]:
                 last = e
                 sleep(PAUSE_SECONDS)
     raise RuntimeError(f"Overpass unreachable: {last}")
+
+
+def published_elements() -> list[dict]:
+    """Elements of the last published export ([] when there is none)."""
+    try:
+        req = urllib.request.Request(PUBLISHED_DATA, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(gzip.decompress(r.read()).decode("utf-8"))["elements"]
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def inside(element: dict, boxes: list[tuple[float, float, float, float]]) -> bool:
+    lat, lon = element.get("lat"), element.get("lon")
+    return lat is not None and any(
+        s <= lat <= n and w <= lon <= e for s, w, n, e in boxes)
+
+
+def collect(cities, query, previous, clock=time.monotonic) -> list[dict]:
+    """Queries the cities in chunks. A chunk that still fails after all
+    retries keeps the elements of the last published export for its cities;
+    without a published export the whole run is given up (raises)."""
+    raw: list[dict] = []
+    old: list[dict] | None = None
+    deadline = clock() + DEADLINE_SECONDS
+    for i in range(0, len(cities), CITIES_PER_QUERY):
+        chunk = cities[i:i + CITIES_PER_QUERY]
+        names = ", ".join(c for c, _ in chunk)
+        boxes = [b for _, b in chunk]
+        if i:
+            time.sleep(PAUSE_SECONDS)  # be gentle with the public servers
+        try:
+            if clock() > deadline:
+                raise TimeoutError("time budget used up")
+            raw += query(build_query(boxes))
+            print(f"OSM: {names} – {len(raw)} elements so far", flush=True)
+        except Exception as e:  # noqa: BLE001
+            if old is None:
+                old = previous()
+            if not old:
+                raise
+            kept = [el for el in old if inside(el, boxes)]
+            raw += kept
+            print(f"OSM: {names} failed ({e}) – kept {len(kept)} published "
+                  f"elements", flush=True)
+    return raw
 
 
 def published_manifest() -> dict | None:
@@ -166,16 +219,10 @@ def plausible(count: int, previous: dict | None) -> bool:
 def main() -> int:
     out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "dist" / "opendata"
     cities = city_bounds(CITIES.read_text(encoding="utf-8"))
-    raw: list[dict] = []
     try:
-        for i in range(0, len(cities), CITIES_PER_QUERY):
-            chunk = cities[i:i + CITIES_PER_QUERY]
-            if i:
-                time.sleep(PAUSE_SECONDS)  # be gentle with the public servers
-            raw += overpass(build_query([b for _, b in chunk]))
-            print(f"OSM: {', '.join(c for c, _ in chunk)} – {len(raw)} elements so far")
+        raw = collect(cities, overpass, published_elements)
     except Exception as e:  # noqa: BLE001
-        print(f"OSM export skipped, published data stays: {e}")
+        print(f"OSM export skipped, published data stays: {e}", flush=True)
         return 0
 
     elements = normalize(raw)
