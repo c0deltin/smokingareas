@@ -20,11 +20,11 @@ Agreed order (data first, then the server):
    release (manifest + gzip snapshot), checked by the app daily and on
    Reload, validated before use.
 
-- [ ] **Server backend** for the community features: implement
-  `RemoteCommunityBackend`, `PhotoStorage` and `AuthService` against a real
-  server (login, one rating per user, Waze rules and rate limiting on the
-  server, photos in object storage). Until then every device only sees its own
-  reports.
+- [ ] **Server backend**: ~~schema, access rules, rate
+  limits, moderation tables, account deletion~~ – done. Next: Sign in with
+  Apple / Google, server `CommunityBackend` + photo storage in the app
+  (read without login, contribute only when signed in), upload of existing
+  local reports, report/block/delete-account UI.
 - [ ] **Okayama official data** is a manual download
   (`tool/opendata/manual/`) because the GIS refuses connections from abroad;
   refresh it occasionally from within Japan.

@@ -22,8 +22,10 @@ Secrets include, but are not limited to:
   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`,
   `APPLE_TEAM_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`,
   `APP_STORE_CONNECT_API_KEY_P8`, `GOOGLE_MAPS_API_KEY_ANDROID`,
-  `GOOGLE_MAPS_API_KEY_IOS`) and their values in any form (base64,
-  logs, screenshots)
+  `GOOGLE_MAPS_API_KEY_IOS`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
+  `SUPABASE_PROJECT_REF`) and their values in any form (base64, logs,
+  screenshots)
+- the Supabase `service_role` key – never used in the app or the repository
 
 Rules:
 
@@ -100,10 +102,13 @@ lib/
   ui/                              map, details, community section, report, profile
 assets/opendata/                   bundled official snapshot (generated – see below)
 tool/opendata/                     importer for official municipal data (Python, stdlib only)
+supabase/migrations/               database schema + access rules (Supabase, Tokyo)
+supabase/tests/                    database tests on plain PostgreSQL
 test/                              unit + widget tests
 .github/workflows/                 android-release.yml (APK → GitHub Release),
                                    ios-testflight.yml (iOS → TestFlight),
-                                   opendata.yml (weekly data release)
+                                   opendata.yml (weekly data release),
+                                   database.yml (test + apply migrations)
 ```
 
 ## Toolchain
@@ -126,6 +131,7 @@ python3 -m unittest discover -s tool/opendata -p 'test_*.py'  # importer tests
 python3 tool/opendata/update_opendata.py            # refresh official snapshot
 python3 tool/opendata/package_snapshot.py           # manifest + .gz for in-app updates
 python3 tool/opendata/update_opendata.py osaka kyoto # only selected sources
+PGHOST=… PGUSER=postgres supabase/tests/run_tests.sh # database tests
 ```
 
 Run `flutter analyze` and `flutter test` before every commit.
@@ -162,6 +168,14 @@ Run `flutter analyze` and `flutter test` before every commit.
   source or `stable_key(name, address)`. When an id changes anyway, the
   importer keeps the old one in `aliases` (`carry_aliases`); the app looks up
   community data under `SmokingArea.allIds`.
+- **Backend (Supabase):** schema changes only as new files in
+  `supabase/migrations/` (never edit an applied migration), with tests in
+  `supabase/tests/community_test.sql`. Every table has row level security;
+  everyone may read, only signed-in, not banned accounts (Apple / Google
+  login) may write, always as themselves (`auth.uid()`), with column grants
+  so authors and timestamps cannot be forged and rate limits per hour.
+  Moderation rules (`ExistencePolicy`, `ClosurePolicy`) are evaluated by the
+  app on these rows. Merges to `main` apply migrations via `database.yml`.
 - **Map:** the base map is Google Maps (`google_maps_flutter`, iOS via
   `google_maps_flutter_ios_sdk10`, iOS 16+). Markers are bitmaps drawn by the
   same painters as the legend (`MarkerIcons`); clustering is our own

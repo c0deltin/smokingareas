@@ -331,6 +331,22 @@ One-time setup:
 `ITSAppUsesNonExemptEncryption = false` (standard HTTPS only) avoids the
 export-compliance question for every build.
 
+## Backend
+
+Community data (reported spots, ratings, photos, votes, closure reports) is
+stored in a hosted PostgreSQL backend. Using the app needs no account;
+contributing needs Sign in with Apple or Google.
+
+- Everyone can read; writes only as the signed-in account, with limits per
+  hour; banned accounts can no longer write. Users can report content,
+  block other users and delete their account in the app.
+- Schema, access rules and their tests live in the repository and are
+  tested on a plain PostgreSQL on every change; merges to `main` apply new
+  schema versions automatically.
+
+The app only ever uses public client credentials; administrative keys are
+never part of the app or the repository.
+
 ## Google Maps API keys
 
 The base map is Google Maps (Maps SDK for Android and iOS; map loads in
