@@ -158,6 +158,33 @@ void main() {
     expect(find.text('Continue without account'), findsNothing);
   });
 
+  test('a failed photo upload keeps the reported place', () async {
+    auth.user = UserProfile(id: 'u1', displayName: 'A', createdAt: DateTime(2026));
+    final failing = CommunityService(
+      backend: LocalCommunityBackend(() async => tmp),
+      photos: _FailingPhotos(),
+      auth: auth,
+    );
+    await failing.init();
+    final photo = File('${tmp.path}/p.jpg')..writeAsBytesSync([1, 2, 3]);
+    await expectLater(
+        failing.reportSpot(
+            position: const LatLng(35.70, 139.70), name: 'X', photo: photo),
+        throwsA(isA<PhotoUploadFailed>()));
+    expect(failing.spotsAsAreas, hasLength(1));
+    expect(failing.myVote(failing.spotsAsAreas.single), isTrue);
+  });
+
+  test('error messages name the reason', () {
+    expect(contributionError(const SignInRequired()), contains('sign in'));
+    expect(contributionError(Exception('SocketException: failed host lookup')),
+        contains('connection'));
+    expect(
+        contributionError(
+            Exception('new row violates row-level security policy')),
+        contains('row-level security'));
+  });
+
   group('server rows', () {
     test('spot round trip; author and timestamps are not sent', () {
       final row = {
@@ -225,4 +252,12 @@ void main() {
     expect(decoded.height, 1200);
     expect(img.decodeJpgExif(out)?.isEmpty ?? true, isTrue);
   });
+}
+
+class _FailingPhotos implements PhotoStorage {
+  @override
+  Future<String> save(File source) async =>
+      throw Exception('new row violates row-level security policy');
+  @override
+  Future<File?> resolve(String key) async => null;
 }

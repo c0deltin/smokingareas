@@ -287,8 +287,16 @@ class CommunityService extends ChangeNotifier {
     _spots.add(spot);
     // Reporting a spot counts as confirming that it exists.
     await _addVote(spot.id, true, now);
-    if (photo != null) await _addPhoto(spot.id, photo, now);
     _changed();
+    if (photo != null) {
+      try {
+        await _addPhoto(spot.id, photo, now);
+        _changed();
+      } catch (e) {
+        // The place itself is saved – only the photo is missing.
+        throw PhotoUploadFailed(spot, e);
+      }
+    }
     return spot;
   }
 
@@ -515,4 +523,13 @@ class CommunityService extends ChangeNotifier {
   /// count together).
   bool isHidden(SmokingArea area) =>
       _votesFor(area).isNotEmpty && statusFor(area).hidden;
+}
+
+/// The reported place was saved, but its photo could not be uploaded.
+class PhotoUploadFailed implements Exception {
+  const PhotoUploadFailed(this.spot, this.cause);
+  final CommunitySpot spot;
+  final Object cause;
+  @override
+  String toString() => 'Photo upload failed: $cause';
 }

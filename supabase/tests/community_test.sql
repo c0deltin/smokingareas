@@ -126,6 +126,17 @@ select tests.expect_error(
     values ('spot-photos', '22222222-2222-2222-2222-222222222222/x.jpg')$$,
   'row-level security');
 
+-- Photo files can be read by everyone (also needed for uploads).
+reset role;
+set role anon;
+select tests.expect(
+  (select count(*) from storage.objects where bucket_id = 'spot-photos') = 1,
+  'photo files are readable without login');
+reset role;
+set role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub": "11111111-1111-1111-1111-111111111111"}', false);
+
 -- Profile: only the own display name.
 update profiles set display_name = 'Aiko T.';
 select tests.expect(

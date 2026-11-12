@@ -721,7 +721,13 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted) return;
     final input = await showReportSpotSheet(context, category);
     if (!mounted || input == null) return;
-    final saved = await contribute(context, _community, () => _community.reportSpot(
+    var photoFailed = false;
+    final saved = await contribute(
+        context,
+        _community,
+        () => withProgress(context, () async {
+              try {
+                await _community.reportSpot(
       position: position,
       name: input.name,
       description: input.description,
@@ -734,11 +740,18 @@ class _MapScreenState extends State<MapScreen> {
       changingTable: input.changingTable,
       photo: input.photo,
       notSameAs: notSameAs,
-    ));
+                );
+              } on PhotoUploadFailed {
+                photoFailed = true;
+              }
+            }));
     if (!mounted || !saved) return;
     setState(() => _reportCategory = null);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Thanks! Your spot is now on the map.'),
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(photoFailed
+          ? 'Your spot is on the map, but the photo could not be uploaded – '
+              'add it again from the spot.'
+          : 'Thanks! Your spot is now on the map.'),
     ));
   }
 

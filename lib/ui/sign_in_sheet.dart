@@ -59,11 +59,48 @@ Future<bool> contribute(
 /// Short, user-facing text for a failed contribution.
 String contributionError(Object e) {
   if (e is SignInRequired) return 'Please sign in first.';
+  if (e is PhotoUploadFailed) {
+    return 'The place was saved, but the photo could not be uploaded.';
+  }
   final text = e.toString();
   if (text.contains('rate limit')) {
     return 'Too many contributions in a short time – please try again later.';
   }
-  return 'Could not save – please check your connection.';
+  if (text.contains('SocketException') ||
+      text.contains('ClientException') ||
+      text.contains('TimeoutException')) {
+    return 'Could not save – please check your connection.';
+  }
+  // Anything else: show the server's reason, shortened.
+  final reason = text.length > 120 ? '${text.substring(0, 120)}…' : text;
+  return 'Could not save ($reason).';
+}
+
+/// Shows a small "Saving …" dialog while [action] runs (uploads can take a
+/// few seconds on mobile networks).
+Future<T> withProgress<T>(BuildContext context, Future<T> Function() action,
+    {String label = 'Saving …'}) async {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    useRootNavigator: true,
+    builder: (_) => PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(children: [
+          const CircularProgressIndicator(),
+          const SizedBox(width: 16),
+          Expanded(child: Text(label)),
+        ]),
+      ),
+    ),
+  );
+  try {
+    return await action();
+  } finally {
+    navigator.pop();
+  }
 }
 
 /// Shows the sign-in sheet once after installation (users can stay
