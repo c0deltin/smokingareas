@@ -8,9 +8,12 @@ on:
 permissions:
   contents: write
 
+# A newer push supersedes a running build (it contains all changes):
+# GitHub refuses to create a release for a commit that is no longer the
+# head of main (403), which made the older build fail.
 concurrency:
   group: android-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
