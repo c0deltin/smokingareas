@@ -11,6 +11,7 @@ with an optional alert when you come close to a smoking area.
 - [Privacy policy](privacy/)
 - [Terms of use](terms/)
 - [Imprint](imprint/)
+- [Delete your account](delete-account/)
 - [Source code](https://github.com/c0deltin/smokingareas)
 
 Map data © OpenStreetMap contributors (ODbL) and official open data of
