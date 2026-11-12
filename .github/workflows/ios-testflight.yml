@@ -64,6 +64,11 @@ jobs:
         if: steps.config.outputs.skip == 'false'
         run: flutter pub get
 
+      # The latest weekly OSM export goes into the app (first start offline).
+      - name: Bundle latest OSM export
+        if: steps.config.outputs.skip == 'false'
+        run: python3 tool/opendata/use_published_osm.py
+
       # Writes Generated.xcconfig (version + build number) and installs pods;
       # the actual build happens in xcodebuild archive below.
       - name: Configure iOS build

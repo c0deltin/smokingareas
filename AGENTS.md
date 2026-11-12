@@ -199,8 +199,10 @@ Run `flutter analyze` and `flutter test` before every commit.
   from secrets (`MAPS_API_KEY`), never from the repository.
 - **OSM servers:** apps do not query Overpass: `tool/opendata/update_osm.py`
   exports the OSM data of all cities weekly (`opendata.yml`) into the data
-  release; `OsmSnapshotSource` serves it, `OverpassSource` is only the live
-  fallback until the first export is on the device. Keep the user agent and
+  release; app builds bundle the latest one (`use_published_osm.py` →
+  `assets/opendata/osm_spots.json`, generated – never edit by hand);
+  `OsmSnapshotSource` serves it, `OverpassSource` is only a live fallback
+  when no export exists at all. Keep the user agent and
   the pauses between requests; no aggressive polling.
 - **Privacy:** location stays on the device; no analytics or tracking SDKs.
   Do not log precise user positions.

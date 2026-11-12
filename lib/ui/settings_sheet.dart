@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../community/community_service.dart';
 import '../services/proximity_monitor.dart';
 import 'profile_sheet.dart';
+import 'sign_in_sheet.dart';
 
 Future<void> showSettingsSheet(BuildContext context, ProximityMonitor monitor,
     [CommunityService? community]) {
@@ -112,6 +113,8 @@ class _SettingsViewState extends State<SettingsView> {
                       'Reset to ${ProximityMonitor.defaultAlertRadius.round()} m'),
                 ),
               ),
+              const Divider(),
+              const LegalLinks(),
             ],
           ),
         ),

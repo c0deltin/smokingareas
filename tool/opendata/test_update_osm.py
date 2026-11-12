@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime, timezone
 
 import update_osm as osm
+import use_published_osm as bundle
 
 
 class OsmExportTest(unittest.TestCase):
@@ -126,6 +127,13 @@ class OsmExportTest(unittest.TestCase):
             osm.PAUSE_SECONDS = old_pause
         # first chunk queried, second over budget -> published elements kept
         self.assertEqual([e["id"] for e in raw], [1, 9])
+
+    def test_bundle_only_takes_newer_exports(self):
+        self.assertTrue(bundle.newer({"generated": "2026-11-12T00:00:00Z"}, None))
+        self.assertTrue(bundle.newer({"generated": "2026-11-19T00:00:00Z"},
+                                     {"generated": "2026-11-12T00:00:00Z"}))
+        self.assertFalse(bundle.newer({"generated": "2026-11-12T00:00:00Z"},
+                                      {"generated": "2026-11-12T00:00:00Z"}))
 
     def test_partial_results_are_refused(self):
         self.assertFalse(osm.plausible(0, None))

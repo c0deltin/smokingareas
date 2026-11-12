@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../community/auth_service.dart';
 import '../community/community_service.dart';
+import '../data/links.dart';
 
 /// Offers Sign in with Apple (iOS) / Google. Returns true when the user is
 /// signed in afterwards, false when they continue without an account.
@@ -173,13 +175,40 @@ class _SignInViewState extends State<SignInView> {
             ),
             Text(
               'Only your first name is shown with your contributions. '
-              'Your location never leaves your device.',
+              'Your location never leaves your device. By signing in you '
+              'accept the terms of use.',
               style: theme.textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
+            const LegalLinks(),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Links to the privacy policy, terms of use and imprint.
+class LegalLinks extends StatelessWidget {
+  const LegalLinks({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget link(String label, Uri url) => TextButton(
+          style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              textStyle: Theme.of(context).textTheme.bodySmall),
+          onPressed: () =>
+              launchUrl(url, mode: LaunchMode.externalApplication),
+          child: Text(label),
+        );
+    return Wrap(
+      alignment: WrapAlignment.center,
+      children: [
+        link('Privacy policy', kPrivacyUrl),
+        link('Terms of use', kTermsUrl),
+        link('Imprint', kImprintUrl),
+      ],
     );
   }
 }

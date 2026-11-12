@@ -7,10 +7,10 @@ import 'overpass_source.dart';
 import 'smoking_area_source.dart';
 
 /// OpenStreetMap smoking areas and public toilets of all covered cities,
-/// exported weekly by CI (`tool/opendata/update_osm.py`) and downloaded by
-/// the [SnapshotUpdater] – so installed apps do not query the public
-/// Overpass servers themselves. Until a snapshot was downloaded,
-/// [OverpassSource] serves as live fallback.
+/// exported weekly by CI (`tool/opendata/update_osm.py`), bundled with every
+/// app build and updated by the [SnapshotUpdater] – so installed apps do not
+/// query the public Overpass servers themselves. [OverpassSource] only
+/// serves as live fallback when no export is available at all.
 class OsmSnapshotSource extends SmokingAreaSource implements SnapshotDataset {
   OsmSnapshotSource(this._read);
 

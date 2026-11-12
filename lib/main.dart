@@ -35,7 +35,8 @@ Future<void> main() async {
   // live Overpass queries only until the first export is on the device.
   final osmStore = SnapshotStore(getApplicationSupportDirectory,
       fileName: 'osm_snapshot.json', metaName: 'osm-meta.json');
-  final osm = OsmSnapshotSource(osmStore.read);
+  final osm = OsmSnapshotSource(osmStore.preferNewer(() =>
+      rootBundle.loadString('assets/opendata/osm_spots.json')));
   final repository = SmokingAreaRepository(sources: [
     official,
     osm,

@@ -786,6 +786,8 @@ class _MapScreenState extends State<MapScreen> {
           'directly on openstreetmap.org (amenity=smoking_area, '
           'amenity=toilets).',
         ),
+        const SizedBox(height: 8),
+        const LegalLinks(),
       ],
     );
   }
