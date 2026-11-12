@@ -286,7 +286,7 @@ On every push to `main` the GitHub Actions pipeline
 (`.github/workflows/android-release.yml`) refreshes the official data, runs
 analysis and tests, builds the app and publishes the APK as a **GitHub
 Release** (`v1.0.<build number>`). Download: *Releases* → latest version →
-open `smokingareas-….apk` on the Android device and allow installation
+open `ippuku-….apk` on the Android device and allow installation
 from unknown sources. The pipeline can also be started manually (*Actions* →
 *Run workflow*).
 
