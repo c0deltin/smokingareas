@@ -172,16 +172,19 @@ class _MySpotTile extends StatelessWidget {
     await contribute(
       context,
       community,
-      () => community.updateSpot(
-        spot.id,
-        name: input.name,
-        description: input.description,
-        indoor: input.indoor,
-        covered: input.covered,
-        publicAccess: input.publicAccess,
-        accessNote: input.accessNote,
-        wheelchair: input.wheelchair,
-        changingTable: input.changingTable,
+      () => withProgress(
+        context,
+        () => community.updateSpot(
+          spot.id,
+          name: input.name,
+          description: input.description,
+          indoor: input.indoor,
+          covered: input.covered,
+          publicAccess: input.publicAccess,
+          accessNote: input.accessNote,
+          wheelchair: input.wheelchair,
+          changingTable: input.changingTable,
+        ),
       ),
     );
   }
@@ -207,6 +210,7 @@ class _MySpotTile extends StatelessWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await contribute(context, community, () => community.deleteSpot(spot.id));
+    await contribute(context, community,
+        () => withProgress(context, () => community.deleteSpot(spot.id)));
   }
 }

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../community/community_service.dart';
 import '../community/models.dart';
+import 'busy_action.dart';
 import 'moderation.dart';
 import 'sign_in_sheet.dart';
 import '../models/smoking_area.dart';
@@ -114,10 +115,15 @@ class CommunitySection extends StatelessWidget {
                           '(${rating.count} rating${rating.count == 1 ? '' : 's'})',
                 ),
               ),
-              TextButton.icon(
-                onPressed: () => _rate(context, rating.mine),
-                icon: const Icon(Icons.star_outline),
-                label: Text(rating.mine == null ? 'Rate' : 'Change'),
+              BusyAction(
+                builder: (context, busy, track) => TextButton.icon(
+                  onPressed:
+                      busy ? null : () => _rate(context, rating.mine, track),
+                  icon: busy
+                      ? const BusySpinner()
+                      : const Icon(Icons.star_outline),
+                  label: Text(rating.mine == null ? 'Rate' : 'Change'),
+                ),
               ),
             ]),
             for (final r in reviews.where((r) => r.comment != null).take(3))
@@ -153,24 +159,32 @@ class CommunitySection extends StatelessWidget {
             const SizedBox(height: 6),
             Row(children: [
               Expanded(
-                child: _VoteButton(
-                  selected: myVote == true,
-                  icon: Icons.check_circle_outline,
-                  label: 'Yes (${status.confirmations})',
-                  color: Colors.green,
-                  onPressed: () => contribute(context, community,
-                      () => community.vote(area, exists: true),
-                      reason: 'Sign in to confirm places.'),
+                child: BusyAction(
+                  builder: (context, busy, track) => _VoteButton(
+                    selected: myVote == true,
+                    busy: busy,
+                    icon: Icons.check_circle_outline,
+                    label: 'Yes (${status.confirmations})',
+                    color: Colors.green,
+                    onPressed: () => contribute(
+                        context,
+                        community,
+                        () => track(() => community.vote(area, exists: true)),
+                        reason: 'Sign in to confirm places.'),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _VoteButton(
-                  selected: myVote == false,
-                  icon: Icons.highlight_off,
-                  label: 'No (${status.removals})',
-                  color: theme.colorScheme.error,
-                  onPressed: () => _voteGone(context),
+                child: BusyAction(
+                  builder: (context, busy, track) => _VoteButton(
+                    selected: myVote == false,
+                    busy: busy,
+                    icon: Icons.highlight_off,
+                    label: 'No (${status.removals})',
+                    color: theme.colorScheme.error,
+                    onPressed: () => _voteGone(context, track),
+                  ),
                 ),
               ),
             ]),
@@ -191,7 +205,8 @@ class CommunitySection extends StatelessWidget {
     );
   }
 
-  Future<void> _rate(BuildContext context, int? current) async {
+  Future<void> _rate(
+      BuildContext context, int? current, TrackBusy track) async {
     if (!await ensureSignedIn(context, community,
             reason: 'Sign in to rate places.') ||
         !context.mounted) {
@@ -202,8 +217,11 @@ class CommunitySection extends StatelessWidget {
       builder: (_) => _RatingDialog(initial: current ?? 0),
     );
     if (result == null || !context.mounted) return;
-    await contribute(context, community,
-        () => community.rate(area, result.$1, comment: result.$2));
+    await contribute(
+        context,
+        community,
+        () => track(
+            () => community.rate(area, result.$1, comment: result.$2)));
   }
 
   Future<void> _addPhoto(BuildContext context) async {
@@ -220,7 +238,7 @@ class CommunitySection extends StatelessWidget {
     });
   }
 
-  Future<void> _voteGone(BuildContext context) async {
+  Future<void> _voteGone(BuildContext context, TrackBusy track) async {
     if (!await ensureSignedIn(context, community,
             reason: 'Sign in to report places that are gone.') ||
         !context.mounted) {
@@ -247,8 +265,8 @@ class CommunitySection extends StatelessWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    final saved = await contribute(
-        context, community, () => community.vote(area, exists: false));
+    final saved = await contribute(context, community,
+        () => track(() => community.vote(area, exists: false)));
     if (saved && community.isHidden(area)) onRemoved?.call();
   }
 }
@@ -391,6 +409,7 @@ class _PhotoThumb extends StatelessWidget {
 class _VoteButton extends StatelessWidget {
   const _VoteButton({
     required this.selected,
+    this.busy = false,
     required this.icon,
     required this.label,
     required this.color,
@@ -398,6 +417,7 @@ class _VoteButton extends StatelessWidget {
   });
 
   final bool selected;
+  final bool busy;
   final IconData icon;
   final String label;
   final Color color;
@@ -405,15 +425,19 @@ class _VoteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final foreground = selected ? Colors.white : color;
     final style = OutlinedButton.styleFrom(
-      foregroundColor: selected ? Colors.white : color,
+      foregroundColor: foreground,
       backgroundColor: selected ? color : null,
+      // Keep the look while saving (the button is disabled meanwhile).
+      disabledForegroundColor: foreground,
+      disabledBackgroundColor: selected ? color : null,
       side: BorderSide(color: color),
     );
     return OutlinedButton.icon(
       style: style,
-      onPressed: onPressed,
-      icon: Icon(icon),
+      onPressed: busy ? null : onPressed,
+      icon: busy ? BusySpinner(color: foreground) : Icon(icon),
       label: Text(label),
     );
   }
@@ -498,19 +522,30 @@ class _ClosureControls extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(
-          child: closed
-              ? OutlinedButton.icon(
-                  onPressed: () => contribute(context, community,
-                      () => community.reportClosure(area, closed: false),
-                      reason: 'Sign in to report closures.'),
-                  icon: const Icon(Icons.play_circle_outline),
-                  label: const Text('Open again'),
-                )
-              : OutlinedButton.icon(
-                  onPressed: () => _reportClosed(context),
-                  icon: const Icon(Icons.pause_circle_outline),
-                  label: const Text('Temporarily closed'),
-                ),
+          child: BusyAction(
+            builder: (context, busy, track) => closed
+                ? OutlinedButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => contribute(
+                            context,
+                            community,
+                            () => track(() =>
+                                community.reportClosure(area, closed: false)),
+                            reason: 'Sign in to report closures.'),
+                    icon: busy
+                        ? const BusySpinner()
+                        : const Icon(Icons.play_circle_outline),
+                    label: const Text('Open again'),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: busy ? null : () => _reportClosed(context, track),
+                    icon: busy
+                        ? const BusySpinner()
+                        : const Icon(Icons.pause_circle_outline),
+                    label: const Text('Temporarily closed'),
+                  ),
+          ),
         ),
       ]),
       if (closed && status.closedReports == 0 && area.isOfficial)
@@ -521,7 +556,7 @@ class _ClosureControls extends StatelessWidget {
     ]);
   }
 
-  Future<void> _reportClosed(BuildContext context) async {
+  Future<void> _reportClosed(BuildContext context, TrackBusy track) async {
     if (!await ensureSignedIn(context, community,
             reason: 'Sign in to report closures.') ||
         !context.mounted) {
@@ -535,8 +570,8 @@ class _ClosureControls extends StatelessWidget {
     await contribute(
         context,
         community,
-        () => community.reportClosure(area,
-            closed: true, note: result.$1, until: result.$2));
+        () => track(() => community.reportClosure(area,
+            closed: true, note: result.$1, until: result.$2)));
   }
 }
 

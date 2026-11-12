@@ -78,7 +78,11 @@ Future<bool> showReportDialog(BuildContext context, CommunityService community,
   );
   if (reason == null || !context.mounted) return false;
   final sent = await contribute(
-      context, community, () => community.report(target, targetId, reason));
+      context,
+      community,
+      () => withProgress(
+          context, () => community.report(target, targetId, reason),
+          label: 'Sending …'));
   if (sent && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Thanks – the report will be reviewed.')));
@@ -114,7 +118,8 @@ Future<bool> confirmBlock(BuildContext context, CommunityService community,
     ),
   );
   if (ok != true || !context.mounted) return false;
-  return contribute(context, community, () => community.block(userId));
+  return contribute(context, community,
+      () => withProgress(context, () => community.block(userId)));
 }
 
 class _ReportDialog extends StatefulWidget {
