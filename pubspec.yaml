@@ -76,6 +76,7 @@ flutter:
 
   assets:
     - assets/opendata/official_smoking_areas.json
+    - assets/opendata/osm_spots.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

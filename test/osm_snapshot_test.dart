@@ -137,6 +137,17 @@ void main() {
     expect(spot.single.name, 'Spot 1', reason: 'the export wins');
   });
 
+  test('the bundled export is readable and covers both categories', () async {
+    final json = File('assets/opendata/osm_spots.json').readAsStringSync();
+    final bundled = OsmSnapshotSource(() async => json);
+    final areas = await bundled.fetch(SmokingAreaRepository.japan);
+    expect(areas.length, greaterThan(1000));
+    expect(areas.any((a) => a.category == SpotCategory.toilet), isTrue);
+    expect(areas.any((a) => a.category == SpotCategory.smoking), isTrue);
+    expect(bundled.hasData, isTrue);
+    expect(await bundled.version(), isNotEmpty);
+  });
+
   test('several data sets: updated when any of them was', () async {
     final both = DataUpdaters([
       _Fixed(SnapshotUpdateStatus.upToDate),

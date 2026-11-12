@@ -41,6 +41,10 @@ jobs:
       - name: Use last published data as base
         run: python3 tool/opendata/use_published_base.py
 
+      # The latest weekly OSM export goes into the app (first start offline).
+      - name: Bundle latest OSM export
+        run: python3 tool/opendata/use_published_osm.py
+
       - name: Refresh official open data
         continue-on-error: true
         run: python3 tool/opendata/update_opendata.py

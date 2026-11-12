@@ -40,8 +40,6 @@ Agreed order (data first, then the server):
   recomputes the clusters).
 - [ ] Google Maps: restrict the Android API key to the release SHA-1 (the
   fixed signing key exists now); optional dark map style.
-- [ ] Check the size of the first OSM export (`osm-manifest.json`); if it is
-  small enough, also bundle it with the app for the very first start.
 - [ ] Verify on a real device: Google sign-in (iOS + Android), OSM export incl. toilets, camera and
   gallery for photos, background location and proximity alerts (incl. the radius setting), direction cone
   (compass accuracy, flat vs. upright, map rotation) – on Android and iOS.

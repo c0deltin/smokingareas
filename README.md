@@ -86,7 +86,7 @@ works automatically. Official data needs a source in
 
 | Source | Area | Access | Licence |
 |---|---|---|---|
-| **OpenStreetMap** via the public **Overpass API** – `amenity=smoking_area`, `amenity=smoking_room`, `smoking=dedicated`, and `amenity=toilets` without `access=private/no/customers/permit` | all covered cities | weekly export by CI (`tool/opendata/update_osm.py`), downloaded by the app like the official data; live queries only until the first export is on the device | ODbL |
+| **OpenStreetMap** via the public **Overpass API** – `amenity=smoking_area`, `amenity=smoking_room`, `smoking=dedicated`, and `amenity=toilets` without `access=private/no/customers/permit` | all covered cities | weekly export by CI (`tool/opendata/update_osm.py`), bundled with every app build (`use_published_osm.py`) and updated in the app like the official data | ODbL |
 | City of Kyoto – open data portal, dataset “施設情報一覧”, category 喫煙場所 | Kyoto | snapshot | CC BY 4.0 |
 | City of Osaka – list of 大阪市指定喫煙所 (coordinates taken from the GIS links) | Osaka | snapshot | published by the city |
 | Tokyo, Kōtō ward – open data “公共喫煙所一覧” | Kameido, Tōyōchō, Shin-Kiba … | snapshot | CC BY 4.0 |
