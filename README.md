@@ -1,4 +1,4 @@
-# smokingareas 🚬🗾
+# Ippuku 🗾
 
 Flutter app for **iOS and Android** that shows public smoking areas (喫煙所)
 and public toilets (公衆トイレ) in all major Japanese cities on a map and sends a

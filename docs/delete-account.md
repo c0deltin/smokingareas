@@ -3,7 +3,7 @@ title: Delete your account
 permalink: /delete-account/
 ---
 
-# Delete your smokingareas account
+# Delete your Ippuku account
 
 You can delete your account and your data at any time.
 

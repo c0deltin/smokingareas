@@ -32,7 +32,7 @@ class LocationDisclosureDialog extends StatelessWidget {
       title: const Text('Use of your location'),
       content: const SingleChildScrollView(
         child: Text(
-          'smokingareas uses your location to show nearby smoking areas and '
+          'Ippuku uses your location to show nearby smoking areas and '
           'public toilets on the map.\n\n'
           'If you turn on alerts, the app also uses your location in the '
           'background – even when the app is closed or not in use – to '

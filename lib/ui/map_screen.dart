@@ -787,7 +787,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   void _showInfo(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'smokingareas',
+      applicationName: 'Ippuku',
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(Icons.smoking_rooms, size: 40),
       children: [

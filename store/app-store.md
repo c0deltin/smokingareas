@@ -12,7 +12,7 @@ Guideline 1.4.3) – no tobacco brands, no "enjoy a smoke".
 
 | Field | Value |
 |---|---|
-| Name [30] | Smoking Areas & Toilets JP |
+| Name [30] | Ippuku |
 | Primary category | Travel |
 | Secondary category | Navigation |
 | Content rights | Uses third-party data: OpenStreetMap (ODbL) and official open data of Japanese cities (CC BY 4.0) – attribution in the app (Info) |
@@ -21,7 +21,8 @@ Guideline 1.4.3) – no tobacco brands, no "enjoy a smoke".
 | Price | Free |
 | Availability | all countries (users are travellers to Japan) |
 
-If the name is taken: "Smoking Areas Japan" or "Smoke Spots & Toilets Japan".
+The name stays neutral on purpose; "smoking area" is covered by the
+keywords. If "Ippuku" is taken: "Ippuku Japan" or "Ippuku 一服".
 
 ## English (primary)
 
@@ -37,7 +38,7 @@ smoking area,designated,japan,tokyo,osaka,kyoto,toilet,restroom,wc,map,travel,as
 **Description [4000]:**
 
 In many Japanese cities smoking on the street is banned and can be fined –
-smoking is only allowed in designated smoking areas. smokingareas shows you
+smoking is only allowed in designated smoking areas. Ippuku shows you
 where they are, together with public toilets, in 54 major cities from
 Sapporo to Naha.
 
@@ -80,7 +81,7 @@ cities, optional proximity alerts and community reports.
 
 ## 日本語 (Japanese) – have a native speaker check it
 
-**名前 [30]:** 喫煙所・公衆トイレマップ
+**名前 [30]:** Ippuku（一服）
 
 **サブタイトル [30]:** 指定喫煙所と公衆トイレを検索
 
@@ -92,7 +93,7 @@ cities, optional proximity alerts and community reports.
 
 **説明 [4000]:**
 
-日本の多くの都市では路上喫煙が禁止され、過料の対象となることがあります。喫煙は指定喫煙所でのみ可能です。smokingareasは、札幌から那覇まで54都市の指定喫煙所と公衆トイレを地図で表示します。
+日本の多くの都市では路上喫煙が禁止され、過料の対象となることがあります。喫煙は指定喫煙所でのみ可能です。Ippukuは、札幌から那覇まで54都市の指定喫煙所と公衆トイレを地図で表示します。
 
 ひとつの地図にすべての情報
 ・東京23区、京都市、大阪市、岡山市などの自治体の公式リスト
@@ -134,7 +135,7 @@ raucherbereich,rauchen,japan,tokio,osaka,kyoto,toilette,wc,karte,reise,rauchverb
 
 In vielen japanischen Städten ist Rauchen auf der Straße verboten und wird
 mit Bußgeld geahndet – geraucht werden darf nur in ausgewiesenen
-Raucherbereichen. smokingareas zeigt dir, wo sie sind, zusammen mit
+Raucherbereichen. Ippuku zeigt dir, wo sie sind, zusammen mit
 öffentlichen Toiletten, in 54 Großstädten von Sapporo bis Naha.
 
 EINE KARTE, ALLE QUELLEN
@@ -216,7 +217,7 @@ your name, phone and e-mail.
 
 **Notes for the reviewer** (paste into "Notes"):
 
-> smokingareas helps visitors and residents follow Japan's smoking rules:
+> Ippuku helps visitors and residents follow Japan's smoking rules:
 > many cities ban smoking on the street and fine violations, so smoking is
 > only allowed in designated smoking areas. The app shows these areas and
 > public toilets from official city open data and OpenStreetMap. It does not

@@ -17,7 +17,8 @@ policy on tobacco: no sale or promotion).
 
 ## Store listing
 
-**App name [30]:** Smoking Areas & Toilets JP
+**App name [30]:** Ippuku (search terms such as "smoking area" go into the
+descriptions; Google Play has no keyword field)
 
 **Short description [80]:**
 EN: Designated smoking areas and public toilets in 54 Japanese cities.
@@ -100,7 +101,7 @@ deletion requests: https://c0deltin.github.io/smokingareas/delete-account/
 
 **Prominent disclosure** (shown in the app before the permission request –
 implemented in `lib/ui/location_disclosure.dart`):
-> "smokingareas uses your location to show nearby smoking areas and public
+> "Ippuku uses your location to show nearby smoking areas and public
 > toilets on the map. If you turn on alerts, the app also uses your location
 > in the background – even when the app is closed or not in use – to notify
 > you when you are close to a designated smoking area. Your location is

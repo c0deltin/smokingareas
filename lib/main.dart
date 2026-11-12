@@ -127,9 +127,9 @@ class SmokingAreasApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seed = Colors.teal;
+    const seed = Color(0xFF2563EB); // app icon blue
     return MaterialApp(
-      title: 'smokingareas',
+      title: 'Ippuku',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: seed, useMaterial3: true),
       darkTheme: ThemeData(

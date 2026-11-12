@@ -1,9 +1,9 @@
 ---
-title: smokingareas
+title: Ippuku
 permalink: /
 ---
 
-# smokingareas
+# Ippuku (一服)
 
 A map of public smoking areas and public toilets in major Japanese cities,
 with an optional alert when you come close to a smoking area.

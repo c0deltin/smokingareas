@@ -7,7 +7,7 @@ permalink: /terms/
 
 *Last updated: 12 November 2026*
 
-These terms apply to the smokingareas app ("the app") provided by the
+These terms apply to the Ippuku app ("the app") provided by the
 operator named in the [imprint](../imprint/).
 
 ## 1. The service
