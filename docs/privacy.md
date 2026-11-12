@@ -7,7 +7,7 @@ permalink: /privacy/
 
 *Last updated: 12 November 2026*
 
-This policy explains which personal data the smokingareas app ("the app")
+This policy explains which personal data the Ippuku app ("the app")
 processes, why, and what rights you have. The app is designed to work with
 as little personal data as possible: you can use it without an account, and
 your location never leaves your device.

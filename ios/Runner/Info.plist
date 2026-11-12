@@ -20,15 +20,15 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Die Kamera wird verwendet, um Fotos von Raucherbereichen aufzunehmen.</string>
+	<string>The camera is used to take photos of smoking areas and toilets you add to the map.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Fotos aus deiner Mediathek können Raucherbereichen hinzugefügt werden.</string>
+	<string>Photos from your library can be added to smoking areas and toilets.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Dein Standort wird verwendet, um Raucherbereiche in deiner Nähe anzuzeigen.</string>
+	<string>Your location is used to show nearby smoking areas and toilets. It never leaves your device.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Mit Standortzugriff „Immer“ benachrichtigt dich die App auch im Hintergrund, sobald ein Raucherbereich weniger als 30 m entfernt ist.</string>
+	<string>With “Always”, the app can notify you in the background when you are close to a designated smoking area (radius set in Settings). Your location never leaves your device.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Mit Standortzugriff „Immer“ benachrichtigt dich die App auch im Hintergrund, sobald ein Raucherbereich weniger als 30 m entfernt ist.</string>
+	<string>With “Always”, the app can notify you in the background when you are close to a designated smoking area (radius set in Settings). Your location never leaves your device.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
@@ -38,7 +38,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>smokingareas</string>
+	<string>Ippuku</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -46,7 +46,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>smokingareas</string>
+	<string>Ippuku</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../community/community_service.dart';
 import '../services/proximity_monitor.dart';
+import 'location_disclosure.dart';
 import 'profile_sheet.dart';
 import 'sign_in_sheet.dart';
 
@@ -69,7 +70,10 @@ class _SettingsViewState extends State<SettingsView> {
                 subtitle: const Text(
                     'Notify me when I come close to a smoking area.'),
                 value: monitor.alertsEnabled,
-                onChanged: monitor.setAlertsEnabled,
+                onChanged: (on) async {
+                  if (on && !await confirmLocationUse(context)) return;
+                  await monitor.setAlertsEnabled(on);
+                },
               ),
               const SizedBox(height: 8),
               Row(children: [

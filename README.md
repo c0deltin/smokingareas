@@ -1,4 +1,4 @@
-# smokingareas 🚬🗾
+# Ippuku 🗾
 
 Flutter app for **iOS and Android** that shows public smoking areas (喫煙所)
 and public toilets (公衆トイレ) in all major Japanese cities on a map and sends a
@@ -416,12 +416,19 @@ Local builds read the key from the environment variable `MAPS_API_KEY`
 - The alert can be switched on and off with the bell icon; when it is off, no
   background tracking takes place.
 
+## Store listings
+
+`store/` holds the prepared App Store and Google Play texts (English,
+Japanese, German), privacy and age-rating answers, review notes and a
+publishing checklist (`store/README.md`).
+
 ## Legal pages
 
 `docs/` holds the privacy policy, terms of use and imprint, published with
 GitHub Pages (Settings → Pages → *Deploy from a branch*, `main`, folder
 `/docs`) at <https://c0deltin.github.io/smokingareas/>. The app links to them
-in the sign-in sheet, Settings and Info (`lib/data/links.dart`). The
+in the sign-in sheet, Settings and Info (`lib/data/links.dart`); the account
+deletion page (`docs/delete-account.md`) is required by Google Play. The
 placeholders in `[BRACKETS]` must be filled in before publishing.
 
 ## Notes for publishing

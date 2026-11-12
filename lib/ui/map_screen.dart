@@ -21,6 +21,7 @@ import '../sources/official_opendata_source.dart';
 import 'area_details_sheet.dart';
 import 'city_picker.dart';
 import 'legend_sheet.dart';
+import 'location_disclosure.dart';
 import 'my_spots_sheet.dart';
 import 'local_data_sheet.dart';
 import 'marker_icons.dart';
@@ -274,7 +275,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _askPermissions() async {
-    if (_monitor.locationState != LocationState.always) {
+    if (_monitor.locationState != LocationState.always &&
+        await confirmLocationUse(context)) {
       await _monitor.requestPermissions();
     }
     // Once after installation: sign in or stay anonymous.
@@ -394,7 +396,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   void _centerOnUser() {
     final pos = _monitor.position;
     if (pos == null) {
-      _monitor.requestPermissions();
+      confirmLocationUse(context).then((ok) {
+        if (ok) _monitor.requestPermissions();
+      });
       return;
     }
     _userPickedCity = false;
@@ -405,6 +409,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
   Future<void> _toggleAlerts() async {
     final enable = !_monitor.alertsEnabled;
+    if (enable && !await confirmLocationUse(context)) return;
     await _monitor.setAlertsEnabled(enable);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -782,7 +787,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   void _showInfo(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'smokingareas',
+      applicationName: 'Ippuku',
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(Icons.smoking_rooms, size: 40),
       children: [
