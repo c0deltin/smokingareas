@@ -346,6 +346,11 @@ One-time setup:
 `ITSAppUsesNonExemptEncryption = false` (standard HTTPS only) avoids the
 export-compliance question for every build.
 
+Every build runs on a fresh Mac, where Xcode creates a new development
+certificate for the archive. Apple limits their number, so the workflow first
+revokes the ones earlier CI builds created (`tool/ios/revoke_ci_certificates.py`,
+only certificates named "Created via API").
+
 ## Backend
 
 Community data (reported spots, ratings, photos, votes, closure reports) is
