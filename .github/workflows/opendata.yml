@@ -18,7 +18,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
 
@@ -40,7 +40,8 @@ jobs:
       # query the public Overpass servers themselves. Skipped (published
       # data stays) when Overpass fails or the result looks incomplete.
       - name: Export OpenStreetMap data
-        run: python3 tool/opendata/update_osm.py dist/opendata
+        timeout-minutes: 40
+        run: python3 -u tool/opendata/update_osm.py dist/opendata
 
       - name: Publish data release
         uses: softprops/action-gh-release@v2
