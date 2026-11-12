@@ -59,9 +59,6 @@ Future<bool> contribute(
 /// Short, user-facing text for a failed contribution.
 String contributionError(Object e) {
   if (e is SignInRequired) return 'Please sign in first.';
-  if (e is PhotoUploadFailed) {
-    return 'The place was saved, but the photo could not be uploaded.';
-  }
   final text = e.toString();
   if (text.contains('rate limit')) {
     return 'Too many contributions in a short time – please try again later.';

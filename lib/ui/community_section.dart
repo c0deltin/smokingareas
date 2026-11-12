@@ -85,6 +85,7 @@ class CommunitySection extends StatelessWidget {
         final rating = community.ratingFor(area);
         final reviews = community.reviewsFor(area);
         final photos = community.photosFor(area);
+        final pending = community.pendingPhotosFor(area);
         final status = community.statusFor(area);
         final myVote = community.myVote(area);
 
@@ -130,6 +131,8 @@ class CommunitySection extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 children: [
                   _AddPhotoButton(onTap: () => _addPhoto(context)),
+                  for (final p in pending)
+                    PendingPhotoThumb(pending: p, community: community),
                   for (final p in photos)
                     _PhotoThumb(photo: p, community: community),
                 ],
@@ -211,9 +214,10 @@ class CommunitySection extends StatelessWidget {
     }
     final file = await pickPhoto(context);
     if (file == null || !context.mounted) return;
-    await contribute(context, community,
-        () => withProgress(context, () => community.addPhoto(area, file),
-            label: 'Uploading photo …'));
+    // Uploads in the background; the strip shows it with a progress ring.
+    await contribute(context, community, () async {
+      community.addPhoto(area, file);
+    });
   }
 
   Future<void> _voteGone(BuildContext context) async {
@@ -599,5 +603,90 @@ class _ClosureDialogState extends State<_ClosureDialog> {
         ),
       ],
     );
+  }
+}
+
+/// A photo that is still uploading (progress ring) or failed (retry or
+/// remove). Shown in the photo strip without blocking anything else.
+class PendingPhotoThumb extends StatelessWidget {
+  const PendingPhotoThumb(
+      {super.key, required this.pending, required this.community});
+  final PendingPhoto pending;
+  final CommunityService community;
+
+  @override
+  Widget build(BuildContext context) {
+    final failed = pending.failed;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          width: 84,
+          height: 84,
+          child: Stack(fit: StackFit.expand, children: [
+            Image.file(pending.file, fit: BoxFit.cover, cacheWidth: 252,
+                errorBuilder: (_, _, _) =>
+                    const ColoredBox(color: Colors.black12)),
+            ColoredBox(color: Colors.black.withValues(alpha: 0.45)),
+            if (!failed)
+              const Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 3, color: Colors.white),
+                ),
+              )
+            else
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _failedMenu(context),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.white),
+                      SizedBox(height: 4),
+                      Text('Failed – tap',
+                          style: TextStyle(color: Colors.white, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _failedMenu(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.error_outline),
+            title: const Text('The photo could not be uploaded.'),
+            subtitle: Text(contributionError(pending.error!)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.refresh),
+            title: const Text('Try again'),
+            onTap: () => Navigator.pop(context, 'retry'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('Remove'),
+            onTap: () => Navigator.pop(context, 'remove'),
+          ),
+        ]),
+      ),
+    );
+    if (choice == 'retry') {
+      community.retryPhoto(pending);
+    } else if (choice == 'remove') {
+      community.discardPhoto(pending);
+    }
   }
 }

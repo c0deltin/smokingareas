@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -84,6 +85,7 @@ class CommunityService extends ChangeNotifier {
       final me = auth.currentUser?.id;
       _blocked = me == null ? {} : {...await backend.blockedUsers(me)};
       loadError = null;
+      _loadedAt = _now();
     } catch (e) {
       loadError = e;
     }
@@ -91,6 +93,22 @@ class CommunityService extends ChangeNotifier {
   }
 
   Future<void> refresh() => init();
+
+  DateTime? _loadedAt;
+  Future<void>? _refreshing;
+
+  /// Reloads the community data when it is older than [maxAge] (e.g. when a
+  /// spot is opened or the app comes back to the foreground).
+  Future<void> refreshIfStale(
+      {Duration maxAge = const Duration(minutes: 1)}) {
+    final loaded = _loadedAt;
+    if (loaded != null && _now().difference(loaded) < maxAge) {
+      return Future.value();
+    }
+    return _refreshing ??= init().whenComplete(() {
+      _refreshing = null;
+    });
+  }
 
   void _changed() {
     _votesBySpot = null;
@@ -288,16 +306,80 @@ class CommunityService extends ChangeNotifier {
     // Reporting a spot counts as confirming that it exists.
     await _addVote(spot.id, true, now);
     _changed();
-    if (photo != null) {
-      try {
-        await _addPhoto(spot.id, photo, now);
-        _changed();
-      } catch (e) {
-        // The place itself is saved – only the photo is missing.
-        throw PhotoUploadFailed(spot, e);
-      }
+    // The photo uploads in the background (shown as pending on the spot).
+    if (photo != null) _startUpload(spot.id, photo);
+    return spot;
+  }
+
+  /// Places the current user reported, newest first.
+  List<CommunitySpot> get mySpots {
+    final me = currentUser?.id;
+    if (me == null) return const [];
+    return _spots.where((s) => s.createdBy == me).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Map entry of an own spot (for rating, votes and status).
+  SmokingArea? areaOf(CommunitySpot spot) {
+    for (final a in spotsAsAreas) {
+      if (a.id == spot.id) return a;
+    }
+    return null;
+  }
+
+  CommunitySpot _own(String spotId) {
+    final me = _requireUserId();
+    final spot = _spots.firstWhere((s) => s.id == spotId);
+    if (spot.createdBy != me) {
+      throw StateError('Only the author can change this place.');
     }
     return spot;
+  }
+
+  /// Changes name, note and attributes of an own spot (not its position or
+  /// category).
+  Future<CommunitySpot> updateSpot(
+    String spotId, {
+    required String name,
+    String? description,
+    bool? indoor,
+    bool? covered,
+    bool? publicAccess,
+    String? accessNote,
+    bool? wheelchair,
+    bool? changingTable,
+  }) async {
+    final old = _own(spotId);
+    final toilet = old.category == SpotCategory.toilet.name;
+    String? clean(String? v) => v == null || v.trim().isEmpty ? null : v.trim();
+    final updated = CommunitySpot(
+      id: old.id,
+      position: old.position,
+      name: clean(name) ?? old.name,
+      description: clean(description),
+      indoor: toilet ? null : indoor,
+      covered: toilet ? null : covered,
+      publicAccess: publicAccess,
+      accessNote: publicAccess == false ? clean(accessNote) : null,
+      category: old.category,
+      wheelchair: toilet ? wheelchair : null,
+      changingTable: toilet ? changingTable : null,
+      notSameAs: old.notSameAs,
+      createdBy: old.createdBy,
+      createdAt: old.createdAt,
+    );
+    await backend.updateSpot(updated);
+    _spots[_spots.indexOf(old)] = updated;
+    _changed();
+    return updated;
+  }
+
+  /// Deletes an own spot from the map.
+  Future<void> deleteSpot(String spotId) async {
+    final spot = _own(spotId);
+    await backend.deleteSpot(spotId);
+    _spots.remove(spot);
+    _changed();
   }
 
   // ---------------------------------------------------------------------
@@ -362,8 +444,56 @@ class CommunityService extends ChangeNotifier {
 
   Future<File?> photoFile(SpotPhoto photo) => photos.resolve(photo.storageKey);
 
-  Future<void> addPhoto(SmokingArea area, File file) async {
-    await _addPhoto(area.id, file, _now());
+  // Uploads run in the background; the UI shows them as pending thumbnails
+  // (with progress, or an error to retry) instead of blocking.
+  final List<PendingPhoto> _pending = [];
+
+  /// Photos of [area] that are still uploading or failed to upload.
+  List<PendingPhoto> pendingPhotosFor(SmokingArea area) {
+    final keys = keysFor(area);
+    return _pending.where((p) => keys.contains(p.spotId)).toList();
+  }
+
+  /// Starts uploading [file] for [area] and returns at once; the photo shows
+  /// up as pending until it is stored (see [pendingPhotosFor]).
+  PendingPhoto addPhoto(SmokingArea area, File file) {
+    _requireUserId();
+    return _startUpload(area.id, file);
+  }
+
+  PendingPhoto _startUpload(String spotId, File file) {
+    final pending = PendingPhoto._(spotId, file);
+    _pending.add(pending);
+    _changed();
+    unawaited(_runUpload(pending));
+    return pending;
+  }
+
+  Future<void> _runUpload(PendingPhoto p) async {
+    p._error = null;
+    p._done = Completer<void>();
+    _changed();
+    try {
+      await _addPhoto(p.spotId, p.file, _now());
+      _pending.remove(p);
+      p._done.complete();
+    } catch (e) {
+      p._error = e;
+      p._done.complete();
+    }
+    _changed();
+  }
+
+  /// Tries a failed upload again.
+  Future<void> retryPhoto(PendingPhoto p) {
+    if (!p.failed) return p.done;
+    unawaited(_runUpload(p));
+    return p.done;
+  }
+
+  /// Gives up a failed upload.
+  void discardPhoto(PendingPhoto p) {
+    _pending.remove(p);
     _changed();
   }
 
@@ -525,11 +655,20 @@ class CommunityService extends ChangeNotifier {
       _votesFor(area).isNotEmpty && statusFor(area).hidden;
 }
 
-/// The reported place was saved, but its photo could not be uploaded.
-class PhotoUploadFailed implements Exception {
-  const PhotoUploadFailed(this.spot, this.cause);
-  final CommunitySpot spot;
-  final Object cause;
-  @override
-  String toString() => 'Photo upload failed: $cause';
+/// A photo that is uploading in the background or failed to upload.
+class PendingPhoto {
+  PendingPhoto._(this.spotId, this.file);
+
+  final String spotId;
+
+  /// The picked file, shown as thumbnail until the upload is done.
+  final File file;
+  Object? _error;
+  Completer<void> _done = Completer<void>();
+
+  bool get failed => _error != null;
+  Object? get error => _error;
+
+  /// Completes when the current upload attempt has finished.
+  Future<void> get done => _done.future;
 }

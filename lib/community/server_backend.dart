@@ -74,6 +74,16 @@ class ServerCommunityBackend implements CommunityBackend {
       _client.from('spots').insert(ServerRows.spotInsert(spot));
 
   @override
+  Future<void> updateSpot(CommunitySpot spot) => _client
+      .from('spots')
+      .update(ServerRows.spotUpdate(spot))
+      .eq('id', spot.id);
+
+  @override
+  Future<void> deleteSpot(String spotId) =>
+      _client.from('spots').delete().eq('id', spotId);
+
+  @override
   Future<List<SpotReview>> reviews() => _all('reviews', ServerRows.review);
 
   @override

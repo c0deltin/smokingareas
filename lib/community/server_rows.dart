@@ -55,6 +55,18 @@ class ServerRows {
         'not_same_as': s.notSameAs,
       };
 
+  /// Columns the author may change (the database only allows these).
+  static Map<String, dynamic> spotUpdate(CommunitySpot s) => {
+        'name': s.name,
+        'description': s.description,
+        'indoor': s.indoor,
+        'covered': s.covered,
+        'public_access': s.publicAccess,
+        'access_note': s.accessNote,
+        'wheelchair': s.wheelchair,
+        'changing_table': s.changingTable,
+      };
+
   static SpotReview review(Map<String, dynamic> r) => SpotReview(
         spotId: r['spot_id'] as String,
         userId: r['user_id'] as String,

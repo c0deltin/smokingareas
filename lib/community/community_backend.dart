@@ -17,6 +17,12 @@ abstract class CommunityBackend {
   Future<List<CommunitySpot>> spots();
   Future<void> addSpot(CommunitySpot spot);
 
+  /// Changes the details of an own reported spot (not its position).
+  Future<void> updateSpot(CommunitySpot spot);
+
+  /// Deletes an own reported spot.
+  Future<void> deleteSpot(String spotId);
+
   Future<List<SpotReview>> reviews();
 
   /// Inserts or replaces the review of `review.userId` for `review.spotId`.
@@ -115,6 +121,15 @@ class LocalCommunityBackend implements CommunityBackend {
     final t = await _db();
     t.spots.removeWhere((s) => s.id == spot.id);
     t.spots.add(spot);
+    await _persist();
+  }
+
+  @override
+  Future<void> updateSpot(CommunitySpot spot) => addSpot(spot);
+
+  @override
+  Future<void> deleteSpot(String spotId) async {
+    (await _db()).spots.removeWhere((s) => s.id == spotId);
     await _persist();
   }
 

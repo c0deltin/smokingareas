@@ -146,6 +146,10 @@ void main() {
       expect(area.id, spot.id);
       expect(area.tags['community'], 'yes');
       expect(area.isIndoor, isFalse);
+      // The photo uploads in the background.
+      for (final p in service.pendingPhotosFor(area)) {
+        await p.done;
+      }
       expect(service.photosFor(area), hasLength(1));
       expect(await service.photoFile(service.photosFor(area).single),
           isNotNull);

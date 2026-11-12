@@ -61,8 +61,10 @@ Future<SpotCategory?> askSpotCategory(BuildContext context) {
   );
 }
 
+/// The form for a new spot, or – with [initial] – for editing an own spot
+/// (no photo, "Save" instead of "Report").
 Future<SpotReportInput?> showReportSpotSheet(BuildContext context,
-    [SpotCategory category = SpotCategory.smoking]) {
+    [SpotCategory category = SpotCategory.smoking, SpotReportInput? initial]) {
   return showModalBottomSheet<SpotReportInput>(
     context: context,
     isScrollControlled: true,
@@ -70,14 +72,15 @@ Future<SpotReportInput?> showReportSpotSheet(BuildContext context,
     builder: (context) => Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: _ReportSpotForm(category: category),
+      child: _ReportSpotForm(category: category, initial: initial),
     ),
   );
 }
 
 class _ReportSpotForm extends StatefulWidget {
-  const _ReportSpotForm({required this.category});
+  const _ReportSpotForm({required this.category, this.initial});
   final SpotCategory category;
+  final SpotReportInput? initial;
 
   @override
   State<_ReportSpotForm> createState() => _ReportSpotFormState();
@@ -95,6 +98,23 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
   File? _photo;
 
   bool get _toilet => widget.category == SpotCategory.toilet;
+  bool get _editing => widget.initial != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final i = widget.initial;
+    if (i != null) {
+      _name.text = i.name;
+      _description.text = i.description ?? '';
+      _accessNote.text = i.accessNote ?? '';
+      _public = i.publicAccess;
+      _indoor = i.indoor;
+      _covered = i.covered;
+      _wheelchair = i.wheelchair ?? false;
+      _changingTable = i.changingTable ?? false;
+    }
+  }
 
   @override
   void dispose() {
@@ -113,7 +133,10 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Report ${widget.category.label.toLowerCase()}',
+            Text(
+                _editing
+                    ? 'Edit ${widget.category.label.toLowerCase()}'
+                    : 'Report ${widget.category.label.toLowerCase()}',
                 style: theme.textTheme.titleLarge),
             const SizedBox(height: 12),
             TextField(
@@ -196,7 +219,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
               ),
             ),
             const SizedBox(height: 8),
-            Row(children: [
+            if (!_editing) Row(children: [
               OutlinedButton.icon(
                 onPressed: () async {
                   final file = await pickPhoto(context);
@@ -230,11 +253,11 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                   photo: _photo,
                 ),
               ),
-              icon: const Icon(Icons.send),
-              label: const Text('Report'),
+              icon: Icon(_editing ? Icons.save_outlined : Icons.send),
+              label: Text(_editing ? 'Save' : 'Report'),
             ),
             const SizedBox(height: 4),
-            Text(
+            if (!_editing) Text(
               'Reported spots are visible right away. If enough users report '
               'that a spot does not exist, it is removed again.',
               style: theme.textTheme.bodySmall,

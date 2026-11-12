@@ -15,6 +15,7 @@ import 'package:smoking_areas/community/photo_storage.dart';
 import 'package:smoking_areas/community/server_backend.dart';
 import 'package:smoking_areas/community/server_rows.dart';
 import 'package:smoking_areas/models/smoking_area.dart';
+import 'package:smoking_areas/ui/community_section.dart';
 import 'package:smoking_areas/ui/sign_in_sheet.dart';
 
 /// Server-like auth: anonymous until [signIn].
@@ -158,21 +159,79 @@ void main() {
     expect(find.text('Continue without account'), findsNothing);
   });
 
-  test('a failed photo upload keeps the reported place', () async {
-    auth.user = UserProfile(id: 'u1', displayName: 'A', createdAt: DateTime(2026));
-    final failing = CommunityService(
-      backend: LocalCommunityBackend(() async => tmp),
-      photos: _FailingPhotos(),
-      auth: auth,
-    );
-    await failing.init();
-    final photo = File('${tmp.path}/p.jpg')..writeAsBytesSync([1, 2, 3]);
-    await expectLater(
-        failing.reportSpot(
-            position: const LatLng(35.70, 139.70), name: 'X', photo: photo),
-        throwsA(isA<PhotoUploadFailed>()));
-    expect(failing.spotsAsAreas, hasLength(1));
-    expect(failing.myVote(failing.spotsAsAreas.single), isTrue);
+  group('photo uploads run in the background', () {
+    late _FlakyPhotos storage;
+    late CommunityService svc;
+    setUp(() async {
+      auth.user =
+          UserProfile(id: 'u1', displayName: 'A', createdAt: DateTime(2026));
+      storage = _FlakyPhotos(tmp);
+      svc = CommunityService(
+        backend: LocalCommunityBackend(() async => tmp),
+        photos: storage,
+        auth: auth,
+      );
+      await svc.init();
+    });
+    File photo() => File('${tmp.path}/p.jpg')..writeAsBytesSync([1, 2, 3]);
+
+    test('the place is saved first, the photo shows as pending', () async {
+      storage.gate = Completer<void>();
+      await svc.reportSpot(
+          position: const LatLng(35.70, 139.70), name: 'X', photo: photo());
+      final area = svc.spotsAsAreas.single;
+      expect(svc.myVote(area), isTrue);
+      final pending = svc.pendingPhotosFor(area).single;
+      expect(pending.failed, isFalse);
+      expect(svc.photosFor(area), isEmpty);
+
+      storage.gate!.complete();
+      await pending.done;
+      expect(svc.pendingPhotosFor(area), isEmpty);
+      expect(svc.photosFor(area), hasLength(1));
+    });
+
+    test('a failed upload can be retried or removed', () async {
+      storage.failNext = true;
+      await svc.reportSpot(
+          position: const LatLng(35.70, 139.70), name: 'X', photo: photo());
+      final area = svc.spotsAsAreas.single;
+      final pending = svc.pendingPhotosFor(area).single;
+      await pending.done;
+      expect(pending.failed, isTrue);
+      expect(svc.spotsAsAreas, hasLength(1), reason: 'the place stays');
+
+      await svc.retryPhoto(pending);
+      expect(svc.pendingPhotosFor(area), isEmpty);
+      expect(svc.photosFor(area), hasLength(1));
+
+      storage.failNext = true;
+      final second = svc.addPhoto(area, photo());
+      await second.done;
+      svc.discardPhoto(second);
+      expect(svc.pendingPhotosFor(area), isEmpty);
+      expect(svc.photosFor(area), hasLength(1));
+    });
+
+    testWidgets('pending thumbnails show progress, failures a retry hint',
+        (tester) async {
+      final area = SmokingArea(
+          id: 'osm:node/5',
+          position: const LatLng(35.7, 139.7),
+          source: 'OSM');
+      storage.gate = Completer<void>();
+      late PendingPhoto pending;
+      await tester.runAsync(() async {
+        pending = svc.addPhoto(area, photo());
+      });
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: PendingPhotoThumb(pending: pending, community: svc)),
+      ));
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // Never completes in this test: the gate stays closed.
+      storage.gate = null;
+    });
   });
 
   test('error messages name the reason', () {
@@ -254,10 +313,19 @@ void main() {
   });
 }
 
-class _FailingPhotos implements PhotoStorage {
+/// Photo storage that can be held back ([gate]) or fail once ([failNext]).
+class _FlakyPhotos extends LocalPhotoStorage {
+  _FlakyPhotos(Directory dir) : super(() async => dir);
+  Completer<void>? gate;
+  bool failNext = false;
+
   @override
-  Future<String> save(File source) async =>
+  Future<String> save(File source) async {
+    await gate?.future;
+    if (failNext) {
+      failNext = false;
       throw Exception('new row violates row-level security policy');
-  @override
-  Future<File?> resolve(String key) async => null;
+    }
+    return super.save(source);
+  }
 }

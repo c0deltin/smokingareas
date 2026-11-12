@@ -43,8 +43,9 @@ void main() {
     await service.createUser('Bob');
     bob = service.currentUser!.id;
     await service.rate(spot, 1, comment: 'Spam spam');
-    await service.addPhoto(
-        spot, File('${tmp.path}/p.jpg')..writeAsBytesSync([1, 2, 3]));
+    await service
+        .addPhoto(spot, File('${tmp.path}/p.jpg')..writeAsBytesSync([1, 2, 3]))
+        .done;
     await service.reportSpot(position: const LatLng(35.70, 139.70), name: 'Ad');
     await service.switchUser(alice);
   });
@@ -220,6 +221,10 @@ class _MemoryBackend implements CommunityBackend {
   Future<List<CommunitySpot>> spots() async => [];
   @override
   Future<void> addSpot(CommunitySpot spot) async {}
+  @override
+  Future<void> updateSpot(CommunitySpot spot) async {}
+  @override
+  Future<void> deleteSpot(String spotId) async {}
   @override
   Future<List<SpotReview>> reviews() async => [];
   @override
