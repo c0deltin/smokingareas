@@ -411,6 +411,14 @@ Local builds read the key from the environment variable `MAPS_API_KEY`
 - The alert can be switched on and off with the bell icon; when it is off, no
   background tracking takes place.
 
+## Legal pages
+
+`docs/` holds the privacy policy, terms of use and imprint, published with
+GitHub Pages (Settings → Pages → *Deploy from a branch*, `main`, folder
+`/docs`) at <https://c0deltin.github.io/smokingareas/>. The app links to them
+in the sign-in sheet, Settings and Info (`lib/data/links.dart`). The
+placeholders in `[BRACKETS]` must be filled in before publishing.
+
 ## Notes for publishing
 
 - The public Overpass servers have a

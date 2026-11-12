@@ -21,8 +21,9 @@ Agreed order (data first, then the server):
    Reload, validated before use.
 
 - [ ] **Before publishing:** paid backend plan (free
-  projects pause after a week without traffic); privacy policy, imprint and
-  terms (GitHub Pages); App Store listing (texts, screenshots, privacy
+  projects pause after a week without traffic); fill in the placeholders of
+  the legal pages (`docs/`), have them checked and enable GitHub Pages; App
+  Store listing (texts, screenshots, privacy
   details, age rating, reason for "Always" location, review notes); decide
   Play Store vs. APK.
 - [ ] **Okayama official data** is a manual download
