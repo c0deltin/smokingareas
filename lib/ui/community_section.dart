@@ -211,7 +211,9 @@ class CommunitySection extends StatelessWidget {
     }
     final file = await pickPhoto(context);
     if (file == null || !context.mounted) return;
-    await contribute(context, community, () => community.addPhoto(area, file));
+    await contribute(context, community,
+        () => withProgress(context, () => community.addPhoto(area, file),
+            label: 'Uploading photo …'));
   }
 
   Future<void> _voteGone(BuildContext context) async {
