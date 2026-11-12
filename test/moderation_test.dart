@@ -222,6 +222,10 @@ class _MemoryBackend implements CommunityBackend {
   @override
   Future<void> addSpot(CommunitySpot spot) async {}
   @override
+  Future<void> updateSpot(CommunitySpot spot) async {}
+  @override
+  Future<void> deleteSpot(String spotId) async {}
+  @override
   Future<List<SpotReview>> reviews() async => [];
   @override
   Future<void> saveReview(SpotReview review) async {}

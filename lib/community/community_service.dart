@@ -85,6 +85,7 @@ class CommunityService extends ChangeNotifier {
       final me = auth.currentUser?.id;
       _blocked = me == null ? {} : {...await backend.blockedUsers(me)};
       loadError = null;
+      _loadedAt = _now();
     } catch (e) {
       loadError = e;
     }
@@ -92,6 +93,22 @@ class CommunityService extends ChangeNotifier {
   }
 
   Future<void> refresh() => init();
+
+  DateTime? _loadedAt;
+  Future<void>? _refreshing;
+
+  /// Reloads the community data when it is older than [maxAge] (e.g. when a
+  /// spot is opened or the app comes back to the foreground).
+  Future<void> refreshIfStale(
+      {Duration maxAge = const Duration(minutes: 1)}) {
+    final loaded = _loadedAt;
+    if (loaded != null && _now().difference(loaded) < maxAge) {
+      return Future.value();
+    }
+    return _refreshing ??= init().whenComplete(() {
+      _refreshing = null;
+    });
+  }
 
   void _changed() {
     _votesBySpot = null;
@@ -292,6 +309,77 @@ class CommunityService extends ChangeNotifier {
     // The photo uploads in the background (shown as pending on the spot).
     if (photo != null) _startUpload(spot.id, photo);
     return spot;
+  }
+
+  /// Places the current user reported, newest first.
+  List<CommunitySpot> get mySpots {
+    final me = currentUser?.id;
+    if (me == null) return const [];
+    return _spots.where((s) => s.createdBy == me).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Map entry of an own spot (for rating, votes and status).
+  SmokingArea? areaOf(CommunitySpot spot) {
+    for (final a in spotsAsAreas) {
+      if (a.id == spot.id) return a;
+    }
+    return null;
+  }
+
+  CommunitySpot _own(String spotId) {
+    final me = _requireUserId();
+    final spot = _spots.firstWhere((s) => s.id == spotId);
+    if (spot.createdBy != me) {
+      throw StateError('Only the author can change this place.');
+    }
+    return spot;
+  }
+
+  /// Changes name, note and attributes of an own spot (not its position or
+  /// category).
+  Future<CommunitySpot> updateSpot(
+    String spotId, {
+    required String name,
+    String? description,
+    bool? indoor,
+    bool? covered,
+    bool? publicAccess,
+    String? accessNote,
+    bool? wheelchair,
+    bool? changingTable,
+  }) async {
+    final old = _own(spotId);
+    final toilet = old.category == SpotCategory.toilet.name;
+    String? clean(String? v) => v == null || v.trim().isEmpty ? null : v.trim();
+    final updated = CommunitySpot(
+      id: old.id,
+      position: old.position,
+      name: clean(name) ?? old.name,
+      description: clean(description),
+      indoor: toilet ? null : indoor,
+      covered: toilet ? null : covered,
+      publicAccess: publicAccess,
+      accessNote: publicAccess == false ? clean(accessNote) : null,
+      category: old.category,
+      wheelchair: toilet ? wheelchair : null,
+      changingTable: toilet ? changingTable : null,
+      notSameAs: old.notSameAs,
+      createdBy: old.createdBy,
+      createdAt: old.createdAt,
+    );
+    await backend.updateSpot(updated);
+    _spots[_spots.indexOf(old)] = updated;
+    _changed();
+    return updated;
+  }
+
+  /// Deletes an own spot from the map.
+  Future<void> deleteSpot(String spotId) async {
+    final spot = _own(spotId);
+    await backend.deleteSpot(spotId);
+    _spots.remove(spot);
+    _changed();
   }
 
   // ---------------------------------------------------------------------

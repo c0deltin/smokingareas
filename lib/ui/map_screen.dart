@@ -21,6 +21,7 @@ import '../sources/official_opendata_source.dart';
 import 'area_details_sheet.dart';
 import 'city_picker.dart';
 import 'legend_sheet.dart';
+import 'my_spots_sheet.dart';
 import 'local_data_sheet.dart';
 import 'marker_icons.dart';
 import 'profile_sheet.dart';
@@ -56,7 +57,7 @@ class MapScreen extends StatefulWidget {
 LatLng _ll(gm.LatLng p) => LatLng(p.latitude, p.longitude);
 gm.LatLng _gm(LatLng p) => gm.LatLng(p.latitude, p.longitude);
 
-class _MapScreenState extends State<MapScreen> {
+class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   gm.GoogleMapController? _map;
   late gm.CameraPosition _camera =
       gm.CameraPosition(target: _gm(_city.center), zoom: _city.zoom);
@@ -93,6 +94,7 @@ class _MapScreenState extends State<MapScreen> {
     _monitor.heading?.addListener(_onHeadingChanged);
     _repo.addListener(_onRepoChanged);
     _community.addListener(_onCommunityChanged);
+    WidgetsBinding.instance.addObserver(this);
     NotificationService.instance.onTap = _openAreaById;
     _loadCity(_city);
     WidgetsBinding.instance.addPostFrameCallback((_) => _askPermissions());
@@ -104,6 +106,7 @@ class _MapScreenState extends State<MapScreen> {
     _monitor.heading?.removeListener(_onHeadingChanged);
     _repo.removeListener(_onRepoChanged);
     _community.removeListener(_onCommunityChanged);
+    WidgetsBinding.instance.removeObserver(this);
     NotificationService.instance.onTap = null;
     super.dispose();
   }
@@ -116,6 +119,12 @@ class _MapScreenState extends State<MapScreen> {
       _icons = icons;
       icons.prepareBase().then((_) => _updateClusters());
     }
+  }
+
+  /// Back in the foreground: newer community data (photos, ratings …).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _community.refreshIfStale();
   }
 
   /// After signing in: offer to upload device-only data (once).
@@ -359,6 +368,18 @@ class _MapScreenState extends State<MapScreen> {
     _moveTo(place.center, place.zoom);
   }
 
+  /// Moves the map to an own reported place and opens it (the merged entry,
+  /// if the report was absorbed into an official or OSM place).
+  void _showSpot(SmokingArea area) {
+    final merged = _repo.allVisible
+        .where((a) => a.allIds.contains(area.id))
+        .firstOrNull;
+    final target = merged ?? area;
+    _moveTo(target.position, 18);
+    showAreaDetails(context, target,
+        userPosition: _monitor.position, community: _community);
+  }
+
   void _openAreaById(String id) {
     for (final a in _repo.allLoaded) {
       if (a.id == id) {
@@ -437,9 +458,18 @@ class _MapScreenState extends State<MapScreen> {
               'legend' => showLegendSheet(context),
               'settings' => showSettingsSheet(context, _monitor, _community),
               'profile' => showProfileSheet(context, _community),
+              'my_spots' => showMySpotsSheet(context, _community,
+                  onShow: _showSpot),
               _ => _showInfo(context),
             },
             itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'my_spots',
+                child: ListTile(
+                  leading: Icon(Icons.place_outlined),
+                  title: Text('My spots'),
+                ),
+              ),
               PopupMenuItem(
                 value: 'legend',
                 child: ListTile(

@@ -22,6 +22,8 @@ Future<void> showAreaDetails(
   LatLng? userPosition,
   CommunityService? community,
 }) {
+  // New photos and ratings of other users show up without a restart.
+  community?.refreshIfStale();
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
