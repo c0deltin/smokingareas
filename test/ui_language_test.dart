@@ -29,4 +29,17 @@ void main() {
     }
     expect(offenders, isEmpty);
   });
+
+  test('iOS permission texts are English', () {
+    final plist = File('ios/Runner/Info.plist').readAsStringSync();
+    final texts = RegExp(r'UsageDescription</key>\s*<string>([^<]*)</string>')
+        .allMatches(plist)
+        .map((m) => m.group(1)!)
+        .toList();
+    expect(texts, isNotEmpty);
+    for (final t in texts) {
+      expect(t, isNot(matches(RegExp(r'[äöüÄÖÜß]|\b(und|der|die|dein)\b'))),
+          reason: t);
+    }
+  });
 }
