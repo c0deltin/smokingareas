@@ -43,8 +43,9 @@ void main() {
     await service.createUser('Bob');
     bob = service.currentUser!.id;
     await service.rate(spot, 1, comment: 'Spam spam');
-    await service.addPhoto(
-        spot, File('${tmp.path}/p.jpg')..writeAsBytesSync([1, 2, 3]));
+    await service
+        .addPhoto(spot, File('${tmp.path}/p.jpg')..writeAsBytesSync([1, 2, 3]))
+        .done;
     await service.reportSpot(position: const LatLng(35.70, 139.70), name: 'Ad');
     await service.switchUser(alice);
   });

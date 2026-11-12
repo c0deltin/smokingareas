@@ -190,7 +190,7 @@ void main() {
       final reported = service.spotsAsAreas.single;
       await service.rate(reported, 5, comment: 'sauber');
       final photo = File('${tmp.path}/p.jpg')..writeAsBytesSync([1, 2, 3]);
-      await service.addPhoto(reported, photo);
+      await service.addPhoto(reported, photo).done;
       for (final u in ['A', 'B', 'C']) {
         await service.createUser(u);
         await service.vote(reported, exists: false);
