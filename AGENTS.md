@@ -102,6 +102,13 @@ Key design decisions – keep them:
   latest vote per user, hidden at ≥ 3 "gone" and ≥ 2× the "exists" votes;
   votes for the current data version never expire, votes without one expire
   after 180 days. Hidden spots disappear from the map *and* proximity alerts.
+- **Spot features** ("is there a trash can here?", OSM `bin=yes`) live only
+  in `FeaturePolicy` (pure, tested): any spot can get answers
+  (`feature_votes`), latest answer per user, majority wins over the source
+  data, answers expire after 365 days; applied via `CommunityService.annotate`.
+  A trash can reported right at a smoking area or toilet becomes this
+  feature instead of a second marker. Spots with a trash can show an orange
+  badge and also appear when only trash cans are shown (`SmokingArea.offers`).
 - **Temporary closures** live only in `ClosurePolicy` (pure, tested): reports
   expire after 14 days or at their end date (max. 180 days), latest report per
   user, majority wins; an "open again" report against an official closure

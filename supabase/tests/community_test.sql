@@ -130,6 +130,33 @@ update votes set "exists" = true;
 delete from votes;
 select tests.expect((select count(*) from votes) = 1, 'votes are append-only');
 
+-- Feature votes ("trash can here?") work for any spot id, append-only.
+insert into feature_votes (spot_id, feature, value)
+  values ('osm:node/1', 'bin', true);
+select tests.expect(
+  (select user_id from feature_votes) = '11111111-1111-1111-1111-111111111111',
+  'feature votes get the author');
+select tests.expect_error(
+  $$insert into feature_votes (spot_id, feature, value)
+    values ('osm:node/1', 'sauna', true)$$,
+  'feature_votes_feature_check');
+select tests.expect_error(
+  $$insert into feature_votes (spot_id, feature, value, user_id)
+    values ('osm:node/1', 'bin', true, '22222222-2222-2222-2222-222222222222')$$,
+  'permission denied');
+select tests.expect_error($$update feature_votes set value = false$$,
+  'permission denied');
+select tests.expect_error($$delete from feature_votes$$, 'permission denied');
+
+-- Reported spots can have a trash can.
+insert into spots (id, lat, lon, name, bin)
+  values ('community:with-bin', 35.6902, 139.7002, 'Corner', true);
+update spots set bin = false where id = 'community:with-bin';
+select tests.expect(
+  (select bin from spots where id = 'community:with-bin') = false,
+  'spots store whether they have a trash can');
+delete from spots where id = 'community:with-bin';
+
 -- Photos only in the own folder.
 insert into photos (spot_id, storage_path)
   values ('osm:node/1', '11111111-1111-1111-1111-111111111111/a.jpg');
@@ -218,7 +245,8 @@ select tests.expect(
   and (select count(*) from reviews) = 0
   and (select count(*) from photos) = 0
   and (select count(*) from closures) = 0
-  and (select count(*) from votes where user_id = '11111111-1111-1111-1111-111111111111') = 0,
+  and (select count(*) from votes where user_id = '11111111-1111-1111-1111-111111111111') = 0
+  and (select count(*) from feature_votes) = 0,
   'account deletion removes the user''s contributions');
 select tests.expect(
   (select count(*) from spots) = 1 and (select created_by from spots) is null,

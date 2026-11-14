@@ -108,6 +108,19 @@ class SmokingArea {
   /// Trash cans: accepted waste (OSM `waste=*`), empty when unknown.
   Set<WasteType> get waste => WasteType.parse(tags['waste']);
 
+  /// Smoking areas and toilets: a trash can is part of the spot (OSM
+  /// `bin=yes`), null when unknown.
+  bool? get hasBin => switch (tags['bin']) {
+        'yes' => true,
+        'no' => false,
+        _ => null,
+      };
+
+  /// Shown when the user looks for trash cans: real trash cans and spots
+  /// with one.
+  bool offers(SpotCategory c) =>
+      category == c || (c == SpotCategory.bin && hasBin == true);
+
   /// Best effort display title.
   String get title {
     final n = name ?? tags['name:en'] ?? tags['name:ja'];

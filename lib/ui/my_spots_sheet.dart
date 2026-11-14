@@ -166,6 +166,7 @@ class _MySpotTile extends StatelessWidget {
         wheelchair: spot.wheelchair,
         changingTable: spot.changingTable,
         waste: WasteType.parse(spot.waste),
+        bin: spot.bin,
       ),
     );
     if (input == null || !context.mounted) return;
@@ -185,6 +186,7 @@ class _MySpotTile extends StatelessWidget {
           wheelchair: input.wheelchair,
           changingTable: input.changingTable,
           waste: input.waste,
+          bin: input.bin,
         ),
       ),
     );

@@ -34,6 +34,7 @@ class ServerRows {
         wheelchair: r['wheelchair'] as bool?,
         changingTable: r['changing_table'] as bool?,
         waste: r['waste'] as String?,
+        bin: r['bin'] as bool?,
         notSameAs: ((r['not_same_as'] as List?) ?? const []).cast<String>(),
         // Spots of deleted accounts stay without author.
         createdBy: r['created_by'] as String? ?? '',
@@ -55,6 +56,7 @@ class ServerRows {
         'changing_table': s.changingTable,
         // Only sent when set, so older databases keep accepting other spots.
         if (s.waste != null) 'waste': s.waste,
+        if (s.bin != null) 'bin': s.bin,
         'not_same_as': s.notSameAs,
       };
 
@@ -68,7 +70,7 @@ class ServerRows {
         'access_note': s.accessNote,
         'wheelchair': s.wheelchair,
         'changing_table': s.changingTable,
-        if (s.category == 'bin') 'waste': s.waste,
+        if (s.category == 'bin') 'waste': s.waste else 'bin': s.bin,
       };
 
   static SpotReview review(Map<String, dynamic> r) => SpotReview(
@@ -111,6 +113,25 @@ class ServerRows {
         'spot_id': v.spotId,
         'exists': v.exists,
         'fingerprint': v.fingerprint,
+      };
+
+  /// Null for a feature this app version does not know.
+  static FeatureVote? featureVote(Map<String, dynamic> r) {
+    final feature = SpotFeature.tryParse(r['feature'] as String? ?? '');
+    if (feature == null) return null;
+    return FeatureVote(
+      spotId: r['spot_id'] as String,
+      userId: r['user_id'] as String,
+      feature: feature,
+      value: r['value'] as bool,
+      createdAt: _time(r['created_at']),
+    );
+  }
+
+  static Map<String, dynamic> featureVoteInsert(FeatureVote v) => {
+        'spot_id': v.spotId,
+        'feature': v.feature.name,
+        'value': v.value,
       };
 
   static ClosureReport closure(Map<String, dynamic> r) => ClosureReport(

@@ -36,7 +36,8 @@ Color originRingColor(SpotOrigin o) => switch (o) {
     };
 
 /// The marker used on the map and in the legend: fill = category (grey when
-/// temporarily closed), ring = origin, pause badge = temporarily closed.
+/// temporarily closed), ring = origin, pause badge = temporarily closed,
+/// orange trash can badge = a trash can is part of the spot.
 ///
 /// The map draws the same [SpotMarkerPainter] into bitmaps, so the legend
 /// always matches the map.
@@ -47,6 +48,7 @@ class SpotMarker extends StatelessWidget {
     this.indoor = false,
     this.origin = SpotOrigin.osm,
     this.closed = false,
+    this.bin = false,
   });
 
   factory SpotMarker.fromArea(SmokingArea area, {Key? key}) => SpotMarker(
@@ -59,6 +61,7 @@ class SpotMarker extends StatelessWidget {
                 ? SpotOrigin.community
                 : SpotOrigin.osm),
         closed: area.isTemporarilyClosed,
+        bin: area.category != SpotCategory.bin && area.hasBin == true,
       );
 
   /// Diameter of the marker circle in logical pixels.
@@ -68,9 +71,11 @@ class SpotMarker extends StatelessWidget {
   final bool indoor;
   final SpotOrigin origin;
   final bool closed;
+  final bool bin;
 
   /// Identifies the look; markers with the same key share one bitmap.
-  String get styleKey => '${category.name}-$indoor-${origin.name}-$closed';
+  String get styleKey =>
+      '${category.name}-$indoor-${origin.name}-$closed-$bin';
 
   SpotMarkerPainter get painter => SpotMarkerPainter(this);
 
@@ -79,8 +84,8 @@ class SpotMarker extends StatelessWidget {
       CustomPaint(size: const Size.square(size), painter: painter);
 }
 
-/// Draws a [SpotMarker] centred in the canvas. The pause badge may extend
-/// up to [badgeOverhang] beyond the circle.
+/// Draws a [SpotMarker] centred in the canvas. The badges may extend up to
+/// [badgeOverhang] beyond the circle.
 class SpotMarkerPainter extends CustomPainter {
   SpotMarkerPainter(this.marker);
 
@@ -118,6 +123,13 @@ class SpotMarkerPainter extends CustomPainter {
       final b = c.translate(r - 4 + 2, -r + 4 - 2);
       canvas.drawCircle(b, 8, Paint()..color = Colors.white);
       paintIcon(canvas, Icons.pause_circle_filled, b, 16, Colors.red);
+    }
+    if (marker.bin) {
+      final b = c.translate(r - 4 + 2, r - 4 + 2);
+      canvas.drawCircle(b, 8, Paint()..color = Colors.white);
+      canvas.drawCircle(
+          b, 6.5, Paint()..color = categoryColor(SpotCategory.bin));
+      paintIcon(canvas, categoryIcon(SpotCategory.bin), b, 10, Colors.white);
     }
   }
 

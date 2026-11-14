@@ -10,6 +10,7 @@ import 'auth_service.dart';
 import 'community_backend.dart';
 import 'closure_policy.dart';
 import 'existence_policy.dart';
+import 'feature_policy.dart';
 import 'local_migration.dart';
 import 'models.dart';
 import 'photo_storage.dart';
@@ -37,6 +38,7 @@ class CommunityService extends ChangeNotifier {
     required this.auth,
     this.policy = const ExistencePolicy(),
     this.closurePolicy = const ClosurePolicy(),
+    this.featurePolicy = const FeaturePolicy(),
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
 
@@ -45,6 +47,7 @@ class CommunityService extends ChangeNotifier {
   final AuthService auth;
   final ExistencePolicy policy;
   final ClosurePolicy closurePolicy;
+  final FeaturePolicy featurePolicy;
   final DateTime Function() _now;
   static const _uuid = Uuid();
 
@@ -54,7 +57,9 @@ class CommunityService extends ChangeNotifier {
   List<SpotPhoto> _photos = [];
   List<ExistenceVote> _votes = [];
   List<ClosureReport> _closures = [];
+  List<FeatureVote> _featureVotes = [];
   Map<String, List<ExistenceVote>>? _votesBySpot;
+  Map<String, List<FeatureVote>>? _featureVotesBySpot;
 
   /// Users the current user blocked: their spots, ratings and photos are
   /// hidden for them (votes still count for everyone).
@@ -75,6 +80,7 @@ class CommunityService extends ChangeNotifier {
         backend.photos(),
         backend.votes(),
         backend.closureReports(),
+        backend.featureVotes(),
       ]);
       _users = results[0] as List<UserProfile>;
       _spots = results[1] as List<CommunitySpot>;
@@ -82,6 +88,7 @@ class CommunityService extends ChangeNotifier {
       _photos = results[3] as List<SpotPhoto>;
       _votes = results[4] as List<ExistenceVote>;
       _closures = results[5] as List<ClosureReport>;
+      _featureVotes = results[6] as List<FeatureVote>;
       final me = auth.currentUser?.id;
       _blocked = me == null ? {} : {...await backend.blockedUsers(me)};
       loadError = null;
@@ -113,6 +120,7 @@ class CommunityService extends ChangeNotifier {
   void _changed() {
     _votesBySpot = null;
     _closuresBySpot = null;
+    _featureVotesBySpot = null;
     notifyListeners();
   }
 
@@ -256,6 +264,7 @@ class CommunityService extends ChangeNotifier {
                 when c != SpotCategory.smoking)
               'amenity': c.amenity,
             if (s.waste != null) 'waste': s.waste!,
+            if (s.bin != null) 'bin': s.bin! ? 'yes' : 'no',
             if (s.wheelchair != null)
               'wheelchair': s.wheelchair! ? 'yes' : 'no',
             if (s.changingTable != null)
@@ -279,6 +288,7 @@ class CommunityService extends ChangeNotifier {
     bool? wheelchair,
     bool? changingTable,
     Set<WasteType> waste = const {},
+    bool? bin,
     File? photo,
     Iterable<String> notSameAs = const [],
   }) async {
@@ -304,6 +314,7 @@ class CommunityService extends ChangeNotifier {
       wheelchair: category == SpotCategory.toilet ? wheelchair : null,
       changingTable: category == SpotCategory.toilet ? changingTable : null,
       waste: category == SpotCategory.bin ? WasteType.format(waste) : null,
+      bin: category == SpotCategory.bin ? null : bin,
       notSameAs: notSameAs.toList(),
       createdBy: userId,
       createdAt: now,
@@ -356,11 +367,12 @@ class CommunityService extends ChangeNotifier {
     bool? wheelchair,
     bool? changingTable,
     Set<WasteType> waste = const {},
+    bool? bin,
   }) async {
     final old = _own(spotId);
     final toilet = old.category == SpotCategory.toilet.name;
     final smoking = old.category == SpotCategory.smoking.name;
-    final bin = old.category == SpotCategory.bin.name;
+    final isBin = old.category == SpotCategory.bin.name;
     String? clean(String? v) => v == null || v.trim().isEmpty ? null : v.trim();
     final updated = CommunitySpot(
       id: old.id,
@@ -374,7 +386,8 @@ class CommunityService extends ChangeNotifier {
       category: old.category,
       wheelchair: toilet ? wheelchair : null,
       changingTable: toilet ? changingTable : null,
-      waste: bin ? WasteType.format(waste) : null,
+      waste: isBin ? WasteType.format(waste) : null,
+      bin: isBin ? null : bin,
       notSameAs: old.notSameAs,
       createdBy: old.createdBy,
       createdAt: old.createdAt,
@@ -590,6 +603,53 @@ class CommunityService extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------
+  // Features ("trash can here?")
+  // ---------------------------------------------------------------------
+
+  List<FeatureVote> _featureVotesFor(SmokingArea area) {
+    final index = _featureVotesBySpot ??= () {
+      final m = <String, List<FeatureVote>>{};
+      for (final v in _featureVotes) {
+        (m[v.spotId] ??= []).add(v);
+      }
+      return m;
+    }();
+    return [for (final k in keysFor(area)) ...?index[k]];
+  }
+
+  FeatureStatus featureStatus(SmokingArea area, SpotFeature feature) =>
+      featurePolicy.evaluate(_featureVotesFor(area), feature, now: _now());
+
+  /// Latest answer of the current user (null = not answered).
+  bool? myFeatureVote(SmokingArea area, SpotFeature feature) {
+    final me = currentUser?.id;
+    if (me == null) return null;
+    FeatureVote? latest;
+    for (final v in _featureVotesFor(area)) {
+      if (v.userId != me || v.feature != feature) continue;
+      if (latest == null || v.createdAt.isAfter(latest.createdAt)) latest = v;
+    }
+    return latest?.value;
+  }
+
+  Future<void> voteFeature(
+    SmokingArea area,
+    SpotFeature feature, {
+    required bool value,
+  }) async {
+    final vote = FeatureVote(
+      spotId: area.id,
+      userId: _requireUserId(),
+      feature: feature,
+      value: value,
+      createdAt: _now(),
+    );
+    await backend.addFeatureVote(vote);
+    _featureVotes.add(vote);
+    _changed();
+  }
+
+  // ---------------------------------------------------------------------
   // Temporary closures
   // ---------------------------------------------------------------------
 
@@ -631,9 +691,23 @@ class CommunityService extends ChangeNotifier {
     _changed();
   }
 
-  /// Applies community closure reports to a map entry. A "reopened" majority
-  /// also overrides a closure flag that came with official data.
-  SmokingArea annotate(SmokingArea area) {
+  /// Applies community state to a map entry: feature answers (trash can)
+  /// and closure reports. A "reopened" majority also overrides a closure
+  /// flag that came with official data.
+  SmokingArea annotate(SmokingArea area) =>
+      _annotateClosure(_annotateFeatures(area));
+
+  /// The community's verdict on features (e.g. `bin=yes`) wins over the
+  /// source data; a tie keeps the source value.
+  SmokingArea _annotateFeatures(SmokingArea area) {
+    if (area.category == SpotCategory.bin) return area;
+    if (_featureVotesFor(area).isEmpty) return area;
+    final bin = featureStatus(area, SpotFeature.bin).value;
+    if (bin == null) return area;
+    return area.withTags({'bin': bin ? 'yes' : 'no'});
+  }
+
+  SmokingArea _annotateClosure(SmokingArea area) {
     if (_closuresFor(area).isEmpty) return area;
     final status = closureFor(area);
     if (status.closed) {

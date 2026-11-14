@@ -241,4 +241,8 @@ class _MemoryBackend implements CommunityBackend {
   Future<List<ClosureReport>> closureReports() async => [];
   @override
   Future<void> addClosureReport(ClosureReport report) async {}
+  @override
+  Future<List<FeatureVote>> featureVotes() async => [];
+  @override
+  Future<void> addFeatureVote(FeatureVote vote) async {}
 }

@@ -184,8 +184,14 @@ map section (zoom).
   toilet* or *trash can* → move the map until the cross hair is on the spot
   → name, type (outdoor / smoking room) and covered for smoking areas,
   wheelchair access and baby changing table for toilets, accepted waste
-  (general waste, cans, PET bottles – OSM `waste=*`) for trash cans, note
-  and optionally a photo. A “publicly accessible” checkbox (no ticket,
+  (general waste, cans, PET bottles – OSM `waste=*`) for trash cans, "has a
+  trash can" for smoking areas and toilets, note and optionally a photo.
+  A trash can reported right at a smoking area or toilet (e.g. an ashtray
+  with a bin) is added to that spot instead of becoming a second marker.
+- **Trash can here?** Every smoking area and toilet – official, OSM or
+  reported – has a yes/no question whether there is a trash can; the
+  majority wins over the source data (OSM `bin=yes`). Such spots get an
+  orange badge and also show up when only trash cans are shown. A “publicly accessible” checkbox (no ticket,
   entrance fee or purchase required); if unchecked – e.g. on a station
   platform or inside a sight – the access can be described (stored using the
   OSM schema `access=customers` + `access:note`). If a spot of the same

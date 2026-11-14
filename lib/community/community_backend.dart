@@ -36,6 +36,10 @@ abstract class CommunityBackend {
   /// Votes are append-only (history); the policy uses the latest per user.
   Future<void> addVote(ExistenceVote vote);
 
+  /// Answers to "does this spot have …?" (append-only, see `FeaturePolicy`).
+  Future<List<FeatureVote>> featureVotes();
+  Future<void> addFeatureVote(FeatureVote vote);
+
   Future<List<ClosureReport>> closureReports();
 
   /// Append-only, like votes; see `ClosurePolicy`.
@@ -174,6 +178,16 @@ class LocalCommunityBackend implements CommunityBackend {
   }
 
   @override
+  Future<List<FeatureVote>> featureVotes() async =>
+      List.of((await _db()).featureVotes);
+
+  @override
+  Future<void> addFeatureVote(FeatureVote vote) async {
+    (await _db()).featureVotes.add(vote);
+    await _persist();
+  }
+
+  @override
   Future<void> reportContent(
       ReportTarget target, String targetId, String reason) async {
     (await _db()).reports.add({
@@ -210,7 +224,8 @@ class LocalCommunityBackend implements CommunityBackend {
         t.reviews.isNotEmpty ||
         t.photos.isNotEmpty ||
         t.votes.isNotEmpty ||
-        t.closures.isNotEmpty;
+        t.closures.isNotEmpty ||
+        t.featureVotes.isNotEmpty;
   }
 
   /// Removes all community data from the device (after it was uploaded or
@@ -222,6 +237,7 @@ class LocalCommunityBackend implements CommunityBackend {
     t.photos.clear();
     t.votes.clear();
     t.closures.clear();
+    t.featureVotes.clear();
     t.reports.clear();
     t.blocks.clear();
     await _persist();
@@ -256,6 +272,7 @@ class _Tables {
   final List<SpotPhoto> photos = [];
   final List<ExistenceVote> votes = [];
   final List<ClosureReport> closures = [];
+  final List<FeatureVote> featureVotes = [];
   final List<Map<String, dynamic>> reports = [];
   final Map<String, List<String>> blocks = {};
 
@@ -267,6 +284,7 @@ class _Tables {
         'photos': photos.map((e) => e.toJson()).toList(),
         'votes': votes.map((e) => e.toJson()).toList(),
         'closures': closures.map((e) => e.toJson()).toList(),
+        'featureVotes': featureVotes.map((e) => e.toJson()).toList(),
         'reports': reports,
         'blocks': blocks,
       };
@@ -281,6 +299,8 @@ class _Tables {
       ..photos.addAll(rows('photos').map(SpotPhoto.fromJson))
       ..votes.addAll(rows('votes').map(ExistenceVote.fromJson))
       ..closures.addAll(rows('closures').map(ClosureReport.fromJson))
+      ..featureVotes.addAll(
+          rows('featureVotes').map(FeatureVote.fromJson).whereType<FeatureVote>())
       ..reports.addAll(rows('reports'))
       ..blocks.addAll({
         for (final e in ((j['blocks'] as Map?) ?? const {}).entries)
