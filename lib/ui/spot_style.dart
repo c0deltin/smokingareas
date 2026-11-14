@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 import '../models/smoking_area.dart';
 
 /// Map colour of a category: green for smoking areas (darker when indoor),
-/// blue for public toilets.
+/// blue for public toilets, orange for trash cans.
 Color categoryColor(SpotCategory c, {bool indoor = false}) => switch (c) {
       SpotCategory.smoking =>
         indoor ? const Color(0xFF00695C) : const Color(0xFF26A69A),
       SpotCategory.toilet => const Color(0xFF1E63D6),
+      SpotCategory.bin => const Color(0xFFEF6C00),
     };
 
 IconData categoryIcon(SpotCategory c) => switch (c) {
       SpotCategory.smoking => Icons.smoking_rooms,
       SpotCategory.toilet => Icons.wc,
+      SpotCategory.bin => Icons.delete_outline,
     };
 
 /// Where a map entry comes from – shown as the marker ring.

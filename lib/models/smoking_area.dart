@@ -8,23 +8,71 @@ enum SpotCategory {
   smoking,
 
   /// Public toilet (公衆トイレ), OSM `amenity=toilets`.
-  toilet;
+  toilet,
+
+  /// Public trash can (ゴミ箱), OSM `amenity=waste_basket`. Reported by the
+  /// community only.
+  bin;
 
   /// Label for the UI.
   String get label => switch (this) {
         SpotCategory.smoking => 'Smoking area',
         SpotCategory.toilet => 'Public toilet',
+        SpotCategory.bin => 'Trash can',
       };
 
   String get pluralLabel => switch (this) {
         SpotCategory.smoking => 'Smoking areas',
         SpotCategory.toilet => 'Toilets',
+        SpotCategory.bin => 'Trash cans',
       };
+
+  /// OSM `amenity` value of the category.
+  String get amenity => switch (this) {
+        SpotCategory.smoking => 'smoking_area',
+        SpotCategory.toilet => 'toilets',
+        SpotCategory.bin => 'waste_basket',
+      };
+
+  /// Category stored under [name] (community data), or null when unknown –
+  /// e.g. a category added by a newer app version.
+  static SpotCategory? tryParse(String name) {
+    for (final c in values) {
+      if (c.name == name) return c;
+    }
+    return null;
+  }
 }
 
-/// A single place on the map – a smoking area or a public toilet (see
-/// [category]). The class name is historic; attributes follow the OSM tag
-/// schema, the category is derived from `amenity=toilets`.
+/// What a trash can takes (OSM `waste=*`): Japanese bins are usually
+/// separated, many next to vending machines only take cans and PET bottles.
+enum WasteType {
+  trash('trash', 'General waste'),
+  cans('cans', 'Cans'),
+  bottles('plastic_bottles', 'PET bottles');
+
+  const WasteType(this.osm, this.label);
+  final String osm;
+  final String label;
+
+  /// Parses an OSM `waste` value such as `cans;plastic_bottles`.
+  static Set<WasteType> parse(String? value) => {
+        for (final part in (value ?? '').split(';'))
+          for (final t in values)
+            if (t.osm == part.trim()) t,
+      };
+
+  /// OSM `waste` value in a stable order, or null when [types] is empty.
+  static String? format(Iterable<WasteType> types) {
+    final set = types.toSet();
+    if (set.isEmpty) return null;
+    return [for (final t in values) if (set.contains(t)) t.osm].join(';');
+  }
+}
+
+/// A single place on the map – a smoking area, a public toilet or a trash
+/// can (see [category]). The class name is historic; attributes follow the
+/// OSM tag schema, the category is derived from `amenity`.
 class SmokingArea {
   const SmokingArea({
     required this.id,
@@ -48,10 +96,17 @@ class SmokingArea {
   double get latitude => position.latitude;
   double get longitude => position.longitude;
 
-  SpotCategory get category =>
-      tags['amenity'] == 'toilets' ? SpotCategory.toilet : SpotCategory.smoking;
+  SpotCategory get category => switch (tags['amenity']) {
+        'toilets' => SpotCategory.toilet,
+        'waste_basket' => SpotCategory.bin,
+        _ => SpotCategory.smoking,
+      };
 
   bool get isToilet => category == SpotCategory.toilet;
+  bool get isSmoking => category == SpotCategory.smoking;
+
+  /// Trash cans: accepted waste (OSM `waste=*`), empty when unknown.
+  Set<WasteType> get waste => WasteType.parse(tags['waste']);
 
   /// Best effort display title.
   String get title {

@@ -99,10 +99,10 @@ class AreaDetailsSheet extends StatelessWidget {
       if (area.isApproximate)
         (Icons.gps_not_fixed, 'Position',
             'approximate (from the address, ± approx. 50 m)'),
-      if (!area.isToilet && area.roomCount > 1)
+      if (area.isSmoking && area.roomCount > 1)
         (Icons.layers_outlined, 'Smoking rooms',
             '${area.roomCount} in the same building'),
-      if (!area.isToilet) ...[
+      if (area.isSmoking) ...[
         (Icons.meeting_room_outlined, 'Type',
             yesNo(area.isIndoor, 'Smoking room (indoors)', 'Outdoors')),
         (Icons.roofing, 'Covered', yesNo(area.isCovered, 'yes', 'no')),
@@ -113,6 +113,14 @@ class AreaDetailsSheet extends StatelessWidget {
         (Icons.baby_changing_station, 'Baby changing',
             yesNo(area.changingTable, 'yes', 'no')),
       ],
+      if (area.category == SpotCategory.bin)
+        (
+          Icons.recycling,
+          'Accepts',
+          area.waste.isEmpty
+              ? 'unknown'
+              : [for (final t in WasteType.values) if (area.waste.contains(t)) t.label].join(', '),
+        ),
       if (area.isPublic != null || area.accessNote != null)
         (
           Icons.lock_open_outlined,
@@ -125,8 +133,9 @@ class AreaDetailsSheet extends StatelessWidget {
             if (area.accessNote != null) area.accessNote!,
           ].join(' – '),
         ),
-      (Icons.payments_outlined, 'Fee',
-          yesNo(area.requiresFee, 'yes', 'no')),
+      if (area.category != SpotCategory.bin)
+        (Icons.payments_outlined, 'Fee',
+            yesNo(area.requiresFee, 'yes', 'no')),
       if (area.openingHours != null)
         (Icons.schedule, 'Opening hours', area.openingHours!),
       if (area.operator != null) (Icons.business, 'Operator', area.operator!),

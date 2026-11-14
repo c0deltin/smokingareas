@@ -33,6 +33,7 @@ class ServerRows {
         category: r['category'] as String? ?? 'smoking',
         wheelchair: r['wheelchair'] as bool?,
         changingTable: r['changing_table'] as bool?,
+        waste: r['waste'] as String?,
         notSameAs: ((r['not_same_as'] as List?) ?? const []).cast<String>(),
         // Spots of deleted accounts stay without author.
         createdBy: r['created_by'] as String? ?? '',
@@ -52,6 +53,8 @@ class ServerRows {
         'access_note': s.accessNote,
         'wheelchair': s.wheelchair,
         'changing_table': s.changingTable,
+        // Only sent when set, so older databases keep accepting other spots.
+        if (s.waste != null) 'waste': s.waste,
         'not_same_as': s.notSameAs,
       };
 
@@ -65,6 +68,7 @@ class ServerRows {
         'access_note': s.accessNote,
         'wheelchair': s.wheelchair,
         'changing_table': s.changingTable,
+        if (s.category == 'bin') 'waste': s.waste,
       };
 
   static SpotReview review(Map<String, dynamic> r) => SpotReview(

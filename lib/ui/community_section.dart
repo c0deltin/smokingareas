@@ -151,10 +151,7 @@ class CommunitySection extends StatelessWidget {
 
             // --- existence votes (Waze-like) ----------------------------
             const SizedBox(height: 12),
-            Text(
-                area.isToilet
-                    ? 'Is this toilet still there?'
-                    : 'Is this smoking area still there?',
+            Text('Is this ${area.category.label.toLowerCase()} still there?',
                 style: theme.textTheme.bodyMedium),
             const SizedBox(height: 6),
             Row(children: [
@@ -194,7 +191,7 @@ class CommunitySection extends StatelessWidget {
                 child: Text(
                   '${status.removals} user${status.removals == 1 ? '' : 's'} '
                   'reported that this '
-                  '${area.isToilet ? 'toilet' : 'smoking area'} is gone.',
+                  '${area.category.label.toLowerCase()} is gone.',
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.error),
                 ),

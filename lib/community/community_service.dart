@@ -230,10 +230,12 @@ class CommunityService extends ChangeNotifier {
   // Community spots
   // ---------------------------------------------------------------------
 
-  /// User-reported spots as map entries.
+  /// User-reported spots as map entries. Spots of a category this app
+  /// version does not know are skipped.
   List<SmokingArea> get spotsAsAreas => [
     for (final s in _spots)
-      if (!_blocked.contains(s.createdBy))
+      if (!_blocked.contains(s.createdBy) &&
+          SpotCategory.tryParse(s.category) != null)
         SmokingArea(
           id: s.id,
           position: s.position,
@@ -250,7 +252,10 @@ class CommunityService extends ChangeNotifier {
             if (s.publicAccess != null)
               'access': s.publicAccess! ? 'yes' : 'customers',
             if (s.accessNote != null) 'access:note': s.accessNote!,
-            if (s.category == SpotCategory.toilet.name) 'amenity': 'toilets',
+            if (SpotCategory.tryParse(s.category) case final c?
+                when c != SpotCategory.smoking)
+              'amenity': c.amenity,
+            if (s.waste != null) 'waste': s.waste!,
             if (s.wheelchair != null)
               'wheelchair': s.wheelchair! ? 'yes' : 'no',
             if (s.changingTable != null)
@@ -273,6 +278,7 @@ class CommunityService extends ChangeNotifier {
     SpotCategory category = SpotCategory.smoking,
     bool? wheelchair,
     bool? changingTable,
+    Set<WasteType> waste = const {},
     File? photo,
     Iterable<String> notSameAs = const [],
   }) async {
@@ -297,6 +303,7 @@ class CommunityService extends ChangeNotifier {
       category: category.name,
       wheelchair: category == SpotCategory.toilet ? wheelchair : null,
       changingTable: category == SpotCategory.toilet ? changingTable : null,
+      waste: category == SpotCategory.bin ? WasteType.format(waste) : null,
       notSameAs: notSameAs.toList(),
       createdBy: userId,
       createdAt: now,
@@ -348,22 +355,26 @@ class CommunityService extends ChangeNotifier {
     String? accessNote,
     bool? wheelchair,
     bool? changingTable,
+    Set<WasteType> waste = const {},
   }) async {
     final old = _own(spotId);
     final toilet = old.category == SpotCategory.toilet.name;
+    final smoking = old.category == SpotCategory.smoking.name;
+    final bin = old.category == SpotCategory.bin.name;
     String? clean(String? v) => v == null || v.trim().isEmpty ? null : v.trim();
     final updated = CommunitySpot(
       id: old.id,
       position: old.position,
       name: clean(name) ?? old.name,
       description: clean(description),
-      indoor: toilet ? null : indoor,
-      covered: toilet ? null : covered,
+      indoor: smoking ? indoor : null,
+      covered: smoking ? covered : null,
       publicAccess: publicAccess,
       accessNote: publicAccess == false ? clean(accessNote) : null,
       category: old.category,
       wheelchair: toilet ? wheelchair : null,
       changingTable: toilet ? changingTable : null,
+      waste: bin ? WasteType.format(waste) : null,
       notSameAs: old.notSameAs,
       createdBy: old.createdBy,
       createdAt: old.createdAt,

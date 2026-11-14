@@ -86,9 +86,8 @@ class _MySpotTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final category = spot.category == SpotCategory.toilet.name
-        ? SpotCategory.toilet
-        : SpotCategory.smoking;
+    final category =
+        SpotCategory.tryParse(spot.category) ?? SpotCategory.smoking;
     final area = community.areaOf(spot);
     final details = <String>[
       'Reported ${formatDate(spot.createdAt)}',
@@ -166,6 +165,7 @@ class _MySpotTile extends StatelessWidget {
         category: category,
         wheelchair: spot.wheelchair,
         changingTable: spot.changingTable,
+        waste: WasteType.parse(spot.waste),
       ),
     );
     if (input == null || !context.mounted) return;
@@ -184,6 +184,7 @@ class _MySpotTile extends StatelessWidget {
           accessNote: input.accessNote,
           wheelchair: input.wheelchair,
           changingTable: input.changingTable,
+          waste: input.waste,
         ),
       ),
     );

@@ -83,11 +83,15 @@ Key design decisions – keep them:
   sign-in (`LocalDataMigration`, resumable, latest rating/vote per place).
 - **OSM tag schema** for attributes (`indoor`, `covered`, `access`,
   `access:note`, `opening_hours`, `fee` …) so data stays compatible with OSM.
-- **Categories:** every spot is a smoking area or a public toilet
-  (`SpotCategory`, derived from OSM `amenity=toilets`). Merging and duplicate
-  checks only ever happen within one category. Colours: green = smoking,
-  blue = toilet (`lib/ui/spot_style.dart`); ring gold = official, pink =
-  community. Proximity alerts are for smoking areas only; the radius is a
+- **Categories:** every spot is a smoking area, a public toilet or a trash
+  can (`SpotCategory`, derived from OSM `amenity=toilets` /
+  `amenity=waste_basket`; trash cans come from the community only, with
+  `waste=*`). Merging and duplicate checks only ever happen within one
+  category. Colours: green = smoking, blue = toilet, orange = trash can
+  (`lib/ui/spot_style.dart`); ring gold = official, pink = community.
+  Community spots of a category the app does not know are skipped
+  (`SpotCategory.tryParse`), so a new category needs a database migration
+  (`spots_category_check`) and is ignored by app versions that predate it. Proximity alerts are for smoking areas only; the radius is a
   user setting (`ProximityMonitor.alertRadius`, 10–150 m).
 - **The community has the upper hand over the data sets.** Official and OSM
   entries carry a fingerprint of their source data (`data:fingerprint`,

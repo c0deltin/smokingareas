@@ -24,6 +24,10 @@ List<(String, List<LegendEntry>)> legendSections() => [
               'Indoor smoking room.'),
           LegendEntry(SpotMarker(category: SpotCategory.toilet),
               'Public toilet.'),
+          LegendEntry(
+              SpotMarker(
+                  category: SpotCategory.bin, origin: SpotOrigin.community),
+              'Trash can (reported by users).'),
         ],
       ),
       (
@@ -57,6 +61,9 @@ List<(String, List<LegendEntry>)> legendSections() => [
           const LegendEntry(
               ClusterBubble(category: SpotCategory.toilet, count: 8),
               'Several toilets – tap to zoom in.'),
+          const LegendEntry(
+              ClusterBubble(category: SpotCategory.bin, count: 5),
+              'Several trash cans – tap to zoom in.'),
           LegendEntry(
             SizedBox(
               width: 44,
