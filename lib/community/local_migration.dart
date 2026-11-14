@@ -213,6 +213,7 @@ class LocalDataMigration {
         wheelchair: s.wheelchair,
         changingTable: s.changingTable,
         waste: s.waste,
+        bin: s.bin,
         notSameAs: s.notSameAs,
       );
 }

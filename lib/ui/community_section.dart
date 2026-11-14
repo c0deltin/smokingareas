@@ -8,6 +8,7 @@ import '../community/models.dart';
 import 'busy_action.dart';
 import 'moderation.dart';
 import 'sign_in_sheet.dart';
+import 'spot_style.dart';
 import '../models/smoking_area.dart';
 
 /// Lets the user pick a photo with camera or gallery (null = cancelled).
@@ -196,6 +197,12 @@ class CommunitySection extends StatelessWidget {
                       ?.copyWith(color: theme.colorScheme.error),
                 ),
               ),
+
+            // --- trash can at this spot (feature vote) -----------------
+            if (area.category != SpotCategory.bin) ...[
+              const SizedBox(height: 12),
+              _BinVote(area: area, community: community),
+            ],
           ],
         );
       },
@@ -265,6 +272,65 @@ class CommunitySection extends StatelessWidget {
     final saved = await contribute(context, community,
         () => track(() => community.vote(area, exists: false)));
     if (saved && community.isHidden(area)) onRemoved?.call();
+  }
+}
+
+/// "Is there a trash can here?" – the community's answer wins over the
+/// source data (shown as orange badge on the marker).
+class _BinVote extends StatelessWidget {
+  const _BinVote({required this.area, required this.community});
+  final SmokingArea area;
+  final CommunityService community;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final status = community.featureStatus(area, SpotFeature.bin);
+    final mine = community.myFeatureVote(area, SpotFeature.bin);
+    final verdict = community.annotate(area).hasBin;
+    final binColor = categoryColor(SpotCategory.bin);
+
+    Widget button(bool value, String label, IconData icon, Color color) =>
+        Expanded(
+          child: BusyAction(
+            builder: (context, busy, track) => _VoteButton(
+              selected: mine == value,
+              busy: busy,
+              icon: icon,
+              label: label,
+              color: color,
+              onPressed: () => contribute(
+                  context,
+                  community,
+                  () => track(() => community.voteFeature(
+                      area, SpotFeature.bin,
+                      value: value)),
+                  reason: 'Sign in to add details.'),
+            ),
+          ),
+        );
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Is there a trash can here?', style: theme.textTheme.bodyMedium),
+      const SizedBox(height: 6),
+      Row(children: [
+        button(true, 'Trash can (${status.yes})', categoryIcon(SpotCategory.bin),
+            binColor),
+        const SizedBox(width: 8),
+        button(false, 'None (${status.no})', Icons.do_not_disturb_alt,
+            theme.colorScheme.outline),
+      ]),
+      if (verdict != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            verdict
+                ? 'Shown with a trash can on the map.'
+                : 'No trash can here.',
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+    ]);
   }
 }
 

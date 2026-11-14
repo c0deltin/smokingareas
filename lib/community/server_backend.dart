@@ -106,6 +106,17 @@ class ServerCommunityBackend implements CommunityBackend {
       _client.from('votes').insert(ServerRows.voteInsert(vote));
 
   @override
+  Future<List<FeatureVote>> featureVotes() async =>
+      (await _all('feature_votes', ServerRows.featureVote))
+          .whereType<FeatureVote>()
+          .toList();
+
+  @override
+  Future<void> addFeatureVote(FeatureVote vote) => _client
+      .from('feature_votes')
+      .insert(ServerRows.featureVoteInsert(vote));
+
+  @override
   Future<List<ClosureReport>> closureReports() =>
       _all('closures', ServerRows.closure);
 

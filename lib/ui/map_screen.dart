@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../community/community_service.dart';
 import '../community/local_migration.dart';
+import '../community/models.dart';
 import '../data/cities.dart';
 import '../models/city.dart';
 import '../models/smoking_area.dart';
@@ -187,7 +188,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       return;
     }
     final clusters = clusterAreas(
-      _repo.allVisible.where((a) => _visible.contains(a.category)),
+      // Spots with a trash can also show up when looking for trash cans.
+      _repo.allVisible.where((a) => _visible.any(a.offers)),
       visible: region,
       zoom: _camera.zoom,
     );
@@ -753,6 +755,13 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       notSameAs = existing.allIds;
     }
 
+    // A trash can at a smoking area or toilet (e.g. an ashtray with a bin)
+    // becomes a feature of that spot instead of a second marker.
+    if (category == SpotCategory.bin && mounted) {
+      final host = _nearestHost(position);
+      if (host != null && await _addBinToHost(host)) return;
+    }
+
     if (!mounted) return;
     final input = await showReportSpotSheet(context, category);
     if (!mounted || input == null) return;
@@ -772,6 +781,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       wheelchair: input.wheelchair,
       changingTable: input.changingTable,
       waste: input.waste,
+      bin: input.bin,
       photo: input.photo,
       notSameAs: notSameAs,
                 );
@@ -783,6 +793,62 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
           ? 'Thanks! Your spot is on the map – the photo is uploading.'
           : 'Thanks! Your spot is now on the map.'),
     ));
+  }
+
+  /// Nearest smoking area or toilet within the merge radius of reports.
+  SmokingArea? _nearestHost(LatLng position) {
+    const distance = Distance();
+    SmokingArea? best;
+    var bestDist = SmokingAreaRepository.mergeRadiusCommunity;
+    for (final a in _repo.allVisible) {
+      if (a.category == SpotCategory.bin) continue;
+      if ((a.latitude - position.latitude).abs() > 0.0005) continue;
+      final d = distance(position, a.position);
+      if (d <= bestDist) {
+        best = a;
+        bestDist = d;
+      }
+    }
+    return best;
+  }
+
+  /// Asks whether the trash can belongs to [host]; if so, records it as a
+  /// feature of [host]. Returns true when the report is done.
+  Future<bool> _addBinToHost(SmokingArea host) async {
+    final kind = host.category.label.toLowerCase();
+    final partOf = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Part of this $kind?'),
+        content: Text('"${host.title}" is right here. Is the trash can part '
+            'of it (e.g. an ashtray with a bin)? Then it is added to this '
+            '$kind instead of a new marker.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No, separate'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, add to it'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || partOf != true) return false;
+    final saved = await contribute(
+        context,
+        _community,
+        () => withProgress(
+            context,
+            () => _community.voteFeature(host, SpotFeature.bin,
+                value: true)),
+        reason: 'Sign in to add details.');
+    if (!mounted || !saved) return saved;
+    setState(() => _reportCategory = null);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Thanks! The $kind now shows a trash can.')));
+    return true;
   }
 
   void _showInfo(BuildContext context) {

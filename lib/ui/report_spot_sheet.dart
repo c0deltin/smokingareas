@@ -20,6 +20,7 @@ class SpotReportInput {
     this.wheelchair,
     this.changingTable,
     this.waste = const {},
+    this.bin,
   });
 
   final SpotCategory category;
@@ -28,6 +29,9 @@ class SpotReportInput {
 
   /// Trash cans: accepted waste (empty = not specified).
   final Set<WasteType> waste;
+
+  /// Smoking areas and toilets: has a trash can (null = not specified).
+  final bool? bin;
   final String name;
   final String? description;
   final bool? indoor;
@@ -94,6 +98,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
   bool _wheelchair = false;
   bool _changingTable = false;
   final Set<WasteType> _waste = {};
+  bool _hasBin = false;
   File? _photo;
 
   bool get _toilet => widget.category == SpotCategory.toilet;
@@ -115,6 +120,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
       _wheelchair = i.wheelchair ?? false;
       _changingTable = i.changingTable ?? false;
       _waste.addAll(i.waste);
+      _hasBin = i.bin ?? false;
     }
   }
 
@@ -208,6 +214,13 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
               ),
             ],
             ],
+            if (!_bin)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _hasBin,
+                onChanged: (v) => setState(() => _hasBin = v ?? false),
+                title: const Text('Has a trash can'),
+              ),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               value: _public,
@@ -270,6 +283,8 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                   wheelchair: _toilet ? _wheelchair : null,
                   changingTable: _toilet ? _changingTable : null,
                   waste: _bin ? {..._waste} : const {},
+                  // Unchecked means "not specified" for new spots.
+                  bin: _bin ? null : (_hasBin || _editing ? _hasBin : null),
                   publicAccess: _public,
                   accessNote: _public ? null : _accessNote.text,
                   photo: _photo,

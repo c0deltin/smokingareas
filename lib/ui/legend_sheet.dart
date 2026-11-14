@@ -50,6 +50,8 @@ List<(String, List<LegendEntry>)> legendSections() => [
         const [
           LegendEntry(SpotMarker(category: SpotCategory.toilet, closed: true),
               'Grey with pause badge: temporarily closed.'),
+          LegendEntry(SpotMarker(category: SpotCategory.smoking, bin: true),
+              'Orange badge: has a trash can.'),
         ],
       ),
       (

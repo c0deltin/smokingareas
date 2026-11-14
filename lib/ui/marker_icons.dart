@@ -35,8 +35,13 @@ class MarkerIcons {
           for (final indoor in [false, true])
             for (final o in SpotOrigin.values)
               for (final closed in [false, true])
-                ensureSpot(SpotMarker(
-                    category: c, indoor: indoor, origin: o, closed: closed)),
+                for (final bin in [false, if (c != SpotCategory.bin) true])
+                  ensureSpot(SpotMarker(
+                      category: c,
+                      indoor: indoor,
+                      origin: o,
+                      closed: closed,
+                      bin: bin)),
         _render('dot', LocationDotPainter.size, LocationDotPainter()),
       ]);
 

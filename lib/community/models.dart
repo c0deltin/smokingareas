@@ -49,6 +49,7 @@ class CommunitySpot {
     this.wheelchair,
     this.changingTable,
     this.waste,
+    this.bin,
     this.notSameAs = const [],
   });
 
@@ -77,6 +78,10 @@ class CommunitySpot {
   /// Trash cans: accepted waste as OSM `waste` value, e.g. `cans;plastic_bottles`.
   final String? waste;
 
+  /// Smoking areas and toilets: a trash can is part of the spot (OSM
+  /// `bin=yes`).
+  final bool? bin;
+
   /// Ids of places the reporter explicitly said this is *not* (answer "No,
   /// report new" to "Already on the map?"); never merged with those.
   final List<String> notSameAs;
@@ -97,6 +102,7 @@ class CommunitySpot {
         if (wheelchair != null) 'wheelchair': wheelchair,
         if (changingTable != null) 'changingTable': changingTable,
         if (waste != null) 'waste': waste,
+        if (bin != null) 'bin': bin,
         if (notSameAs.isNotEmpty) 'notSameAs': notSameAs,
         'createdBy': createdBy,
         'createdAt': createdAt.toIso8601String(),
@@ -118,6 +124,7 @@ class CommunitySpot {
         wheelchair: j['wheelchair'] as bool?,
         changingTable: j['changingTable'] as bool?,
         waste: j['waste'] as String?,
+        bin: j['bin'] as bool?,
         notSameAs: ((j['notSameAs'] as List?) ?? const []).cast<String>(),
         createdBy: j['createdBy'] as String,
         createdAt: DateTime.parse(j['createdAt'] as String),
@@ -228,6 +235,59 @@ class ExistenceVote {
         createdAt: DateTime.parse(j['createdAt'] as String),
         fingerprint: j['fingerprint'] as String?,
       );
+}
+
+/// Features of a spot the community can confirm or deny for any spot
+/// (official, OSM or reported). Names follow the OSM keys.
+enum SpotFeature {
+  /// A trash can is part of the spot (OSM `bin=yes`).
+  bin;
+
+  static SpotFeature? tryParse(String name) {
+    for (final f in values) {
+      if (f.name == name) return f;
+    }
+    return null;
+  }
+}
+
+/// A user's answer whether a spot has a [feature] ("Trash can here?").
+/// Append-only like [ExistenceVote]; see `FeaturePolicy`.
+class FeatureVote {
+  const FeatureVote({
+    required this.spotId,
+    required this.userId,
+    required this.feature,
+    required this.value,
+    required this.createdAt,
+  });
+
+  final String spotId;
+  final String userId;
+  final SpotFeature feature;
+  final bool value;
+  final DateTime createdAt;
+
+  Map<String, dynamic> toJson() => {
+        'spotId': spotId,
+        'userId': userId,
+        'feature': feature.name,
+        'value': value,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  /// Null for a feature this app version does not know.
+  static FeatureVote? fromJson(Map<String, dynamic> j) {
+    final feature = SpotFeature.tryParse(j['feature'] as String? ?? '');
+    if (feature == null) return null;
+    return FeatureVote(
+      spotId: j['spotId'] as String,
+      userId: j['userId'] as String,
+      feature: feature,
+      value: j['value'] as bool,
+      createdAt: DateTime.parse(j['createdAt'] as String),
+    );
+  }
 }
 
 /// "Temporarily closed" (closed = true) or "open again" (closed = false).
