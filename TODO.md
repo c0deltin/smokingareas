@@ -31,6 +31,8 @@ Agreed order (data first, then the server):
   refresh it occasionally from within Japan.
 - [ ] More official datasets: Osaka public toilets, Tokyo wards without data
   (Shibuya, Minato, Shinagawa, Nakano), further cities.
+- [ ] Trash cans from OSM (`amenity=waste_basket`, maybe `amenity=recycling`
+  next to vending machines) – check data volume of the weekly export first.
 
 ## App
 

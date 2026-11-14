@@ -33,7 +33,7 @@ Smoking on the street is banned in many Japanese cities. Find the nearest
 designated smoking area or public toilet – official data, OSM and community.
 
 **Keywords [100]:**
-smoking area,designated,japan,tokyo,osaka,kyoto,toilet,restroom,wc,map,travel,ashtray,rules,fine
+smoking area,designated,japan,tokyo,osaka,kyoto,toilet,restroom,wc,map,travel,ashtray,rules,trash
 
 **Description [4000]:**
 
@@ -53,6 +53,7 @@ USEFUL DETAILS
 • Indoor smoking room or outdoor area, covered, opening hours, fees
 • Access notes, e.g. "station platform – ticket only"
 • Public toilets with wheelchair access and baby changing tables
+• Trash cans reported by the community – and what they accept
 • Walking directions in Apple Maps or Google Maps
 
 OPTIONAL ALERT
@@ -89,7 +90,7 @@ cities, optional proximity alerts and community reports.
 多くの都市では路上喫煙が禁止されています。最寄りの指定喫煙所や公衆トイレを、自治体の公式データ・OpenStreetMap・利用者の投稿からすぐに見つけられます。
 
 **キーワード [100]:**
-喫煙所,喫煙スペース,指定喫煙所,公衆トイレ,トイレ,東京,大阪,京都,地図,路上喫煙,禁煙,旅行
+喫煙所,喫煙スペース,指定喫煙所,公衆トイレ,トイレ,東京,大阪,京都,地図,路上喫煙,禁煙,旅行,ゴミ箱
 
 **説明 [4000]:**
 
@@ -105,6 +106,7 @@ cities, optional proximity alerts and community reports.
 ・屋内喫煙室か屋外か、屋根の有無、利用時間、料金
 ・「駅構内（改札内）」などの利用条件
 ・公衆トイレの車いす対応、おむつ交換台
+・利用者が投稿したゴミ箱（分別の種類も表示）
 ・Appleマップ／Googleマップで徒歩ルートを表示
 
 近くに来たらお知らせ（任意）
@@ -129,7 +131,7 @@ In vielen japanischen Städten ist Rauchen auf der Straße verboten. Finde den
 nächsten ausgewiesenen Raucherbereich oder eine öffentliche Toilette.
 
 **Keywords [100]:**
-raucherbereich,rauchen,japan,tokio,osaka,kyoto,toilette,wc,karte,reise,rauchverbot,aschenbecher
+raucherbereich,rauchen,japan,tokio,osaka,kyoto,toilette,wc,karte,reise,rauchverbot,aschenbecher,müll
 
 **Beschreibung [4000]:**
 
@@ -149,6 +151,7 @@ NÜTZLICHE DETAILS
 • Raucherraum oder Außenbereich, überdacht, Öffnungszeiten, Gebühren
 • Zugangshinweise, z. B. „Bahnsteig – nur mit Ticket“
 • Öffentliche Toiletten mit Rollstuhlzugang und Wickeltisch
+• Von der Community gemeldete Mülleimer – und was hineindarf
 • Fußweg-Route in Apple Maps oder Google Maps
 
 OPTIONALE BENACHRICHTIGUNG

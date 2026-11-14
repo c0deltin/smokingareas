@@ -19,11 +19,15 @@ class SpotReportInput {
     this.category = SpotCategory.smoking,
     this.wheelchair,
     this.changingTable,
+    this.waste = const {},
   });
 
   final SpotCategory category;
   final bool? wheelchair;
   final bool? changingTable;
+
+  /// Trash cans: accepted waste (empty = not specified).
+  final Set<WasteType> waste;
   final String name;
   final String? description;
   final bool? indoor;
@@ -44,18 +48,12 @@ Future<SpotCategory?> askSpotCategory(BuildContext context) {
           padding: EdgeInsets.only(bottom: 8),
           child: Text('What do you want to report?'),
         ),
-        ListTile(
-          leading: Icon(categoryIcon(SpotCategory.smoking),
-              color: categoryColor(SpotCategory.smoking)),
-          title: const Text('Smoking area'),
-          onTap: () => Navigator.pop(context, SpotCategory.smoking),
-        ),
-        ListTile(
-          leading: Icon(categoryIcon(SpotCategory.toilet),
-              color: categoryColor(SpotCategory.toilet)),
-          title: const Text('Public toilet'),
-          onTap: () => Navigator.pop(context, SpotCategory.toilet),
-        ),
+        for (final c in SpotCategory.values)
+          ListTile(
+            leading: Icon(categoryIcon(c), color: categoryColor(c)),
+            title: Text(c.label),
+            onTap: () => Navigator.pop(context, c),
+          ),
       ]),
     ),
   );
@@ -95,9 +93,12 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
   bool? _covered;
   bool _wheelchair = false;
   bool _changingTable = false;
+  final Set<WasteType> _waste = {};
   File? _photo;
 
   bool get _toilet => widget.category == SpotCategory.toilet;
+  bool get _smoking => widget.category == SpotCategory.smoking;
+  bool get _bin => widget.category == SpotCategory.bin;
   bool get _editing => widget.initial != null;
 
   @override
@@ -113,6 +114,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
       _covered = i.covered;
       _wheelchair = i.wheelchair ?? false;
       _changingTable = i.changingTable ?? false;
+      _waste.addAll(i.waste);
     }
   }
 
@@ -145,9 +147,12 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
               maxLength: 80,
               decoration: InputDecoration(
                 labelText: 'Name / place',
-                hintText: _toilet
-                    ? 'e.g. "Toilet at the park entrance"'
-                    : 'e.g. "Smoking corner next to FamilyMart"',
+                hintText: switch (widget.category) {
+                  SpotCategory.toilet => 'e.g. "Toilet at the park entrance"',
+                  SpotCategory.bin => 'e.g. "Bins next to the vending machines"',
+                  SpotCategory.smoking =>
+                    'e.g. "Smoking corner next to FamilyMart"',
+                },
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -165,7 +170,21 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 title: const Text('Baby changing'),
               ),
             ],
-            if (!_toilet) ...[
+            if (_bin) ...[
+              const SizedBox(height: 8),
+              Text('Accepts', style: theme.textTheme.labelLarge),
+              const SizedBox(height: 4),
+              Wrap(spacing: 8, children: [
+                for (final t in WasteType.values)
+                  FilterChip(
+                    label: Text(t.label),
+                    selected: _waste.contains(t),
+                    onSelected: (on) => setState(
+                        () => on ? _waste.add(t) : _waste.remove(t)),
+                  ),
+              ]),
+            ],
+            if (_smoking) ...[
             const SizedBox(height: 8),
             Text('Type', style: theme.textTheme.labelLarge),
             const SizedBox(height: 4),
@@ -212,10 +231,12 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
               controller: _description,
               maxLines: 3,
               maxLength: 280,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Note (optional)',
-                hintText: 'Opening hours, ashtray, access …',
-                border: OutlineInputBorder(),
+                hintText: _bin
+                    ? 'Where exactly, how to find it …'
+                    : 'Opening hours, ashtray, access …',
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 8),
@@ -243,11 +264,12 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 SpotReportInput(
                   name: _name.text,
                   description: _description.text,
-                  indoor: _toilet ? null : _indoor,
-                  covered: _toilet || _indoor == true ? null : _covered,
+                  indoor: _smoking ? _indoor : null,
+                  covered: !_smoking || _indoor == true ? null : _covered,
                   category: widget.category,
                   wheelchair: _toilet ? _wheelchair : null,
                   changingTable: _toilet ? _changingTable : null,
+                  waste: _bin ? {..._waste} : const {},
                   publicAccess: _public,
                   accessNote: _public ? null : _accessNote.text,
                   photo: _photo,

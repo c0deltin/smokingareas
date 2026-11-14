@@ -14,8 +14,9 @@ The app's user interface is in English.
   outdoor, covered, fee, opening hours, operator, access; for toilets
   wheelchair access and baby changing table) and walking directions via Apple
   Maps / Google Maps.
-- Two categories, visually distinct: **smoking areas in green** (darker green
-  for smoking rooms) and **public toilets in blue** with a WC icon. Each
+- Three categories, visually distinct: **smoking areas in green** (darker
+  green for smoking rooms), **public toilets in blue** with a WC icon and
+  **trash cans in orange** (reported by users only). Each
   category has its own coloured cluster layer and a filter chip to show or
   hide it. Marker rings show the origin: gold = official list, pink =
   reported by a user. The status banner shows the nearest smoking area and
@@ -179,10 +180,12 @@ map section (zoom).
 
 ## Community (report spots, photos, ratings)
 
-- **Report a spot:** “Report” button → choose *smoking area* or *public
-  toilet* → move the map until the cross hair is on the spot → name, type
-  (outdoor / smoking room) and covered for smoking areas, wheelchair access
-  and baby changing table for toilets, note and optionally a photo. A “publicly accessible” checkbox (no ticket,
+- **Report a spot:** “Report” button → choose *smoking area*, *public
+  toilet* or *trash can* → move the map until the cross hair is on the spot
+  → name, type (outdoor / smoking room) and covered for smoking areas,
+  wheelchair access and baby changing table for toilets, accepted waste
+  (general waste, cans, PET bottles – OSM `waste=*`) for trash cans, note
+  and optionally a photo. A “publicly accessible” checkbox (no ticket,
   entrance fee or purchase required); if unchecked – e.g. on a station
   platform or inside a sight – the access can be described (stored using the
   OSM schema `access=customers` + `access:note`). If a spot of the same

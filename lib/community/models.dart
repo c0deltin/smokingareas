@@ -48,6 +48,7 @@ class CommunitySpot {
     this.category = 'smoking',
     this.wheelchair,
     this.changingTable,
+    this.waste,
     this.notSameAs = const [],
   });
 
@@ -66,12 +67,15 @@ class CommunitySpot {
   /// How to get there when it is not public ("nur mit Bahnticket" …).
   final String? accessNote;
 
-  /// `smoking` or `toilet` (name of a `SpotCategory`).
+  /// `smoking`, `toilet` or `bin` (name of a `SpotCategory`).
   final String category;
 
   /// Toilets: wheelchair accessible / baby changing table.
   final bool? wheelchair;
   final bool? changingTable;
+
+  /// Trash cans: accepted waste as OSM `waste` value, e.g. `cans;plastic_bottles`.
+  final String? waste;
 
   /// Ids of places the reporter explicitly said this is *not* (answer "No,
   /// report new" to "Already on the map?"); never merged with those.
@@ -92,6 +96,7 @@ class CommunitySpot {
         if (category != 'smoking') 'category': category,
         if (wheelchair != null) 'wheelchair': wheelchair,
         if (changingTable != null) 'changingTable': changingTable,
+        if (waste != null) 'waste': waste,
         if (notSameAs.isNotEmpty) 'notSameAs': notSameAs,
         'createdBy': createdBy,
         'createdAt': createdAt.toIso8601String(),
@@ -112,6 +117,7 @@ class CommunitySpot {
         category: j['category'] as String? ?? 'smoking',
         wheelchair: j['wheelchair'] as bool?,
         changingTable: j['changingTable'] as bool?,
+        waste: j['waste'] as String?,
         notSameAs: ((j['notSameAs'] as List?) ?? const []).cast<String>(),
         createdBy: j['createdBy'] as String,
         createdAt: DateTime.parse(j['createdAt'] as String),

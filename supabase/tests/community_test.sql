@@ -69,6 +69,24 @@ select tests.expect(
   and (select id from spots) like 'community:%',
   'spot gets the author and a community id');
 
+-- Trash cans with the accepted waste; the author may change it.
+insert into spots (id, lat, lon, name, category, waste)
+  values ('community:bin', 35.6901, 139.7001, 'Trash can', 'bin',
+          'cans;plastic_bottles');
+update spots set waste = 'trash' where id = 'community:bin';
+select tests.expect(
+  (select waste from spots where id = 'community:bin') = 'trash',
+  'trash cans store and update the accepted waste');
+select tests.expect_error(
+  $$insert into spots (lat, lon, name, category, waste)
+    values (35.69, 139.70, 'Bad', 'bin', 'batteries')$$,
+  'spots_waste_check');
+select tests.expect_error(
+  $$insert into spots (lat, lon, name, category)
+    values (35.69, 139.70, 'Bad', 'vending_machine')$$,
+  'spots_category_check');
+delete from spots where id = 'community:bin';
+
 -- Author and timestamps cannot be chosen by the client.
 select tests.expect_error(
   $$insert into spots (lat, lon, name, created_by)

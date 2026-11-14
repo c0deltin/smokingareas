@@ -771,6 +771,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       category: input.category,
       wheelchair: input.wheelchair,
       changingTable: input.changingTable,
+      waste: input.waste,
       photo: input.photo,
       notSameAs: notSameAs,
                 );
@@ -793,7 +794,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       children: [
         const Text(
           'Shows public smoking areas (喫煙所, green) and public toilets '
-          '(公衆トイレ, blue) in all major Japanese cities. Many Japanese '
+          '(公衆トイレ, blue) in all major Japanese cities, plus trash cans '
+          '(ゴミ箱, orange) reported by users. Many Japanese '
           'cities ban smoking on the street and only allow it in designated '
           'areas.\n\n'
           'With alerts on you get a notification as soon as you come close '
