@@ -161,6 +161,9 @@ class ProximityMonitor extends ChangeNotifier {
                 notificationText: 'You will be notified when a smoking area '
                     'is within ${_alertRadius.round()} m.',
                 notificationChannelName: 'Location monitoring',
+                notificationIcon: const AndroidResource(
+                    name: NotificationService.androidIcon),
+                color: NotificationService.accent,
                 enableWakeLock: true,
                 setOngoing: true,
               )

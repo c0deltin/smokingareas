@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Color;
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -16,13 +17,22 @@ class NotificationService {
   static const _channelId = 'smoking_area_nearby';
   static const _channelName = 'Smoking area nearby';
 
+  /// Monochrome status bar icon (`res/drawable/ic_stat_ippuku.xml`) and the
+  /// app's blue as accent; the launcher icon is a full-colour square and
+  /// shows up as a blank blob in the status bar.
+  static const androidIcon = 'ic_stat_ippuku';
+  static const accent = Color(0xFF2563EB);
+
+  /// Title of the proximity alert (the app name is shown by the system).
+  static const nearbyTitle = 'Smoking area nearby';
+
   /// Called with the area id when the user taps a notification.
   void Function(String areaId)? onTap;
 
   Future<void> init() async {
     if (_initialized) return;
     const settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings(androidIcon),
       iOS: DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -65,7 +75,7 @@ class NotificationService {
     final meters = distanceMeters.round();
     await _plugin.show(
       id: area.id.hashCode & 0x7fffffff,
-      title: 'Smoking area nearby 🚬',
+      title: nearbyTitle,
       body: '${area.title} – about $meters m away. Tap to open the map.',
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -76,6 +86,8 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           category: AndroidNotificationCategory.navigation,
+          icon: androidIcon,
+          color: accent,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
