@@ -3,8 +3,8 @@
 Japan, for in-app data updates.
 
 Instead of every installed app querying the public Overpass API, CI queries
-it once a week – one request per prefecture, with pauses in between – and
-publishes the result next to the official snapshot:
+it once a week – one request per region (a group of prefectures), with
+pauses in between – and publishes the result next to the official snapshot:
 
   osm_tiles.txt.gz         all of Japan in tiles of 1° × 1° (format 2):
                            line 1: {"format", "generated", "count", "tiles"}
@@ -16,8 +16,8 @@ publishes the result next to the official snapshot:
   osm-manifest.json        its manifest
 
 Elements are in Overpass JSON form (type, id, lat, lon, tags – only the tags
-the app uses; tiles also carry the prefecture code "p"). `generated` only
-changes when the data changes. A prefecture that still fails after all
+the app uses; tiles also carry the region code "p"). `generated` only
+changes when the data changes. A region that still fails after all
 retries keeps its elements of the last published export; without one, or
 when the result looks incomplete, nothing is written and the published data
 stays.
@@ -55,17 +55,29 @@ FORMAT = 1
 TILES_FORMAT = 2
 # ISO 3166-2 codes JP-01 (Hokkaidō) … JP-47 (Okinawa).
 PREFECTURES = [f"{i:02d}" for i in range(1, 48)]
+# One Overpass request per region: area filters take about a minute each,
+# so 47 single prefectures did not fit into the time budget.
+REGIONS = {
+    "hokkaido": ["01"],
+    "tohoku": ["02", "03", "04", "05", "06", "07"],
+    "kanto": ["08", "09", "10", "11", "12", "13", "14"],
+    "chubu": ["15", "16", "17", "18", "19", "20", "21", "22", "23"],
+    "kinki": ["24", "25", "26", "27", "28", "29", "30"],
+    "chugoku": ["31", "32", "33", "34", "35"],
+    "shikoku": ["36", "37", "38", "39"],
+    "kyushu": ["40", "41", "42", "43", "44", "45", "46", "47"],
+}
 PAUSE_SECONDS = 10
 # Busy public servers answer with 429/504 now and then: retry each request
 # a few times with growing pauses before giving up.
 RETRIES = 3
 RETRY_PAUSE_SECONDS = 30
 # Server-side query timeout and client timeout per request (seconds).
-QUERY_TIMEOUT = 120
-# Stop querying after this long (the CI step has a hard limit of 40 min);
-# remaining prefectures then count as failed.
-DEADLINE_SECONDS = 30 * 60
-REQUEST_TIMEOUT = 150
+QUERY_TIMEOUT = 300
+# Stop querying after this long (the CI step has a hard limit of 80 min);
+# remaining regions then count as failed.
+DEADLINE_SECONDS = 70 * 60
+REQUEST_TIMEOUT = 330
 
 # Tags the app reads (lib/models/smoking_area.dart); everything else is
 # dropped to keep the download small.
@@ -91,11 +103,12 @@ def city_bounds(dart_source: str) -> list[tuple[str, tuple[float, float, float, 
     return out
 
 
-def build_query(prefecture: str) -> str:
-    """Smoking areas and public toilets of one prefecture (JP-<code>)."""
+def build_query(region: str) -> str:
+    """Smoking areas and public toilets of the prefectures of a region."""
+    codes = "|".join(REGIONS[region])
     return (
         f"[out:json][timeout:{QUERY_TIMEOUT}];\n"
-        f'area["ISO3166-2"="JP-{prefecture}"]->.a;\n'
+        f'area["ISO3166-2"~"^JP-({codes})$"]->.a;\n'
         "(\n"
         '  nwr["amenity"~"^(smoking_area|smoking_room)$"](area.a);\n'
         '  nwr["smoking"="dedicated"](area.a);\n'
@@ -194,15 +207,15 @@ def published_tiles() -> list[dict]:
         return []
 
 
-def collect(prefectures, query, previous, clock=time.monotonic) -> list[dict]:
-    """Queries prefecture by prefecture and marks every element with its
-    prefecture ("p"). A prefecture that still fails after all retries keeps
-    its elements of the last published export; without a published export
-    the whole run is given up (raises)."""
+def collect(regions, query, previous, clock=time.monotonic) -> list[dict]:
+    """Queries region by region and marks every element with its region
+    ("p"). A region that still fails after all retries keeps its elements
+    of the last published export; without a published export the whole run
+    is given up (raises)."""
     raw: list[dict] = []
     old: list[dict] | None = None
     deadline = clock() + DEADLINE_SECONDS
-    for i, pref in enumerate(prefectures):
+    for i, pref in enumerate(regions):
         if i:
             time.sleep(PAUSE_SECONDS)  # be gentle with the public servers
         try:
@@ -210,7 +223,7 @@ def collect(prefectures, query, previous, clock=time.monotonic) -> list[dict]:
                 raise TimeoutError("time budget used up")
             got = query(build_query(pref))
             raw += [{**e, "p": pref} for e in got]
-            print(f"OSM: JP-{pref} – {len(got)} elements", flush=True)
+            print(f"OSM: {pref} – {len(got)} elements", flush=True)
         except Exception as e:  # noqa: BLE001
             if old is None:
                 old = previous()
@@ -218,7 +231,7 @@ def collect(prefectures, query, previous, clock=time.monotonic) -> list[dict]:
                 raise
             kept = [el for el in old if el.get("p") == pref]
             raw += kept
-            print(f"OSM: JP-{pref} failed ({e}) – kept {len(kept)} published "
+            print(f"OSM: {pref} failed ({e}) – kept {len(kept)} published "
                   f"elements", flush=True)
     return raw
 
@@ -286,7 +299,7 @@ def main() -> int:
     out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "dist" / "opendata"
     cities = city_bounds(CITIES.read_text(encoding="utf-8"))
     try:
-        raw = collect(PREFECTURES, overpass, published_tiles)
+        raw = collect(list(REGIONS), overpass, published_tiles)
     except Exception as e:  # noqa: BLE001
         print(f"OSM export skipped, published data stays: {e}", flush=True)
         return 0
