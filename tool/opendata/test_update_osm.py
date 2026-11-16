@@ -17,7 +17,8 @@ class OsmExportTest(unittest.TestCase):
         self.assertAlmostEqual(n - s, 2 * 16 / 111.32, places=4)
 
     def test_query_covers_all_categories(self):
-        q = osm.build_query([(35.6, 139.6, 35.7, 139.8)])
+        q = osm.build_query("13")
+        self.assertIn('area["ISO3166-2"="JP-13"]', q)
         self.assertIn('"amenity"="toilets"', q)
         self.assertIn("smoking_area|smoking_room", q)
         self.assertIn('"smoking"="dedicated"', q)
@@ -73,29 +74,31 @@ class OsmExportTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             osm.overpass("q", sleep=lambda s: None, fetch=fetch)
 
-    def test_failed_chunk_keeps_published_elements(self):
-        cities = [("a", (35.0, 139.0, 35.1, 139.1)), ("b", (34.0, 135.0, 34.1, 135.1)),
-                  ("c", (43.0, 141.0, 43.1, 141.1)), ("d", (33.0, 130.0, 33.1, 130.1)),
-                  ("e", (38.0, 140.0, 38.1, 140.1))]
+    def test_every_prefecture_is_queried(self):
+        self.assertEqual(len(osm.PREFECTURES), 47)
+        self.assertEqual(osm.PREFECTURES[0], "01")
+        self.assertEqual(osm.PREFECTURES[-1], "47")
+
+    def test_failed_prefecture_keeps_published_elements(self):
         calls = []
 
         def query(q):
             calls.append(q)
-            if len(calls) == 2:  # second chunk (city e) fails
+            if len(calls) == 2:  # JP-13 fails
                 raise RuntimeError("504")
             return [{"type": "node", "id": 1, "lat": 35.05, "lon": 139.05}]
 
         published = [
-            {"type": "node", "id": 7, "lat": 38.05, "lon": 140.05},  # in e
-            {"type": "node", "id": 8, "lat": 35.05, "lon": 139.05},  # in a
+            {"type": "node", "id": 7, "lat": 35.68, "lon": 139.76, "p": "13"},
+            {"type": "node", "id": 8, "lat": 35.05, "lon": 139.05, "p": "14"},
         ]
         old_pause = osm.PAUSE_SECONDS
         osm.PAUSE_SECONDS = 0
         try:
-            raw = osm.collect(cities, query, lambda: published)
+            raw = osm.collect(["14", "13"], query, lambda: published)
         finally:
             osm.PAUSE_SECONDS = old_pause
-        self.assertEqual([e["id"] for e in raw], [1, 7])
+        self.assertEqual([(e["id"], e["p"]) for e in raw], [(1, "14"), (7, "13")])
 
     def test_failed_chunk_without_published_export_gives_up(self):
         def query(q):
@@ -105,7 +108,7 @@ class OsmExportTest(unittest.TestCase):
         osm.PAUSE_SECONDS = 0
         try:
             with self.assertRaises(RuntimeError):
-                osm.collect([("a", (35.0, 139.0, 35.1, 139.1))], query, lambda: [])
+                osm.collect(["13"], query, lambda: [])
         finally:
             osm.PAUSE_SECONDS = old_pause
 
@@ -116,17 +119,56 @@ class OsmExportTest(unittest.TestCase):
             t[0] += osm.DEADLINE_SECONDS + 1  # every query uses up the budget
             return [{"type": "node", "id": 1, "lat": 35.05, "lon": 139.05}]
 
-        cities = [(str(i), (35.0, 139.0, 35.1, 139.1)) for i in range(8)]
         old_pause = osm.PAUSE_SECONDS
         osm.PAUSE_SECONDS = 0
         try:
-            raw = osm.collect(cities, query,
-                              lambda: [{"type": "node", "id": 9, "lat": 35.05, "lon": 139.05}],
+            raw = osm.collect(["13", "14"], query,
+                              lambda: [{"type": "node", "id": 9, "lat": 35.05,
+                                        "lon": 139.05, "p": "14"}],
                               clock=lambda: t[0])
         finally:
             osm.PAUSE_SECONDS = old_pause
-        # first chunk queried, second over budget -> published elements kept
+        # first prefecture queried, second over budget -> published elements kept
         self.assertEqual([e["id"] for e in raw], [1, 9])
+
+    def test_tiles_file_round_trip(self):
+        elements = osm.normalize([
+            {"type": "node", "id": 1, "lat": 35.68, "lon": 139.76, "p": "13",
+             "tags": {"amenity": "toilets"}},
+            {"type": "node", "id": 2, "lat": 34.59, "lon": 133.77, "p": "33",
+             "tags": {"amenity": "smoking_area"}},
+            {"type": "node", "id": 3, "lat": 35.10, "lon": 139.99, "p": "13", "tags": {}},
+        ])
+        snapshot, manifest = osm.build(elements, None,
+                                       datetime(2026, 11, 16, tzinfo=timezone.utc),
+                                       osm.TILES_FORMAT)
+        text = osm.tiles_text(snapshot)
+        lines = text.strip().split("\n")
+        self.assertEqual(len(lines), 3)  # header + tiles 34_133 and 35_139
+        self.assertTrue(lines[1].startswith("34_133\t"))
+        self.assertTrue(lines[2].startswith("35_139\t"))
+        header, back = osm.parse_tiles(text)
+        self.assertEqual(header["format"], 2)
+        self.assertEqual(header["count"], 3)
+        self.assertEqual(sorted(e["id"] for e in back), [1, 2, 3])
+        self.assertEqual(osm.tile_counts(elements), {"34_133": 1, "35_139": 2})
+        self.assertEqual(manifest["format"], 2)
+
+    def test_city_export_is_derived_from_japan(self):
+        elements = [
+            {"type": "node", "id": 1, "lat": 35.05, "lon": 139.05, "p": "13", "tags": {}},
+            {"type": "node", "id": 2, "lat": 34.59, "lon": 133.77, "p": "33", "tags": {}},
+        ]
+        city = osm.city_elements(elements, [("a", (35.0, 139.0, 35.1, 139.1))])
+        self.assertEqual(city, [{"type": "node", "id": 1, "lat": 35.05,
+                                 "lon": 139.05, "tags": {}}])
+
+    def test_normalize_keeps_the_first_prefecture(self):
+        out = osm.normalize([
+            {"type": "way", "id": 5, "center": {"lat": 35.5, "lon": 139.5}, "p": "13"},
+            {"type": "way", "id": 5, "center": {"lat": 35.5, "lon": 139.5}, "p": "14"},
+        ])
+        self.assertEqual(out[0]["p"], "13")
 
     def test_bundle_only_takes_newer_exports(self):
         self.assertTrue(bundle.newer({"generated": "2026-11-12T00:00:00Z"}, None))
