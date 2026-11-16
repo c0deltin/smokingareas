@@ -36,11 +36,11 @@ jobs:
       - name: Package snapshot
         run: python3 tool/opendata/package_snapshot.py dist/opendata
 
-      # OpenStreetMap data of all of Japan (one query per region, in
+      # OpenStreetMap data of all of Japan (one query per 2° box, in
       # 1° tiles) plus the city-only file for older apps, so installed apps
       # do not query the public Overpass servers themselves. A failing
-      # region keeps its published data; skipped when there is none or
-      # the result looks incomplete.
+      # box keeps its published data (else its area is left out);
+      # skipped when the result looks incomplete.
       - name: Export OpenStreetMap data
         timeout-minutes: 80
         run: python3 -u tool/opendata/update_osm.py dist/opendata

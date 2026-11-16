@@ -201,13 +201,18 @@ class SmokingAreaRepository extends ChangeNotifier {
   }
 
   Future<void> _ensureBundled() => _bundledLoading ??= () async {
-        _tilesReady = ((await tiles?.index())?.count ?? 0) > 0;
+        final index = await tiles?.index();
+        _tilesReady = (index?.count ?? 0) > 0;
         final out = <SmokingArea>[];
         for (final s in sources.where((s) => s.isBundled)) {
-          // The city-only OSM snapshot is not needed when tiles exist.
-          if (_tilesReady && s.id == 'osm') continue;
           try {
-            out.addAll(await s.fetch(japan));
+            final areas = await s.fetch(japan);
+            // The city-only OSM snapshot only fills areas without tiles
+            // (e.g. an export where part of Japan could not be queried).
+            out.addAll(_tilesReady && s.id == 'osm'
+                ? areas.where((a) =>
+                    !index!.tiles.containsKey(OsmTileStore.tileOf(a.position)))
+                : areas);
           } catch (e) {
             _bundledErrors.add('${s.displayName}: $e');
           }
