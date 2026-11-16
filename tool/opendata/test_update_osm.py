@@ -143,6 +143,11 @@ class OsmExportTest(unittest.TestCase):
         finally:
             osm.PAUSE_SECONDS = old_pause
 
+    def test_missing_boxes_are_queried_first(self):
+        published = [{"p": "b34_132"}, {"p": "b34_138"}]
+        order = osm.query_order([(34, 132), (42, 140), (34, 138), (44, 142)], published)
+        self.assertEqual(order, [(42, 140), (44, 142), (34, 132), (34, 138)])
+
     def test_time_budget(self):
         t = [0.0]
 
