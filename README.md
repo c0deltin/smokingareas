@@ -1,7 +1,7 @@
 # Ippuku 🗾
 
 Flutter app for **iOS and Android** that shows public smoking areas (喫煙所)
-and public toilets (公衆トイレ) in all major Japanese cities on a map and sends a
+and public toilets (公衆トイレ) all over Japan on a map and sends a
 **push notification** as soon as you get close to a smoking area (default
 **30 m**, configurable) –
 even while the app runs in the background.
@@ -87,7 +87,7 @@ works automatically. Official data needs a source in
 
 | Source | Area | Access | Licence |
 |---|---|---|---|
-| **OpenStreetMap** via the public **Overpass API** – `amenity=smoking_area`, `amenity=smoking_room`, `smoking=dedicated`, and `amenity=toilets` without `access=private/no/customers/permit` | all of Japan (export; the app currently shows the covered cities) | weekly export by CI per prefecture (`tool/opendata/update_osm.py`, 1° tiles), bundled with every app build (`use_published_osm.py`) and updated in the app like the official data | ODbL |
+| **OpenStreetMap** via the public **Overpass API** – `amenity=smoking_area`, `amenity=smoking_room`, `smoking=dedicated`, and `amenity=toilets` without `access=private/no/customers/permit` | all of Japan (the app loads the 1° tiles around the map and the user) | weekly export by CI per region (`tool/opendata/update_osm.py`, 1° tiles), bundled with every app build (`use_published_osm.py`) and updated in the app like the official data | ODbL |
 | City of Kyoto – open data portal, dataset “施設情報一覧”, category 喫煙場所 | Kyoto | snapshot | CC BY 4.0 |
 | City of Osaka – list of 大阪市指定喫煙所 (coordinates taken from the GIS links) | Osaka | snapshot | published by the city |
 | Tokyo, Kōtō ward – open data “公共喫煙所一覧” | Kameido, Tōyōchō, Shin-Kiba … | snapshot | CC BY 4.0 |
@@ -261,7 +261,7 @@ OSM id is still taken into account.
 ```
 lib/
   main.dart                          app start-up and wiring
-  data/cities.dart                   covered cities (centre + radius)
+  data/cities.dart                   quick-jump places (centre + radius)
   data/districts.dart                popular districts for quick jumps
   models/                            SmokingArea, City, GeoBounds
   sources/

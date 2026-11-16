@@ -54,9 +54,17 @@ Everything is **English**: UI, docs and code comments.
 Key design decisions – keep them:
 
 - **One merged data set, no source selection for users.** All sources
-  (bundled official snapshot, live OSM per city, community spots) are merged
-  in `SmokingAreaRepository.allVisible`. City/district selection only moves the
+  (bundled official snapshot, OSM tiles, community spots) are merged in
+  `SmokingAreaRepository.allVisible`. City/district selection only moves the
   map; it never filters data.
+- **All of Japan via tiles:** OSM data of all of Japan lives on the device
+  as 1° tiles (`OsmTileStore`, `lib/services/osm_tiles.dart`): installed
+  line by line from the bundled `assets/opendata/osm_tiles.txt.gz` (an empty
+  placeholder in git, filled by `use_published_osm.py` before builds) or
+  from updates (`OsmTileUpdater`). The repository loads only the tiles
+  around the map (`MapScreen` camera idle) and the user (`loadAround`), at
+  most `maxTiles` (LRU). The city-only OSM snapshot is just a fallback until
+  tiles are installed. `cities.dart` is a quick-jump list, not coverage.
 - **No duplicate markers.** `SmokingAreaRepository.merge` matches official
   entries 1:1 with OSM points (25 m precise / 50 m geocoded), then absorbs
   user reports into official/OSM entries (25 m, 1:1; the report id becomes
@@ -210,7 +218,7 @@ Run `flutter analyze` and `flutter test` before every commit.
   from secrets (`MAPS_API_KEY`), never from the repository.
 - **OSM servers:** apps do not query Overpass: `tool/opendata/update_osm.py`
   exports the OSM data of all of Japan weekly (`opendata.yml`, one query per
-  prefecture) into the data release as 1° tiles (`osm_tiles.txt.gz`, format
+  region of prefectures) into the data release as 1° tiles (`osm_tiles.txt.gz`, format
   2) plus the city-only `osm_spots.json.gz` (format 1) for older apps; app builds bundle the latest one (`use_published_osm.py` →
   `assets/opendata/osm_spots.json`, generated – never edit by hand);
   `OsmSnapshotSource` serves it, `OverpassSource` is only a live fallback

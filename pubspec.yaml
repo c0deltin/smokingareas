@@ -77,6 +77,9 @@ flutter:
   assets:
     - assets/opendata/official_smoking_areas.json
     - assets/opendata/osm_spots.json
+    # All of Japan in tiles; an empty placeholder in the repository, filled
+    # by tool/opendata/use_published_osm.py before every app build.
+    - assets/opendata/osm_tiles.txt.gz
 
   # To add assets to your application, add an assets section, like this:
   # assets:

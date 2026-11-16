@@ -14,6 +14,7 @@ import 'community/local_migration.dart';
 import 'community/photo_storage.dart';
 import 'community/server_backend.dart';
 import 'services/heading_service.dart';
+import 'services/osm_tiles.dart';
 import 'services/proximity_monitor.dart';
 import 'services/smoking_area_repository.dart';
 import 'services/snapshot_updater.dart';
@@ -31,21 +32,41 @@ Future<void> main() async {
     loader: snapshots.preferNewer(() =>
         rootBundle.loadString('assets/opendata/official_smoking_areas.json')),
   );
-  // OpenStreetMap: the weekly export (downloaded like the official data);
-  // live Overpass queries only until the first export is on the device.
+  // OpenStreetMap: all of Japan in tiles (weekly export, bundled and
+  // updated like the official data). Until the tiles are installed, the
+  // older city-only export; live Overpass queries only without either.
+  final tiles = OsmTileStore(getApplicationSupportDirectory);
   final osmStore = SnapshotStore(getApplicationSupportDirectory,
       fileName: 'osm_snapshot.json', metaName: 'osm-meta.json');
   final osm = OsmSnapshotSource(osmStore.preferNewer(() =>
       rootBundle.loadString('assets/opendata/osm_spots.json')));
-  final repository = SmokingAreaRepository(sources: [
-    official,
-    osm,
-    OverpassSource(isFallbackActive: () => !osm.hasData),
-  ]);
+  late final SmokingAreaRepository repository;
+  repository = SmokingAreaRepository(
+    sources: [
+      official,
+      osm,
+      OverpassSource(
+          isFallbackActive: () => !osm.hasData && !repository.usesTiles),
+    ],
+    tiles: tiles,
+  );
   final updater = DataUpdaters([
     SnapshotUpdater(store: snapshots, source: official),
     SnapshotUpdater(store: osmStore, source: osm),
+    OsmTileUpdater(store: tiles, onUpdated: repository.reloadTiles),
   ]);
+  // Splitting the bundled tiles takes a moment on the first start: in the
+  // background, the city-only data is shown meanwhile.
+  unawaited(installBundledTiles(tiles, () async {
+    try {
+      final data = await rootBundle.load('assets/opendata/osm_tiles.txt.gz');
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    } catch (_) {
+      return null;
+    }
+  }).then((installed) async {
+    if (installed) await repository.reloadTiles();
+  }));
   // Official data for all of Japan + everything cached on the device: shown
   // on the very first frame, before any network request.
   await repository.warmUp();

@@ -11,6 +11,7 @@ import '../models/smoking_area.dart';
 import '../sources/official_opendata_source.dart';
 import '../sources/overpass_source.dart';
 import '../sources/smoking_area_source.dart';
+import 'osm_tiles.dart';
 
 /// Result of loading the smoking areas of one city.
 class CityAreas {
@@ -37,6 +38,10 @@ class CityAreas {
 ///
 /// * Bundled sources (the official municipal snapshot) are available
 ///   immediately after [warmUp] – for every city, without network.
+/// * OpenStreetMap data of all of Japan comes in 1° tiles ([tiles]); only
+///   the tiles around the map and the user are loaded ([ensureRegion]), at
+///   most [maxTiles] at a time. Without tiles on the device the older
+///   city-only OSM snapshot (bundled source `osm`) is used instead.
 /// * Live sources (OpenStreetMap) are fetched per city, cached on disk per
 ///   source and loaded from that cache at start-up as well.
 /// * [allVisible] combines everything into one list without duplicates, so the
@@ -46,12 +51,20 @@ class SmokingAreaRepository extends ChangeNotifier {
     List<SmokingAreaSource>? sources,
     Future<Directory> Function()? cacheDirectory,
     this.maxAge = const Duration(days: 7),
+    this.tiles,
+    this.maxTiles = 24,
   })  : sources = sources ?? [OfficialOpenDataSource(), OverpassSource()],
         _cacheDirectory = cacheDirectory ?? getApplicationSupportDirectory;
 
   final List<SmokingAreaSource> sources;
   final Future<Directory> Function() _cacheDirectory;
   final Duration maxAge;
+
+  /// OSM data of all of Japan in tiles (null: city-only OSM snapshot).
+  final OsmTileStore? tiles;
+
+  /// Tiles kept in memory at most (least recently used ones are dropped).
+  final int maxTiles;
 
   /// Whole of Japan – used to read bundled sources completely.
   static const japan = GeoBounds(south: 20, west: 122, north: 46, east: 154);
@@ -77,6 +90,14 @@ class SmokingAreaRepository extends ChangeNotifier {
   List<SmokingArea>? _visible;
   bool _warmedUp = false;
 
+  /// Loaded tiles in the order of their last use (oldest first).
+  final Map<String, List<SmokingArea>> _tileAreas = {};
+  final Map<String, Future<List<SmokingArea>>> _tileLoads = {};
+  bool _tilesReady = false;
+
+  /// True when OSM data comes from tiles (all of Japan).
+  bool get usesTiles => _tilesReady;
+
   List<String> get attributions =>
       sources.map((s) => s.attribution).toList(growable: false);
 
@@ -94,6 +115,7 @@ class SmokingAreaRepository extends ChangeNotifier {
       // Bundled/downloaded data first: an OSM element that is also in an
       // older live cache is used once, from the newer export.
       for (final a in [
+        for (final list in _tileAreas.values) ...list,
         ..._bundled,
         for (final snap in _cities.values)
           for (final list in snap.raw.values) ...list,
@@ -179,8 +201,11 @@ class SmokingAreaRepository extends ChangeNotifier {
   }
 
   Future<void> _ensureBundled() => _bundledLoading ??= () async {
+        _tilesReady = ((await tiles?.index())?.count ?? 0) > 0;
         final out = <SmokingArea>[];
         for (final s in sources.where((s) => s.isBundled)) {
+          // The city-only OSM snapshot is not needed when tiles exist.
+          if (_tilesReady && s.id == 'osm') continue;
           try {
             out.addAll(await s.fetch(japan));
           } catch (e) {
@@ -207,8 +232,74 @@ class SmokingAreaRepository extends ChangeNotifier {
     });
   }
 
+  // ---------------------------------------------------------------------
+  // OSM tiles
+  // ---------------------------------------------------------------------
+
+  /// Loads the OSM tiles overlapping [bounds] (when there are at most
+  /// [maxTiles] of them – further out the map shows what is loaded) and
+  /// drops the least recently used tiles beyond [maxTiles].
+  Future<void> ensureRegion(GeoBounds bounds) async {
+    final store = tiles;
+    if (store == null) return;
+    _lastRegion = bounds;
+    await _ensureBundled();
+    if (!_tilesReady) return;
+    final index = await store.index();
+    if (index == null) return;
+    final wanted = [
+      for (final t in OsmTileStore.tilesIn(bounds))
+        if (index.tiles.containsKey(t)) t,
+    ];
+    if (wanted.isEmpty || wanted.length > maxTiles) return;
+    var changed = false;
+    for (final t in wanted) {
+      final loaded = _tileAreas.remove(t);
+      if (loaded != null) {
+        _tileAreas[t] = loaded; // mark as recently used
+        continue;
+      }
+      final areas = await (_tileLoads[t] ??= store.load(t).whenComplete(() {
+        _tileLoads.remove(t);
+      }));
+      _tileAreas.remove(t); // a parallel call may have added it meanwhile
+      _tileAreas[t] = areas;
+      changed = true;
+    }
+    while (_tileAreas.length > maxTiles) {
+      _tileAreas.remove(_tileAreas.keys.first);
+      changed = true;
+    }
+    if (changed) _changed();
+  }
+
+  GeoBounds? _lastRegion;
+
+  /// Ids of the tiles in memory (oldest use first).
+  List<String> get loadedTiles => _tileAreas.keys.toList();
+
+  /// Re-reads the loaded tiles after an update was installed.
+  Future<void> reloadTiles() async {
+    final store = tiles;
+    if (store == null) return;
+    final ids = _tileAreas.keys.toList();
+    _tileAreas.clear();
+    // Tiles may be on the device for the first time: drop the city-only
+    // snapshot.
+    _bundledLoading = null;
+    await _ensureBundled();
+    for (final t in ids) {
+      _tileAreas[t] = await store.load(t);
+    }
+    _changed();
+    // The area last asked for, e.g. when the tiles were just installed.
+    final region = _lastRegion;
+    if (region != null) await ensureRegion(region);
+  }
+
   /// Loads all cities whose area contains [position].
   Future<List<SmokingArea>> loadAround(LatLng position) async {
+    await ensureRegion(GeoBounds.around(position, 2));
     final cities = citiesContaining(position);
     for (final c in cities) {
       try {
@@ -225,6 +316,7 @@ class SmokingAreaRepository extends ChangeNotifier {
 
   Future<CityAreas> _load(City city, bool forceRefresh) async {
     await _ensureBundled();
+    await ensureRegion(city.bounds);
     final disk = _cities[city.id] ?? await _readCache(city);
     if (!forceRefresh && disk != null && !_isStale(disk.fetchedAt)) {
       if (!_cities.containsKey(city.id)) {

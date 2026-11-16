@@ -39,12 +39,12 @@ smoking area,designated,japan,tokyo,osaka,kyoto,toilet,restroom,wc,map,travel,as
 
 In many Japanese cities smoking on the street is banned and can be fined –
 smoking is only allowed in designated smoking areas. Ippuku shows you
-where they are, together with public toilets, in 54 major cities from
+where they are, together with public toilets, all over Japan – from
 Sapporo to Naha.
 
 ONE MAP, ALL SOURCES
 • Official lists of the cities and wards (Tokyo, Kyoto, Osaka, Okayama …)
-• OpenStreetMap data for every covered city
+• OpenStreetMap data for all of Japan
 • Places reported by the community
 Duplicates are merged into one marker. Official entries are marked with a
 gold ring.
@@ -77,8 +77,8 @@ Data: © OpenStreetMap contributors (ODbL); official open data of Japanese
 cities and wards (CC BY 4.0).
 
 **What's new (first release):**
-First release: designated smoking areas and public toilets in 54 Japanese
-cities, optional proximity alerts and community reports.
+First release: designated smoking areas and public toilets all over
+Japan, optional proximity alerts and community reports.
 
 ## 日本語 (Japanese) – have a native speaker check it
 
@@ -94,11 +94,11 @@ cities, optional proximity alerts and community reports.
 
 **説明 [4000]:**
 
-日本の多くの都市では路上喫煙が禁止され、過料の対象となることがあります。喫煙は指定喫煙所でのみ可能です。Ippukuは、札幌から那覇まで54都市の指定喫煙所と公衆トイレを地図で表示します。
+日本の多くの都市では路上喫煙が禁止され、過料の対象となることがあります。喫煙は指定喫煙所でのみ可能です。Ippukuは、札幌から那覇まで全国の指定喫煙所と公衆トイレを地図で表示します。
 
 ひとつの地図にすべての情報
 ・東京23区、京都市、大阪市、岡山市などの自治体の公式リスト
-・対象都市のOpenStreetMapデータ
+・日本全国のOpenStreetMapデータ
 ・利用者が投稿した場所
 重複は1つのマーカーにまとめて表示します。公式データは金色の枠で表示されます。
 
@@ -138,11 +138,11 @@ raucherbereich,rauchen,japan,tokio,osaka,kyoto,toilette,wc,karte,reise,rauchverb
 In vielen japanischen Städten ist Rauchen auf der Straße verboten und wird
 mit Bußgeld geahndet – geraucht werden darf nur in ausgewiesenen
 Raucherbereichen. Ippuku zeigt dir, wo sie sind, zusammen mit
-öffentlichen Toiletten, in 54 Großstädten von Sapporo bis Naha.
+öffentlichen Toiletten, in ganz Japan von Sapporo bis Naha.
 
 EINE KARTE, ALLE QUELLEN
 • Offizielle Listen der Städte und Bezirke (Tokio, Kyoto, Osaka, Okayama …)
-• OpenStreetMap-Daten für alle abgedeckten Städte
+• OpenStreetMap-Daten für ganz Japan
 • Von der Community gemeldete Orte
 Doppelte Einträge werden zu einem Marker zusammengeführt. Offizielle
 Einträge haben einen goldenen Ring.
@@ -254,7 +254,7 @@ Note: Apple expects reported content to be handled **within 24 hours**
 Required: 6.9" iPhone (1320 × 2868 or 1290 × 2796), up to 10. Suggested
 order and captions:
 
-1. Map of central Tokyo with markers – "Designated smoking areas in 54 cities"
+1. Map of central Tokyo with markers – "Designated smoking areas all over Japan"
 2. Details of an official smoking area – "Official city data, opening hours, access"
 3. A public toilet with wheelchair / baby changing info – "Public toilets too"
 4. Alert notification + radius setting – "Optional alert when you are close"

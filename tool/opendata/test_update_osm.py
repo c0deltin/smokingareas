@@ -17,8 +17,8 @@ class OsmExportTest(unittest.TestCase):
         self.assertAlmostEqual(n - s, 2 * 16 / 111.32, places=4)
 
     def test_query_covers_all_categories(self):
-        q = osm.build_query("13")
-        self.assertIn('area["ISO3166-2"="JP-13"]', q)
+        q = osm.build_query("kanto")
+        self.assertIn('area["ISO3166-2"~"^JP-(08|09|10|11|12|13|14)$"]', q)
         self.assertIn('"amenity"="toilets"', q)
         self.assertIn("smoking_area|smoking_room", q)
         self.assertIn('"smoking"="dedicated"', q)
@@ -74,31 +74,31 @@ class OsmExportTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             osm.overpass("q", sleep=lambda s: None, fetch=fetch)
 
-    def test_every_prefecture_is_queried(self):
-        self.assertEqual(len(osm.PREFECTURES), 47)
-        self.assertEqual(osm.PREFECTURES[0], "01")
-        self.assertEqual(osm.PREFECTURES[-1], "47")
+    def test_regions_cover_every_prefecture_once(self):
+        codes = [c for r in osm.REGIONS.values() for c in r]
+        self.assertEqual(sorted(codes), osm.PREFECTURES)
+        self.assertEqual(len(codes), 47)
 
     def test_failed_prefecture_keeps_published_elements(self):
         calls = []
 
         def query(q):
             calls.append(q)
-            if len(calls) == 2:  # JP-13 fails
+            if len(calls) == 2:  # kanto fails
                 raise RuntimeError("504")
             return [{"type": "node", "id": 1, "lat": 35.05, "lon": 139.05}]
 
         published = [
-            {"type": "node", "id": 7, "lat": 35.68, "lon": 139.76, "p": "13"},
-            {"type": "node", "id": 8, "lat": 35.05, "lon": 139.05, "p": "14"},
+            {"type": "node", "id": 7, "lat": 35.68, "lon": 139.76, "p": "kanto"},
+            {"type": "node", "id": 8, "lat": 34.69, "lon": 135.50, "p": "kinki"},
         ]
         old_pause = osm.PAUSE_SECONDS
         osm.PAUSE_SECONDS = 0
         try:
-            raw = osm.collect(["14", "13"], query, lambda: published)
+            raw = osm.collect(["kinki", "kanto"], query, lambda: published)
         finally:
             osm.PAUSE_SECONDS = old_pause
-        self.assertEqual([(e["id"], e["p"]) for e in raw], [(1, "14"), (7, "13")])
+        self.assertEqual([(e["id"], e["p"]) for e in raw], [(1, "kinki"), (7, "kanto")])
 
     def test_failed_chunk_without_published_export_gives_up(self):
         def query(q):
@@ -108,7 +108,7 @@ class OsmExportTest(unittest.TestCase):
         osm.PAUSE_SECONDS = 0
         try:
             with self.assertRaises(RuntimeError):
-                osm.collect(["13"], query, lambda: [])
+                osm.collect(["kanto"], query, lambda: [])
         finally:
             osm.PAUSE_SECONDS = old_pause
 
@@ -122,9 +122,9 @@ class OsmExportTest(unittest.TestCase):
         old_pause = osm.PAUSE_SECONDS
         osm.PAUSE_SECONDS = 0
         try:
-            raw = osm.collect(["13", "14"], query,
+            raw = osm.collect(["kanto", "kinki"], query,
                               lambda: [{"type": "node", "id": 9, "lat": 35.05,
-                                        "lon": 139.05, "p": "14"}],
+                                        "lon": 139.05, "p": "kinki"}],
                               clock=lambda: t[0])
         finally:
             osm.PAUSE_SECONDS = old_pause
@@ -176,6 +176,16 @@ class OsmExportTest(unittest.TestCase):
                                      {"generated": "2026-11-12T00:00:00Z"}))
         self.assertFalse(bundle.newer({"generated": "2026-11-12T00:00:00Z"},
                                       {"generated": "2026-11-12T00:00:00Z"}))
+
+    def test_bundled_tiles_header(self):
+        import gzip
+        snapshot, _ = osm.build(osm.normalize([
+            {"type": "node", "id": 1, "lat": 35.68, "lon": 139.76, "p": "13", "tags": {}}]),
+            None, datetime(2026, 11, 16, tzinfo=timezone.utc), osm.TILES_FORMAT)
+        gz = gzip.compress(osm.tiles_text(snapshot).encode())
+        header = bundle.tiles_header(gz)
+        self.assertEqual((header["format"], header["count"]), (2, 1))
+        self.assertIsNone(bundle.tiles_header(b""))  # the placeholder
 
     def test_partial_results_are_refused(self):
         self.assertFalse(osm.plausible(0, None))
