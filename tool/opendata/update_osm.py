@@ -262,6 +262,13 @@ def collect(boxes, query, previous, clock=time.monotonic) -> tuple[list[dict], l
     return raw, missing
 
 
+def query_order(boxes, published: list[dict]):
+    """Boxes without published data first: a run that runs out of time then
+    fills the gaps instead of refreshing the same boxes again."""
+    have = {e.get("p") for e in published}
+    return sorted(boxes, key=lambda b: box_id(b) in have)
+
+
 def inside(element: dict, boxes: list[tuple[float, float, float, float]]) -> bool:
     lat, lon = element.get("lat"), element.get("lon")
     return lat is not None and any(
@@ -332,7 +339,9 @@ def main() -> int:
     out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "dist" / "opendata"
     cities = city_bounds(CITIES.read_text(encoding="utf-8"))
     try:
-        raw, missing = collect(BOXES, overpass, published_tiles)
+        published = published_tiles()
+        raw, missing = collect(query_order(BOXES, published), overpass,
+                               lambda: published)
     except Exception as e:  # noqa: BLE001
         print(f"OSM export skipped, published data stays: {e}", flush=True)
         return 0
