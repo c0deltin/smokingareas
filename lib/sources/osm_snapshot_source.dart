@@ -6,7 +6,9 @@ import '../services/snapshot_updater.dart';
 import 'overpass_source.dart';
 import 'smoking_area_source.dart';
 
-/// OpenStreetMap smoking areas and public toilets of all covered cities,
+/// OpenStreetMap smoking areas and public toilets of the cities in
+/// `cities.dart` (format 1) – used until the tiles of all of Japan
+/// (`OsmTileStore`) are on the device;
 /// exported weekly by CI (`tool/opendata/update_osm.py`), bundled with every
 /// app build and updated by the [SnapshotUpdater] – so installed apps do not
 /// query the public Overpass servers themselves. [OverpassSource] only

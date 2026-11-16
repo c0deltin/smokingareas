@@ -5,7 +5,7 @@ permalink: /
 
 # Ippuku (一服)
 
-A map of public smoking areas and public toilets in major Japanese cities,
+A map of public smoking areas and public toilets all over Japan,
 with an optional alert when you come close to a smoking area.
 
 - [Privacy policy](privacy/)

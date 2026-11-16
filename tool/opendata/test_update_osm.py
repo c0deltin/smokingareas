@@ -177,6 +177,16 @@ class OsmExportTest(unittest.TestCase):
         self.assertFalse(bundle.newer({"generated": "2026-11-12T00:00:00Z"},
                                       {"generated": "2026-11-12T00:00:00Z"}))
 
+    def test_bundled_tiles_header(self):
+        import gzip
+        snapshot, _ = osm.build(osm.normalize([
+            {"type": "node", "id": 1, "lat": 35.68, "lon": 139.76, "p": "13", "tags": {}}]),
+            None, datetime(2026, 11, 16, tzinfo=timezone.utc), osm.TILES_FORMAT)
+        gz = gzip.compress(osm.tiles_text(snapshot).encode())
+        header = bundle.tiles_header(gz)
+        self.assertEqual((header["format"], header["count"]), (2, 1))
+        self.assertIsNone(bundle.tiles_header(b""))  # the placeholder
+
     def test_partial_results_are_refused(self):
         self.assertFalse(osm.plausible(0, None))
         self.assertTrue(osm.plausible(100, None))

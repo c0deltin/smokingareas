@@ -176,6 +176,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       east: r.northeast.longitude,
     );
     await _updateClusters();
+    // OSM data of all of Japan: load the tiles of the visible area (the
+    // repository notifies, which updates the clusters again).
+    unawaited(_repo.ensureRegion(_visibleRegion!));
   }
 
   /// One merged data set for all of Japan – every source, every city –
@@ -860,7 +863,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       children: [
         const Text(
           'Shows public smoking areas (喫煙所, green) and public toilets '
-          '(公衆トイレ, blue) in all major Japanese cities, plus trash cans '
+          '(公衆トイレ, blue) all over Japan, plus trash cans '
           '(ゴミ箱, orange) reported by users. Many Japanese '
           'cities ban smoking on the street and only allow it in designated '
           'areas.\n\n'

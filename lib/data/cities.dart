@@ -16,14 +16,20 @@ const List<City> kCities = [
   City(id: 'yokohama', name: 'Yokohama', nameJa: '横浜市', prefecture: 'Kanagawa', center: LatLng(35.4660, 139.6220), radiusKm: 13),
   City(id: 'kawasaki', name: 'Kawasaki', nameJa: '川崎市', prefecture: 'Kanagawa', center: LatLng(35.5600, 139.6300), radiusKm: 10),
   City(id: 'sagamihara', name: 'Sagamihara', nameJa: '相模原市', prefecture: 'Kanagawa', center: LatLng(35.5710, 139.3730), radiusKm: 8),
+  City(id: 'kamakura', name: 'Kamakura', nameJa: '鎌倉市', prefecture: 'Kanagawa', center: LatLng(35.3192, 139.5467), radiusKm: 4),
+  City(id: 'hakone', name: 'Hakone', nameJa: '箱根町', prefecture: 'Kanagawa', center: LatLng(35.2330, 139.0700), radiusKm: 8),
   City(id: 'saitama', name: 'Saitama', nameJa: 'さいたま市', prefecture: 'Saitama', center: LatLng(35.8617, 139.6455), radiusKm: 10),
+  City(id: 'kawagoe', name: 'Kawagoe', nameJa: '川越市', prefecture: 'Saitama', center: LatLng(35.9251, 139.4858), radiusKm: 5),
   City(id: 'chiba', name: 'Chiba', nameJa: '千葉市', prefecture: 'Chiba', center: LatLng(35.6074, 140.1065), radiusKm: 10),
   City(id: 'utsunomiya', name: 'Utsunomiya', nameJa: '宇都宮市', prefecture: 'Tochigi', center: LatLng(36.5551, 139.8828), radiusKm: 7),
+  City(id: 'nikko', name: 'Nikkō', nameJa: '日光市', prefecture: 'Tochigi', center: LatLng(36.7500, 139.6100), radiusKm: 5),
   City(id: 'maebashi', name: 'Maebashi / Takasaki', nameJa: '前橋市・高崎市', prefecture: 'Gunma', center: LatLng(36.3600, 139.0300), radiusKm: 10),
   City(id: 'mito', name: 'Mito', nameJa: '水戸市', prefecture: 'Ibaraki', center: LatLng(36.3707, 140.4760), radiusKm: 6),
 
   // --- Hokkaidō / Tōhoku -------------------------------------------------
   City(id: 'sapporo', name: 'Sapporo', nameJa: '札幌市', prefecture: 'Hokkaido', center: LatLng(43.0618, 141.3545), radiusKm: 12),
+  City(id: 'hakodate', name: 'Hakodate', nameJa: '函館市', prefecture: 'Hokkaido', center: LatLng(41.7687, 140.7288), radiusKm: 7),
+  City(id: 'asahikawa', name: 'Asahikawa', nameJa: '旭川市', prefecture: 'Hokkaido', center: LatLng(43.7706, 142.3650), radiusKm: 7),
   City(id: 'sendai', name: 'Sendai', nameJa: '仙台市', prefecture: 'Miyagi', center: LatLng(38.2601, 140.8822), radiusKm: 9),
   City(id: 'aomori', name: 'Aomori', nameJa: '青森市', prefecture: 'Aomori', center: LatLng(40.8246, 140.7406), radiusKm: 6),
   City(id: 'morioka', name: 'Morioka', nameJa: '盛岡市', prefecture: 'Iwate', center: LatLng(39.7036, 141.1527), radiusKm: 6),
@@ -42,6 +48,7 @@ const List<City> kCities = [
   City(id: 'kofu', name: 'Kōfu', nameJa: '甲府市', prefecture: 'Yamanashi', center: LatLng(35.6664, 138.5686), radiusKm: 6),
   City(id: 'nagano', name: 'Nagano / Matsumoto', nameJa: '長野市・松本市', prefecture: 'Nagano', center: LatLng(36.4500, 138.0700), radiusKm: 22, zoom: 11),
   City(id: 'gifu', name: 'Gifu', nameJa: '岐阜市', prefecture: 'Gifu', center: LatLng(35.4093, 136.7568), radiusKm: 6),
+  City(id: 'takayama', name: 'Takayama', nameJa: '高山市', prefecture: 'Gifu', center: LatLng(36.1408, 137.2522), radiusKm: 4),
 
   // --- Kansai -------------------------------------------------------------
   City(id: 'osaka', name: 'Osaka', nameJa: '大阪市', prefecture: 'Osaka', center: LatLng(34.6937, 135.5023), radiusKm: 11),
@@ -53,10 +60,12 @@ const List<City> kCities = [
   City(id: 'otsu', name: 'Ōtsu', nameJa: '大津市', prefecture: 'Shiga', center: LatLng(35.0045, 135.8686), radiusKm: 6),
   City(id: 'wakayama', name: 'Wakayama', nameJa: '和歌山市', prefecture: 'Wakayama', center: LatLng(34.2260, 135.1675), radiusKm: 6),
   City(id: 'tsu', name: 'Tsu / Yokkaichi', nameJa: '津市・四日市市', prefecture: 'Mie', center: LatLng(34.8500, 136.5500), radiusKm: 14, zoom: 11),
+  City(id: 'ise', name: 'Ise', nameJa: '伊勢市', prefecture: 'Mie', center: LatLng(34.4875, 136.7093), radiusKm: 6),
 
   // --- Chūgoku / Shikoku -------------------------------------------------
   City(id: 'hiroshima', name: 'Hiroshima', nameJa: '広島市', prefecture: 'Hiroshima', center: LatLng(34.3853, 132.4553), radiusKm: 9),
   City(id: 'okayama', name: 'Okayama', nameJa: '岡山市', prefecture: 'Okayama', center: LatLng(34.6618, 133.9350), radiusKm: 8),
+  City(id: 'kurashiki', name: 'Kurashiki', nameJa: '倉敷市', prefecture: 'Okayama', center: LatLng(34.5960, 133.7700), radiusKm: 6),
   City(id: 'matsue', name: 'Matsue', nameJa: '松江市', prefecture: 'Shimane', center: LatLng(35.4723, 133.0505), radiusKm: 6),
   City(id: 'tottori', name: 'Tottori', nameJa: '鳥取市', prefecture: 'Tottori', center: LatLng(35.5011, 134.2351), radiusKm: 6),
   City(id: 'yamaguchi', name: 'Yamaguchi / Shimonoseki', nameJa: '山口市・下関市', prefecture: 'Yamaguchi', center: LatLng(34.0500, 131.1500), radiusKm: 30, zoom: 10),

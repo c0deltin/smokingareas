@@ -21,9 +21,9 @@ policy on tobacco: no sale or promotion).
 descriptions; Google Play has no keyword field)
 
 **Short description [80]:**
-EN: Designated smoking areas and public toilets in 54 Japanese cities.
-JA: 日本54都市の指定喫煙所と公衆トイレを地図で表示。
-DE: Ausgewiesene Raucherbereiche und Toiletten in 54 Städten Japans.
+EN: Designated smoking areas and public toilets all over Japan.
+JA: 全国の指定喫煙所と公衆トイレを地図で表示。
+DE: Ausgewiesene Raucherbereiche und Toiletten in ganz Japan.
 
 **Full description [4000]:** use the App Store descriptions in
 `app-store.md` (English, Japanese, German) unchanged.
