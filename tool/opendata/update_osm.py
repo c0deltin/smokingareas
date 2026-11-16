@@ -3,8 +3,10 @@
 Japan, for in-app data updates.
 
 Instead of every installed app querying the public Overpass API, CI queries
-it once a week – one request per region (a group of prefectures), with
-pauses in between – and publishes the result next to the official snapshot:
+it once a week – one bounding-box request per 2° × 2° box that contains
+Japanese land (BOXES), with pauses in between; points of neighbouring
+countries are dropped (in_japan) – and publishes the result next to the
+official snapshot:
 
   osm_tiles.txt.gz         all of Japan in tiles of 1° × 1° (format 2):
                            line 1: {"format", "generated", "count", "tiles"}
@@ -16,11 +18,12 @@ pauses in between – and publishes the result next to the official snapshot:
   osm-manifest.json        its manifest
 
 Elements are in Overpass JSON form (type, id, lat, lon, tags – only the tags
-the app uses; tiles also carry the region code "p"). `generated` only
-changes when the data changes. A region that still fails after all
-retries keeps its elements of the last published export; without one, or
-when the result looks incomplete, nothing is written and the published data
-stays.
+the app uses; tiles also carry the box id "p"). `generated` only changes
+when the data changes. A box that still fails after all retries keeps its
+elements of the last published export; without one its area is simply
+missing from the tiles (apps keep their city data there) and the city
+file is not rewritten. When the result looks incomplete, nothing is written
+and the published data stays.
 
 Run: python3 tool/opendata/update_osm.py [out_dir]
 Data © OpenStreetMap contributors, ODbL.
@@ -53,31 +56,29 @@ ENDPOINTS = [
 USER_AGENT = "smokingareas/1.0 (+https://github.com/c0deltin/smokingareas)"
 FORMAT = 1
 TILES_FORMAT = 2
-# ISO 3166-2 codes JP-01 (Hokkaidō) … JP-47 (Okinawa).
-PREFECTURES = [f"{i:02d}" for i in range(1, 48)]
-# One Overpass request per region: area filters take about a minute each,
-# so 47 single prefectures did not fit into the time budget.
-REGIONS = {
-    "hokkaido": ["01"],
-    "tohoku": ["02", "03", "04", "05", "06", "07"],
-    "kanto": ["08", "09", "10", "11", "12", "13", "14"],
-    "chubu": ["15", "16", "17", "18", "19", "20", "21", "22", "23"],
-    "kinki": ["24", "25", "26", "27", "28", "29", "30"],
-    "chugoku": ["31", "32", "33", "34", "35"],
-    "shikoku": ["36", "37", "38", "39"],
-    "kyushu": ["40", "41", "42", "43", "44", "45", "46", "47"],
-}
+# South-west corners of the 2° × 2° boxes with Japanese land, from
+# Yonaguni and the Ogasawara Islands to Wakkanai. Bounding-box queries are
+# fast; area queries per prefecture took minutes each and timed out.
+BOXES = [
+    (24, 122), (24, 124), (24, 130), (24, 140), (26, 126), (26, 128),
+    (26, 142), (28, 128), (30, 128), (30, 130), (32, 128), (32, 130),
+    (32, 132), (32, 134), (32, 136), (32, 138), (34, 128), (34, 130),
+    (34, 132), (34, 134), (34, 136), (34, 138), (34, 140), (36, 132),
+    (36, 136), (36, 138), (36, 140), (38, 138), (38, 140), (38, 142),
+    (40, 138), (40, 140), (40, 142), (42, 138), (42, 140), (42, 142),
+    (42, 144), (44, 140), (44, 142), (44, 144),
+]
 PAUSE_SECONDS = 10
 # Busy public servers answer with 429/504 now and then: retry each request
 # a few times with growing pauses before giving up.
 RETRIES = 3
 RETRY_PAUSE_SECONDS = 30
 # Server-side query timeout and client timeout per request (seconds).
-QUERY_TIMEOUT = 300
+QUERY_TIMEOUT = 180
 # Stop querying after this long (the CI step has a hard limit of 80 min);
-# remaining regions then count as failed.
-DEADLINE_SECONDS = 70 * 60
-REQUEST_TIMEOUT = 330
+# remaining boxes then count as failed.
+DEADLINE_SECONDS = 60 * 60
+REQUEST_TIMEOUT = 210
 
 # Tags the app reads (lib/models/smoking_area.dart); everything else is
 # dropped to keep the download small.
@@ -103,18 +104,39 @@ def city_bounds(dart_source: str) -> list[tuple[str, tuple[float, float, float, 
     return out
 
 
-def build_query(region: str) -> str:
-    """Smoking areas and public toilets of the prefectures of a region."""
-    codes = "|".join(REGIONS[region])
+def box_id(box: tuple[int, int]) -> str:
+    return f"b{box[0]}_{box[1]}"
+
+
+def build_query(box: tuple[int, int]) -> str:
+    """Smoking areas and public toilets inside one 2° × 2° box."""
+    s, w = box
+    bbox = f"{s},{w},{s + 2},{w + 2}"
     return (
         f"[out:json][timeout:{QUERY_TIMEOUT}];\n"
-        f'area["ISO3166-2"~"^JP-({codes})$"]->.a;\n'
         "(\n"
-        '  nwr["amenity"~"^(smoking_area|smoking_room)$"](area.a);\n'
-        '  nwr["smoking"="dedicated"](area.a);\n'
-        '  nwr["amenity"="toilets"]["access"!~"^(private|no|customers|permit)$"](area.a);\n'
+        f'  nwr["amenity"~"^(smoking_area|smoking_room)$"]({bbox});\n'
+        f'  nwr["smoking"="dedicated"]({bbox});\n'
+        f'  nwr["amenity"="toilets"]["access"!~"^(private|no|customers|permit)$"]({bbox});\n'
         ");\nout center tags;"
     )
+
+
+def in_japan(lat: float, lon: float) -> bool:
+    """False for points of the neighbours that the boxes touch: South Korea
+    (incl. Jeju and Busan, but not Tsushima or Iki), Sakhalin and the
+    Kuril Islands. Japan's own outlying islands stay."""
+    if lon < 128.5 and lat > 32.9:      # Jeju, south-west Korea
+        return False
+    if lon < 129.15 and lat > 33.8:     # Korean south coast, Busan
+        return False
+    if lon < 129.7 and lat > 34.85:     # Korean east coast
+        return False
+    if lat > 45.6:                      # Sakhalin
+        return False
+    if lon > 145.4 and lat > 43.6:      # Kunashir and further islands
+        return False
+    return True
 
 
 def tile_of(element: dict) -> str:
@@ -207,33 +229,37 @@ def published_tiles() -> list[dict]:
         return []
 
 
-def collect(regions, query, previous, clock=time.monotonic) -> list[dict]:
-    """Queries region by region and marks every element with its region
-    ("p"). A region that still fails after all retries keeps its elements
-    of the last published export; without a published export the whole run
-    is given up (raises)."""
+def collect(boxes, query, previous, clock=time.monotonic) -> tuple[list[dict], list[str]]:
+    """Queries box by box and marks every element with its box ("p"). A box
+    that still fails after all retries keeps its elements of the last
+    published export. Returns the elements and the ids of boxes without any
+    data (failed and nothing published); raises when no box worked."""
     raw: list[dict] = []
+    missing: list[str] = []
     old: list[dict] | None = None
     deadline = clock() + DEADLINE_SECONDS
-    for i, pref in enumerate(regions):
+    for i, box in enumerate(boxes):
+        bid = box_id(box)
         if i:
             time.sleep(PAUSE_SECONDS)  # be gentle with the public servers
         try:
             if clock() > deadline:
                 raise TimeoutError("time budget used up")
-            got = query(build_query(pref))
-            raw += [{**e, "p": pref} for e in got]
-            print(f"OSM: {pref} – {len(got)} elements", flush=True)
+            got = [e for e in query(build_query(box))]
+            raw += [{**e, "p": bid} for e in got]
+            print(f"OSM: {bid} – {len(got)} elements", flush=True)
         except Exception as e:  # noqa: BLE001
             if old is None:
                 old = previous()
-            if not old:
-                raise
-            kept = [el for el in old if el.get("p") == pref]
+            kept = [el for el in old if el.get("p") == bid]
             raw += kept
-            print(f"OSM: {pref} failed ({e}) – kept {len(kept)} published "
+            if not kept:
+                missing.append(bid)
+            print(f"OSM: {bid} failed ({e}) – kept {len(kept)} published "
                   f"elements", flush=True)
-    return raw
+    if len(missing) == len(boxes):
+        raise RuntimeError("no box could be queried")
+    return raw, missing
 
 
 def inside(element: dict, boxes: list[tuple[float, float, float, float]]) -> bool:
@@ -288,6 +314,13 @@ def plausible(count: int, previous: dict | None) -> bool:
     return count > 0 and (previous is None or count >= 0.8 * previous.get("count", 0))
 
 
+def _in_japan(element: dict) -> bool:
+    lat, lon = element.get("lat"), element.get("lon")
+    if (lat is None or lon is None) and isinstance(element.get("center"), dict):
+        lat, lon = element["center"].get("lat"), element["center"].get("lon")
+    return lat is None or lon is None or in_japan(float(lat), float(lon))
+
+
 def city_elements(elements: list[dict], cities) -> list[dict]:
     """The format-1 export: elements inside the city areas, without "p"."""
     boxes = [b for _, b in cities]
@@ -299,12 +332,12 @@ def main() -> int:
     out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "dist" / "opendata"
     cities = city_bounds(CITIES.read_text(encoding="utf-8"))
     try:
-        raw = collect(list(REGIONS), overpass, published_tiles)
+        raw, missing = collect(BOXES, overpass, published_tiles)
     except Exception as e:  # noqa: BLE001
         print(f"OSM export skipped, published data stays: {e}", flush=True)
         return 0
 
-    elements = normalize(raw)
+    elements = normalize([e for e in raw if _in_japan(e)])
     now = datetime.now(timezone.utc)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -327,7 +360,11 @@ def main() -> int:
         print(f"OSM Japan export skipped: only {len(elements)} elements "
               f"(published: {previous and previous.get('count')})")
 
-    # The cities only, for app versions before tiles.
+    # The cities only, for app versions before tiles – not rewritten while
+    # areas are missing.
+    if missing:
+        print(f"OSM city export skipped: no data for {', '.join(missing)}")
+        return 0
     city = city_elements(elements, cities)
     previous = published_manifest(PUBLISHED)
     if not plausible(len(city), previous):

@@ -1,3 +1,4 @@
+import math
 import unittest
 from datetime import datetime, timezone
 
@@ -17,8 +18,8 @@ class OsmExportTest(unittest.TestCase):
         self.assertAlmostEqual(n - s, 2 * 16 / 111.32, places=4)
 
     def test_query_covers_all_categories(self):
-        q = osm.build_query("kanto")
-        self.assertIn('area["ISO3166-2"~"^JP-(08|09|10|11|12|13|14)$"]', q)
+        q = osm.build_query((34, 132))
+        self.assertIn("(34,132,36,134)", q)
         self.assertIn('"amenity"="toilets"', q)
         self.assertIn("smoking_area|smoking_room", q)
         self.assertIn('"smoking"="dedicated"', q)
@@ -74,41 +75,71 @@ class OsmExportTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             osm.overpass("q", sleep=lambda s: None, fetch=fetch)
 
-    def test_regions_cover_every_prefecture_once(self):
-        codes = [c for r in osm.REGIONS.values() for c in r]
-        self.assertEqual(sorted(codes), osm.PREFECTURES)
-        self.assertEqual(len(codes), 47)
+    def test_boxes_cover_japan(self):
+        places = {
+            "Yonaguni": (24.47, 123.0), "Naha": (26.21, 127.68),
+            "Chichijima": (27.09, 142.19), "Amami": (28.38, 129.49),
+            "Fukuoka": (33.59, 130.40), "Tsushima": (34.20, 129.29),
+            "Kurashiki": (34.59, 133.77), "Tokyo": (35.68, 139.76),
+            "Hachijo": (33.11, 139.79), "Oki": (36.21, 133.32),
+            "Sendai": (38.27, 140.87), "Hakodate": (41.77, 140.73),
+            "Sapporo": (43.06, 141.35), "Nemuro": (43.33, 145.58),
+            "Wakkanai": (45.42, 141.67), "Shiretoko": (44.07, 145.0),
+        }
+        for name, (lat, lon) in places.items():
+            box = (math.floor(lat / 2) * 2, math.floor(lon / 2) * 2)
+            self.assertIn(box, osm.BOXES, name)
+            self.assertTrue(osm.in_japan(lat, lon), name)
+        self.assertEqual(len(set(osm.BOXES)), len(osm.BOXES))
 
-    def test_failed_prefecture_keeps_published_elements(self):
+    def test_neighbours_are_dropped(self):
+        for name, (lat, lon) in {
+            "Busan": (35.10, 129.04), "Jeju": (33.50, 126.53),
+            "Ulsan": (35.54, 129.31), "Pohang": (36.02, 129.37),
+            "Korsakov": (46.63, 142.78), "Kunashir": (44.02, 145.86),
+        }.items():
+            self.assertFalse(osm.in_japan(lat, lon), name)
+
+    def test_failed_box_keeps_published_elements(self):
         calls = []
 
         def query(q):
             calls.append(q)
-            if len(calls) == 2:  # kanto fails
+            if len(calls) == 2:  # second box fails
                 raise RuntimeError("504")
-            return [{"type": "node", "id": 1, "lat": 35.05, "lon": 139.05}]
+            return [{"type": "node", "id": 1, "lat": 34.6, "lon": 135.5}]
 
         published = [
-            {"type": "node", "id": 7, "lat": 35.68, "lon": 139.76, "p": "kanto"},
-            {"type": "node", "id": 8, "lat": 34.69, "lon": 135.50, "p": "kinki"},
+            {"type": "node", "id": 7, "lat": 35.68, "lon": 139.76, "p": "b34_138"},
+            {"type": "node", "id": 8, "lat": 34.69, "lon": 135.50, "p": "b34_134"},
         ]
         old_pause = osm.PAUSE_SECONDS
         osm.PAUSE_SECONDS = 0
         try:
-            raw = osm.collect(["kinki", "kanto"], query, lambda: published)
+            raw, missing = osm.collect([(34, 134), (34, 138)], query, lambda: published)
         finally:
             osm.PAUSE_SECONDS = old_pause
-        self.assertEqual([(e["id"], e["p"]) for e in raw], [(1, "kinki"), (7, "kanto")])
+        self.assertEqual([(e["id"], e["p"]) for e in raw], [(1, "b34_134"), (7, "b34_138")])
+        self.assertEqual(missing, [])
 
-    def test_failed_chunk_without_published_export_gives_up(self):
+    def test_failed_box_without_published_export_is_missing(self):
+        calls = []
+
         def query(q):
-            raise RuntimeError("504")
+            calls.append(q)
+            if len(calls) == 1:
+                raise RuntimeError("504")
+            return [{"type": "node", "id": 1, "lat": 34.6, "lon": 133.7}]
 
         old_pause = osm.PAUSE_SECONDS
         osm.PAUSE_SECONDS = 0
         try:
-            with self.assertRaises(RuntimeError):
-                osm.collect(["kanto"], query, lambda: [])
+            raw, missing = osm.collect([(42, 140), (34, 132)], query, lambda: [])
+            self.assertEqual(missing, ["b42_140"])
+            self.assertEqual([e["id"] for e in raw], [1])
+            with self.assertRaises(RuntimeError):  # nothing worked at all
+                osm.collect([(42, 140)], lambda q: (_ for _ in ()).throw(RuntimeError("504")),
+                            lambda: [])
         finally:
             osm.PAUSE_SECONDS = old_pause
 
@@ -122,14 +153,15 @@ class OsmExportTest(unittest.TestCase):
         old_pause = osm.PAUSE_SECONDS
         osm.PAUSE_SECONDS = 0
         try:
-            raw = osm.collect(["kanto", "kinki"], query,
-                              lambda: [{"type": "node", "id": 9, "lat": 35.05,
-                                        "lon": 139.05, "p": "kinki"}],
-                              clock=lambda: t[0])
+            raw, missing = osm.collect([(34, 138), (34, 134)], query,
+                                       lambda: [{"type": "node", "id": 9, "lat": 34.6,
+                                                 "lon": 135.5, "p": "b34_134"}],
+                                       clock=lambda: t[0])
         finally:
             osm.PAUSE_SECONDS = old_pause
-        # first prefecture queried, second over budget -> published elements kept
+        # first box queried, second over budget -> published elements kept
         self.assertEqual([e["id"] for e in raw], [1, 9])
+        self.assertEqual(missing, [])
 
     def test_tiles_file_round_trip(self):
         elements = osm.normalize([

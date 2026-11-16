@@ -217,8 +217,8 @@ Run `flutter analyze` and `flutter test` before every commit.
   (`map_clustering.dart`, per category, visible region only). Keys come only
   from secrets (`MAPS_API_KEY`), never from the repository.
 - **OSM servers:** apps do not query Overpass: `tool/opendata/update_osm.py`
-  exports the OSM data of all of Japan weekly (`opendata.yml`, one query per
-  region of prefectures) into the data release as 1° tiles (`osm_tiles.txt.gz`, format
+  exports the OSM data of all of Japan weekly (`opendata.yml`, one bounding-box query
+  per 2° box of Japanese land) into the data release as 1° tiles (`osm_tiles.txt.gz`, format
   2) plus the city-only `osm_spots.json.gz` (format 1) for older apps; app builds bundle the latest one (`use_published_osm.py` →
   `assets/opendata/osm_spots.json`, generated – never edit by hand);
   `OsmSnapshotSource` serves it, `OverpassSource` is only a live fallback

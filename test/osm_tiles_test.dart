@@ -63,6 +63,12 @@ class _OsmCities extends SmokingAreaSource {
           position: LatLng(35.6, 139.6),
           source: 'OpenStreetMap',
           tags: {'amenity': 'smoking_area'}),
+      // Sapporo: no tile in the test data.
+      const SmokingArea(
+          id: 'osm:node/98',
+          position: LatLng(43.06, 141.35),
+          source: 'OpenStreetMap',
+          tags: {'amenity': 'toilets'}),
     ];
   }
 }
@@ -191,13 +197,14 @@ void main() {
       );
       await repo.warmUp();
       expect(repo.usesTiles, isTrue);
-      expect(cities.calls, 0); // city-only snapshot not needed
-      expect(repo.allVisible, isEmpty);
+      // City data only where there are no tiles (Sapporo here).
+      expect(repo.allVisible.map((a) => a.id), ['osm:node/98']);
 
       // Kurashiki – not one of the cities, but in the tiles.
       await repo.ensureRegion(
           GeoBounds.around(const LatLng(34.59, 133.77), 1));
-      expect(repo.allVisible.map((a) => a.id), ['osm:node/3']);
+      expect(repo.allVisible.map((a) => a.id).toSet(),
+          {'osm:node/3', 'osm:node/98'});
       expect(repo.loadedTiles, ['34_133']);
     });
 
@@ -235,15 +242,17 @@ void main() {
       );
       await repo.warmUp();
       expect(repo.usesTiles, isFalse);
-      expect(repo.allVisible.map((a) => a.id), ['osm:node/99']);
+      expect(repo.allVisible.map((a) => a.id).toSet(),
+          {'osm:node/99', 'osm:node/98'});
 
       // Tiles arrive (bundled install or update): the city data goes.
       await store.install(Stream.value(tilesFile('2026-11-16T00:00:00Z', _tokyo)));
       await repo.ensureRegion(GeoBounds.around(const LatLng(35.68, 139.76), 1));
       await repo.reloadTiles();
       expect(repo.usesTiles, isTrue);
+      // Tokyo from the tiles; Sapporo (no tile) keeps its city data.
       expect(repo.allVisible.map((a) => a.id).toSet(),
-          {'osm:node/1', 'osm:node/2'});
+          {'osm:node/1', 'osm:node/2', 'osm:node/98'});
     });
   });
 }
