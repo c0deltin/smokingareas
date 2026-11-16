@@ -36,9 +36,11 @@ jobs:
       - name: Package snapshot
         run: python3 tool/opendata/package_snapshot.py dist/opendata
 
-      # OpenStreetMap data of all covered cities, so installed apps do not
-      # query the public Overpass servers themselves. Skipped (published
-      # data stays) when Overpass fails or the result looks incomplete.
+      # OpenStreetMap data of all of Japan (one query per prefecture, in
+      # 1° tiles) plus the city-only file for older apps, so installed apps
+      # do not query the public Overpass servers themselves. A failing
+      # prefecture keeps its published data; skipped when there is none or
+      # the result looks incomplete.
       - name: Export OpenStreetMap data
         timeout-minutes: 40
         run: python3 -u tool/opendata/update_osm.py dist/opendata
@@ -54,8 +56,9 @@ jobs:
           body: |
             Data used by the app: the official smoking-area and public-toilet
             lists (`official_smoking_areas.json.gz`) and the OpenStreetMap
-            export of all covered cities (`osm_spots.json.gz`, © OpenStreetMap
-            contributors, ODbL). Installed apps check the manifests once a day
+            export of all of Japan in 1° tiles (`osm_tiles.txt.gz`) and of the
+            covered cities (`osm_spots.json.gz`, for older app versions;
+            © OpenStreetMap contributors, ODbL). Installed apps check the manifests once a day
             (and on "Reload") and download data only when it is newer than
             what they have. Updated weekly by `.github/workflows/opendata.yml`;
             not an app release.
