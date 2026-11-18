@@ -1,30 +1,45 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/cities.dart';
+import '../models/city.dart';
 import '../models/smoking_area.dart';
 import 'heading_service.dart';
 import 'notification_service.dart';
 import 'proximity_detector.dart';
 import 'smoking_area_repository.dart';
+import 'tracking_policy.dart';
 
 enum LocationState { unknown, serviceDisabled, denied, deniedForever, whileInUse, always }
 
 /// Tracks the user's position (also in the background) and sends a local
-/// push notification when a smoking area is within 30 m.
-class ProximityMonitor extends ChangeNotifier {
+/// push notification when a smoking area is within the alert radius.
+///
+/// Battery: precise GPS only while the app is visible or a smoking area is
+/// near; otherwise coarse updates, and no tracking at all in the background
+/// with alerts off ([TrackingPolicy]).
+class ProximityMonitor extends ChangeNotifier with WidgetsBindingObserver {
   ProximityMonitor({
     required this.repository,
     NotificationService? notifications,
     ProximityDetector? detector,
     this.heading,
+    this.policy = const TrackingPolicy(),
   })  : notifications = notifications ?? NotificationService.instance,
         detector = detector ?? ProximityDetector();
+
+  final TrackingPolicy policy;
+  TrackingMode _mode = TrackingMode.precise;
+  bool _foreground = true;
+  bool _observing = false;
+
+  /// How the position is tracked right now.
+  TrackingMode get trackingMode => _mode;
 
   static const defaultAlertRadius = 30.0;
   static const minAlertRadius = 10.0;
@@ -66,6 +81,10 @@ class ProximityMonitor extends ChangeNotifier {
         .clamp(minAlertRadius, maxAlertRadius)
         .toDouble();
     detector.setRadius(_alertRadius);
+    if (!_observing) {
+      WidgetsBinding.instance.addObserver(this);
+      _observing = true;
+    }
     await notifications.init();
     await _refreshPermissionState();
     if (_state == LocationState.whileInUse || _state == LocationState.always) {
@@ -146,13 +165,70 @@ class ProximityMonitor extends ChangeNotifier {
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final foreground = state == AppLifecycleState.resumed;
+    if (state != AppLifecycleState.resumed &&
+        state != AppLifecycleState.paused &&
+        state != AppLifecycleState.hidden) {
+      return;
+    }
+    if (foreground == _foreground) return;
+    _foreground = foreground;
+    _applyMode();
+  }
+
+  /// Re-evaluates the tracking mode and restarts the location stream when
+  /// it changed (or stops it in the background without alerts).
+  void _applyMode() {
+    if (_state != LocationState.whileInUse && _state != LocationState.always) {
+      return;
+    }
+    final next = policy.mode(
+      foreground: _foreground,
+      alertsEnabled: _alertsEnabled,
+      current: _mode,
+      nearestSmokingMeters: _nearestSmokingMeters(),
+    );
+    if (next == _mode && (next == TrackingMode.off) == (_sub == null)) return;
+    _mode = next;
+    if (next == TrackingMode.off) {
+      _sub?.cancel();
+      _sub = null;
+    } else {
+      unawaited(_startStream());
+    }
+  }
+
+  /// Distance to the nearest open smoking area within 2 km (null: none
+  /// known nearby yet – counts as "far" only once data is loaded).
+  double? _nearestSmokingMeters() {
+    final pos = _position;
+    if (pos == null) return null;
+    final box = GeoBounds.around(pos, 2);
+    const distance = Distance();
+    double? best;
+    var anyData = false;
+    for (final a in repository.allLoaded) {
+      anyData = true;
+      if (a.category != SpotCategory.smoking || a.isTemporarilyClosed) continue;
+      if (!box.contains(a.position)) continue;
+      final d = distance(pos, a.position);
+      if (best == null || d < best) best = d;
+    }
+    // Data loaded but nothing within 2 km: far away.
+    return best ?? (anyData ? double.infinity : null);
+  }
+
   LocationSettings _settings() {
-    const distanceFilter = 5;
+    final profile = TrackingPolicy.profile(_mode, _alertRadius);
+    final distanceFilter = profile.distanceFilterMeters;
     if (Platform.isAndroid) {
       return AndroidSettings(
-        accuracy: LocationAccuracy.high,
+        accuracy:
+            profile.precise ? LocationAccuracy.high : LocationAccuracy.medium,
         distanceFilter: distanceFilter,
-        intervalDuration: const Duration(seconds: 5),
+        intervalDuration: profile.interval,
         // A foreground service keeps location updates alive while the app is
         // in the background (required on Android 8+).
         foregroundNotificationConfig: _alertsEnabled
@@ -164,7 +240,9 @@ class ProximityMonitor extends ChangeNotifier {
                 notificationIcon: const AndroidResource(
                     name: NotificationService.androidIcon),
                 color: NotificationService.accent,
-                enableWakeLock: true,
+                // The foreground service keeps updates coming; a wake lock
+                // would keep the CPU awake between them.
+                enableWakeLock: false,
                 setOngoing: true,
               )
             : null,
@@ -172,7 +250,9 @@ class ProximityMonitor extends ChangeNotifier {
     }
     if (Platform.isIOS) {
       return AppleSettings(
-        accuracy: LocationAccuracy.best,
+        accuracy: profile.precise
+            ? LocationAccuracy.best
+            : LocationAccuracy.medium,
         distanceFilter: distanceFilter,
         activityType: ActivityType.fitness,
         pauseLocationUpdatesAutomatically: false,
@@ -180,13 +260,15 @@ class ProximityMonitor extends ChangeNotifier {
         showBackgroundLocationIndicator: _alertsEnabled,
       );
     }
-    return const LocationSettings(
-      accuracy: LocationAccuracy.high,
+    return LocationSettings(
+      accuracy:
+          profile.precise ? LocationAccuracy.high : LocationAccuracy.medium,
       distanceFilter: distanceFilter,
     );
   }
 
   Future<void> _startStream() async {
+    if (_mode == TrackingMode.off) _mode = TrackingMode.precise;
     await _sub?.cancel();
     _sub = Geolocator.getPositionStream(locationSettings: _settings()).listen(
       _onPosition,
@@ -216,12 +298,20 @@ class ProximityMonitor extends ChangeNotifier {
       }
     }
 
+    // Precise near smoking areas, coarse far away (background only).
+    _applyMode();
+
     if (!_alertsEnabled) return;
     // Alerts only for smoking areas – toilets are far too dense for that.
+    // Only candidates around the position are measured (the loaded data can
+    // hold tens of thousands of spots).
+    final box = GeoBounds.around(pos, 1);
     final hit = detector.update(
       pos,
       repository.allLoaded.where((a) =>
-          a.category == SpotCategory.smoking && !a.isTemporarilyClosed),
+          a.category == SpotCategory.smoking &&
+          !a.isTemporarilyClosed &&
+          box.contains(a.position)),
       accuracyMeters: p.accuracy,
     );
     if (hit != null) {
@@ -255,6 +345,7 @@ class ProximityMonitor extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_observing) WidgetsBinding.instance.removeObserver(this);
     _sub?.cancel();
     super.dispose();
   }

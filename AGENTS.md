@@ -110,6 +110,11 @@ Key design decisions – keep them:
   latest vote per user, hidden at ≥ 3 "gone" and ≥ 2× the "exists" votes;
   votes for the current data version never expire, votes without one expire
   after 180 days. Hidden spots disappear from the map *and* proximity alerts.
+- **Battery:** location tracking follows `TrackingPolicy` (pure, tested):
+  precise GPS while the app is visible or within 400 m of a smoking area
+  (back to coarse beyond 600 m), coarse network positions every ~100 m in
+  the background otherwise, and no tracking in the background with alerts
+  off. No wake lock; the alert check only measures spots within 1 km.
 - **Spot features** ("is there a trash can here?", OSM `bin=yes`) live only
   in `FeaturePolicy` (pure, tested): any spot can get answers
   (`feature_votes`), latest answer per user, majority wins over the source
