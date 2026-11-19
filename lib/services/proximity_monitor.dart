@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/cities.dart';
 import '../i18n.dart';
 import '../models/city.dart';
+import '../models/japan_holidays.dart';
 import '../models/smoking_area.dart';
 import 'heading_service.dart';
 import 'notification_service.dart';
@@ -210,10 +211,15 @@ class ProximityMonitor extends ChangeNotifier with WidgetsBindingObserver {
     const distance = Distance();
     double? best;
     var anyData = false;
+    final now = japanNow();
     for (final a in repository.allLoaded) {
       anyData = true;
-      if (a.category != SpotCategory.smoking || a.isTemporarilyClosed) continue;
-      if (!box.contains(a.position)) continue;
+      if (a.category != SpotCategory.smoking ||
+          a.isTemporarilyClosed ||
+          !box.contains(a.position) ||
+          a.closedAt(now)) {
+        continue;
+      }
       final d = distance(pos, a.position);
       if (best == null || d < best) best = d;
     }
@@ -306,13 +312,16 @@ class ProximityMonitor extends ChangeNotifier with WidgetsBindingObserver {
     // Alerts only for smoking areas – toilets are far too dense for that.
     // Only candidates around the position are measured (the loaded data can
     // hold tens of thousands of spots).
+    // Smoking areas outside their opening hours are skipped.
     final box = GeoBounds.around(pos, 1);
+    final now = japanNow();
     final hit = detector.update(
       pos,
       repository.allLoaded.where((a) =>
           a.category == SpotCategory.smoking &&
           !a.isTemporarilyClosed &&
-          box.contains(a.position)),
+          box.contains(a.position) &&
+          !a.closedAt(now)),
       accuracyMeters: p.accuracy,
     );
     if (hit != null) {
@@ -328,8 +337,10 @@ class ProximityMonitor extends ChangeNotifier with WidgetsBindingObserver {
     if (pos == null) return null;
     const distance = Distance();
     ProximityHit? best;
+    final now = japanNow();
     for (final SmokingArea a in repository.allLoaded) {
       if (a.category != category || a.isTemporarilyClosed) continue;
+      if (a.closedAt(now)) continue;
       final d = distance(pos, a.position);
       if (best == null || d < best.distanceMeters) best = ProximityHit(a, d);
     }

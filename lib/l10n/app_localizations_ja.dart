@@ -155,7 +155,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get close => '閉じる';
 
   @override
+  String get closedNow => '利用時間外';
+
+  @override
   String get closedOfficially => '公式リストでは閉鎖中です。';
+
+  @override
+  String closesAt(String time) {
+    return '$timeまで';
+  }
 
   @override
   String get closureHint => '通行止め、工事中、使用不可？報告してください。報告は 14 日後、または指定した日に終了します。';
@@ -571,7 +579,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get openAgain => '再開している';
 
   @override
+  String get openNow => '利用可能';
+
+  @override
   String get openingHours => '利用時間';
+
+  @override
+  String opensAt(String time) {
+    return '$timeから';
+  }
 
   @override
   String get operator => '管理者';

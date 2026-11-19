@@ -86,7 +86,16 @@
   "cities": "Cities",
   "city": "City",
   "close": "Close",
+  "closedNow": "Closed now",
   "closedOfficially": "Closed according to the official list.",
+  "closesAt": "closes {time}",
+  "@closesAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "closureHint": "Blocked, construction, out of order? Report it – the report expires after 14 days or on the date you set.",
   "closureInfo": "{closed, plural, =1{1 \"closed\" report} other{{closed} \"closed\" reports}}{reopened, plural, =0{} =1{, 1 \"reopened\"} other{, {reopened} \"reopened\"}}",
   "@closureInfo": {
@@ -334,7 +343,16 @@
   },
   "ok": "OK",
   "openAgain": "Open again",
+  "openNow": "Open now",
   "openingHours": "Opening hours",
+  "opensAt": "opens {time}",
+  "@opensAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "operator": "Operator",
   "osm": "OSM",
   "osmCopyright": "Data © OpenStreetMap contributors",

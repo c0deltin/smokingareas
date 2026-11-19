@@ -159,7 +159,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
+  String get closedNow => 'Closed now';
+
+  @override
   String get closedOfficially => 'Closed according to the official list.';
+
+  @override
+  String closesAt(String time) {
+    return 'closes $time';
+  }
 
   @override
   String get closureHint =>
@@ -612,7 +620,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openAgain => 'Open again';
 
   @override
+  String get openNow => 'Open now';
+
+  @override
   String get openingHours => 'Opening hours';
+
+  @override
+  String opensAt(String time) {
+    return 'opens $time';
+  }
 
   @override
   String get operator => 'Operator';

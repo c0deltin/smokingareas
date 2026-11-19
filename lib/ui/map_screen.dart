@@ -13,6 +13,7 @@ import '../community/local_migration.dart';
 import '../community/models.dart';
 import '../data/cities.dart';
 import '../models/city.dart';
+import '../models/japan_holidays.dart';
 import '../models/smoking_area.dart';
 import '../services/map_clustering.dart';
 import '../services/notification_service.dart';
@@ -91,6 +92,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
   /// Categories shown on the map (both by default).
   final Set<SpotCategory> _visible = {...SpotCategory.values};
+
+  /// Only places that are open right now (unknown hours count as open).
+  bool _openOnly = false;
 
   @override
   void initState() {
@@ -198,9 +202,12 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       if (mounted) setState(() {});
       return;
     }
+    final now = japanNow();
     final clusters = clusterAreas(
       // Spots with a trash can also show up when looking for trash cans.
-      _repo.allVisible.where((a) => _visible.any(a.offers)),
+      _repo.allVisible.where((a) =>
+          _visible.any(a.offers) &&
+          (!_openOnly || (!a.isTemporarilyClosed && !a.closedAt(now)))),
       visible: region,
       zoom: _camera.zoom,
     );
@@ -632,6 +639,16 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
                       _updateClusters();
                     },
                   ),
+                FilterChip(
+                  avatar: const Icon(Icons.schedule, size: 18),
+                  label: Text(context.l10n.openNow),
+                  selected: _openOnly,
+                  backgroundColor: theme.colorScheme.surface,
+                  onSelected: (on) {
+                    setState(() => _openOnly = on);
+                    _updateClusters();
+                  },
+                ),
               ]),
             ),
             ]),

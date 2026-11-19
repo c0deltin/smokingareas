@@ -364,11 +364,23 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get close;
 
+  /// No description provided for @closedNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed now'**
+  String get closedNow;
+
   /// No description provided for @closedOfficially.
   ///
   /// In en, this message translates to:
   /// **'Closed according to the official list.'**
   String get closedOfficially;
+
+  /// No description provided for @closesAt.
+  ///
+  /// In en, this message translates to:
+  /// **'closes {time}'**
+  String closesAt(String time);
 
   /// No description provided for @closureHint.
   ///
@@ -1102,11 +1114,23 @@ abstract class AppLocalizations {
   /// **'Open again'**
   String get openAgain;
 
+  /// No description provided for @openNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Open now'**
+  String get openNow;
+
   /// No description provided for @openingHours.
   ///
   /// In en, this message translates to:
   /// **'Opening hours'**
   String get openingHours;
+
+  /// No description provided for @opensAt.
+  ///
+  /// In en, this message translates to:
+  /// **'opens {time}'**
+  String opensAt(String time);
 
   /// No description provided for @operator.
   ///

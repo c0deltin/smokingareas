@@ -158,7 +158,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get close => 'Schließen';
 
   @override
+  String get closedNow => 'Jetzt geschlossen';
+
+  @override
   String get closedOfficially => 'Laut offizieller Liste geschlossen.';
+
+  @override
+  String closesAt(String time) {
+    return 'schließt $time';
+  }
 
   @override
   String get closureHint =>
@@ -609,7 +617,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get openAgain => 'Wieder offen';
 
   @override
+  String get openNow => 'Jetzt geöffnet';
+
+  @override
   String get openingHours => 'Öffnungszeiten';
+
+  @override
+  String opensAt(String time) {
+    return 'öffnet $time';
+  }
 
   @override
   String get operator => 'Betreiber';

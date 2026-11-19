@@ -64,6 +64,55 @@ class OpeningHours {
   /// Closed over the New Year holidays (年末年始, usually Dec 29 – Jan 3).
   final bool closedNewYear;
 
+  static final _parsed = <String, OpeningHours?>{};
+
+  /// OSM syntax or Japanese wording (cached per text); null when not
+  /// understood for sure.
+  static OpeningHours? parse(String raw) => _parsed.putIfAbsent(
+      raw, () => parseOsm(raw) ?? parseJapanese(raw));
+
+  /// Whether the place is open at the wall-clock time [t] in Japan.
+  bool isOpenAt(DateTime t, {required bool Function(DateTime) isHoliday}) {
+    final day = DateTime(t.year, t.month, t.day);
+    final minute = t.hour * 60 + t.minute;
+    if (closedNewYear && _isNewYear(day)) return false;
+    if (always) return true;
+    bool within(HoursRule? r, int m) =>
+        r != null && !r.off && r.spans.any((s) => s.$1 <= m && m < s.$2);
+    // Today's spans, or yesterday's spans running past midnight.
+    final yesterday = DateTime(day.year, day.month, day.day - 1);
+    return within(_ruleFor(day, isHoliday), minute) ||
+        (!(closedNewYear && _isNewYear(yesterday)) &&
+            within(_ruleFor(yesterday, isHoliday), minute + 24 * 60));
+  }
+
+  /// The next time the open/closed state changes after [t] (within a week),
+  /// null when it does not change.
+  DateTime? nextChange(DateTime t,
+      {required bool Function(DateTime) isHoliday}) {
+    final now = isOpenAt(t, isHoliday: isHoliday);
+    final start = DateTime(t.year, t.month, t.day, t.hour, t.minute);
+    for (var m = 1; m <= 7 * 24 * 60; m++) {
+      final at = start.add(Duration(minutes: m));
+      if (isOpenAt(at, isHoliday: isHoliday) != now) return at;
+    }
+    return null;
+  }
+
+  /// The rule for a calendar day: as in OSM, a later rule replaces an
+  /// earlier one for the days it names; public holidays match "PH" rules.
+  HoursRule? _ruleFor(DateTime day, bool Function(DateTime) isHoliday) {
+    final holiday = isHoliday(day);
+    HoursRule? out;
+    for (final r in rules) {
+      if ((holiday && r.holidays) || r.days.contains(day.weekday)) out = r;
+    }
+    return out;
+  }
+
+  static bool _isNewYear(DateTime d) =>
+      (d.month == 12 && d.day >= 29) || (d.month == 1 && d.day <= 3);
+
   static const _osmDays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
   /// The OSM `opening_hours` value.

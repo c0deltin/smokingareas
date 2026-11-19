@@ -117,6 +117,11 @@ Key design decisions – keep them:
   returns null for anything it does not understand for sure;
   `lib/ui/hours_text.dart` shows them in the UI language (Japanese UI:
   original text), else the original with a "Translate" button.
+- **Open now:** `OpeningHours.isOpenAt` with Japanese public holidays
+  (`lib/models/japan_holidays.dart`, pure, tested) at Japan time
+  (`japanNow`, independent of the device time zone). Smoking areas known to
+  be closed right now get no proximity alert; unknown hours always count as
+  open. The details show the status, the map has an "Open now" filter.
 - **Waze-like moderation** lives only in `ExistencePolicy` (pure, tested):
   latest vote per user, hidden at ≥ 3 "gone" and ≥ 2× the "exists" votes;
   votes for the current data version never expire, votes without one expire
