@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 import '../i18n.dart';
+import '../models/japan_holidays.dart';
 import '../models/opening_hours.dart';
 
 /// Whether [text] contains Japanese script (kana or kanji).
@@ -65,7 +66,8 @@ String _day(int d, String lang) {
   try {
     return DateFormat.E(lang).format(date);
   } catch (_) {
-    return DateFormat.E('en').format(date);
+    // Date symbols not loaded (outside the app's localisations).
+    return const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d - 1];
   }
 }
 
@@ -125,3 +127,22 @@ Uri translateUri(String text, String lang) =>
       'text': text,
       'op': 'translate',
     });
+
+/// "Open now · closes 22:30" / "Closed now · opens Tue 7:00" for [now]
+/// (wall-clock time in Japan); null for places open around the clock.
+(bool, String)? openStatus(
+    OpeningHours h, DateTime now, AppLocalizations l, String lang) {
+  if (h.always && !h.closedNewYear) return null;
+  final open = h.isOpenAt(now, isHoliday: isJapaneseHoliday);
+  final next = h.nextChange(now, isHoliday: isJapaneseHoliday);
+  final head = open ? l.openNow : l.closedNow;
+  if (next == null) return (open, head);
+  final sameDay = next.year == now.year &&
+      next.month == now.month &&
+      next.day == now.day;
+  final time = [
+    if (!sameDay) _day(next.weekday, lang),
+    _time(next.hour * 60 + next.minute),
+  ].join(' ');
+  return (open, '$head · ${open ? l.closesAt(time) : l.opensAt(time)}');
+}

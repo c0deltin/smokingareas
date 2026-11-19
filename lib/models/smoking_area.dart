@@ -1,6 +1,8 @@
 import 'package:latlong2/latlong.dart';
 
 import 'data_fingerprint.dart';
+import 'japan_holidays.dart';
+import 'opening_hours.dart';
 
 /// Kind of place shown on the map.
 enum SpotCategory {
@@ -253,6 +255,19 @@ class SmokingArea {
   }
 
   String? get openingHours => tags['opening_hours'];
+
+  /// Opening hours when they are understood for sure.
+  OpeningHours? get hours {
+    final raw = openingHours;
+    return raw == null ? null : OpeningHours.parse(raw);
+  }
+
+  /// Open at the time [japanTime] in Japan ([japanNow]); null when unknown.
+  bool? openAt(DateTime japanTime) =>
+      hours?.isOpenAt(japanTime, isHoliday: isJapaneseHoliday);
+
+  /// Known to be closed right now (outside its opening hours).
+  bool closedAt(DateTime japanTime) => openAt(japanTime) == false;
 
   /// Number of smoking rooms combined in this entry (same building).
   int get roomCount => int.tryParse(tags['official:rooms'] ?? '') ?? 1;

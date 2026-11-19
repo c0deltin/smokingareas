@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../community/community_service.dart';
 import '../community/models.dart';
 import '../i18n.dart';
+import '../models/japan_holidays.dart';
 import '../models/smoking_area.dart';
 import 'community_section.dart';
 import 'hours_text.dart';
@@ -51,9 +52,13 @@ class AreaDetailsSheet extends StatelessWidget {
     this.userPosition,
     this.community,
     this.scrollController,
+    this.now,
   });
 
   final SmokingArea area;
+
+  /// Wall-clock time in Japan for the open/closed status (tests).
+  final DateTime? now;
   final LatLng? userPosition;
   final CommunityService? community;
   final ScrollController? scrollController;
@@ -212,6 +217,28 @@ class AreaDetailsSheet extends StatelessWidget {
               )
             else if (area.isTemporarilyClosed)
               ClosedBanner(area: area),
+            if (area.hours case final hours?)
+              if (openStatus(hours, now ?? japanNow(), l, lang)
+                  case (final open, final text))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(children: [
+                    Icon(open ? Icons.check_circle : Icons.do_not_disturb_on,
+                        size: 20,
+                        color: open
+                            ? Colors.green.shade600
+                            : theme.colorScheme.error),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(text,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: open
+                                  ? Colors.green.shade700
+                                  : theme.colorScheme.error)),
+                    ),
+                  ]),
+                ),
             for (final (icon, label, value) in rows)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
