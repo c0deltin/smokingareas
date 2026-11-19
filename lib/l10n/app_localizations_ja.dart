@@ -480,6 +480,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get namePlace => '名前・場所';
 
   @override
+  String get nearby => '近くのスポット';
+
+  @override
+  String get nearbyEmpty => '2 km以内にありません。';
+
+  @override
+  String get nearbyNoLocation => '現在地がまだわかりません。';
+
+  @override
   String nearestName(String name) {
     return '最寄り：$name';
   }

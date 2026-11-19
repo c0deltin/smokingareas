@@ -122,6 +122,10 @@ Key design decisions – keep them:
   (`japanNow`, independent of the device time zone). Smoking areas known to
   be closed right now get no proximity alert; unknown hours always count as
   open. The details show the status, the map has an "Open now" filter.
+- **Nearby list:** `nearbySpots` (`lib/services/nearby.dart`, pure, tested)
+  – nearest spots within 2 km by category, optionally open now; shown by
+  `lib/ui/nearby_sheet.dart` with distance and a direction arrow (compass
+  when available).
 - **Waze-like moderation** lives only in `ExistencePolicy` (pure, tested):
   latest vote per user, hidden at ≥ 3 "gone" and ≥ 2× the "exists" votes;
   votes for the current data version never expire, votes without one expire

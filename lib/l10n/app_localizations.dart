@@ -934,6 +934,24 @@ abstract class AppLocalizations {
   /// **'Name / place'**
   String get namePlace;
 
+  /// No description provided for @nearby.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby'**
+  String get nearby;
+
+  /// No description provided for @nearbyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing within 2 km.'**
+  String get nearbyEmpty;
+
+  /// No description provided for @nearbyNoLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location is not known yet.'**
+  String get nearbyNoLocation;
+
   /// No description provided for @nearestName.
   ///
   /// In en, this message translates to:

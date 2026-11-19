@@ -518,6 +518,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get namePlace => 'Name / place';
 
   @override
+  String get nearby => 'Nearby';
+
+  @override
+  String get nearbyEmpty => 'Nothing within 2 km.';
+
+  @override
+  String get nearbyNoLocation => 'Your location is not known yet.';
+
+  @override
   String nearestName(String name) {
     return 'Nearest: $name';
   }

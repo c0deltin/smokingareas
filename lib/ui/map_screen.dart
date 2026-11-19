@@ -26,6 +26,7 @@ import 'city_picker.dart';
 import 'legend_sheet.dart';
 import 'location_disclosure.dart';
 import 'my_spots_sheet.dart';
+import 'nearby_sheet.dart';
 import 'local_data_sheet.dart';
 import '../i18n.dart';
 import 'map_style.dart';
@@ -625,7 +626,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
                       size: 18,
                       color: categoryColor(c),
                     ),
-                    label: Text(c.pluralLabel),
+                    label: Text(context.l10n.categories(c)),
                     selected: _visible.contains(c),
                     showCheckmark: false,
                     backgroundColor: theme.colorScheme.surface,
@@ -662,6 +663,21 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                FloatingActionButton.small(
+                  heroTag: 'nearby',
+                  tooltip: context.l10n.nearby,
+                  onPressed: () => showNearbySheet(
+                    context,
+                    areas: () => _repo.allVisible,
+                    position: () => _monitor.position,
+                    categories: _visible,
+                    openOnly: _openOnly,
+                    heading: _monitor.heading,
+                    onShow: _showSpot,
+                  ),
+                  child: const Icon(Icons.format_list_bulleted),
+                ),
+                const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'report',
                   tooltip: context.l10n.reportASpot,

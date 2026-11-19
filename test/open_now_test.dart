@@ -27,8 +27,10 @@ void main() {
     });
 
     test('Japan time whatever the device time zone', () {
-      expect(japanNow(DateTime.utc(2026, 11, 19, 20, 30)),
-          DateTime(2026, 11, 20, 5, 30));
+      expect(
+        japanNow(DateTime.utc(2026, 11, 19, 20, 30)),
+        DateTime(2026, 11, 20, 5, 30),
+      );
     });
   });
 
@@ -55,12 +57,18 @@ void main() {
 
     test('next change and status text', () {
       final h = OpeningHours.parse(weekdays)!;
-      expect(openStatus(h, DateTime(2026, 11, 17, 10), en, 'en'),
-          (true, 'Open now · closes 17:00'));
-      expect(openStatus(h, DateTime(2026, 11, 20, 18), en, 'en'),
-          (false, 'Closed now · opens Tue 9:00')); // Mon 23rd is a holiday
-      expect(openStatus(OpeningHours.parse('24/7')!, DateTime(2026), en, 'en'),
-          isNull);
+      expect(openStatus(h, DateTime(2026, 11, 17, 10), en, 'en'), (
+        true,
+        'Open now · closes 17:00',
+      ));
+      expect(openStatus(h, DateTime(2026, 11, 20, 18), en, 'en'), (
+        false,
+        'Closed now · opens Tue 9:00',
+      )); // Mon 23rd is a holiday
+      expect(
+        openStatus(OpeningHours.parse('24/7')!, DateTime(2026), en, 'en'),
+        isNull,
+      );
     });
 
     test('unknown hours are never "closed"', () {
@@ -83,25 +91,27 @@ void main() {
   });
 
   testWidgets('details show whether the place is open', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: AreaDetailsSheet(
-          now: DateTime(2026, 11, 17, 18),
-          area: const SmokingArea(
-            id: 'official:1',
-            position: LatLng(35.69, 139.70),
-            source: 'Tokyo',
-            tags: {
-              'official': 'yes',
-              'amenity': 'smoking_area',
-              'opening_hours': 'Mo-Fr 07:00-20:00',
-            },
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: AreaDetailsSheet(
+            now: DateTime(2026, 11, 17, 18),
+            area: const SmokingArea(
+              id: 'official:1',
+              position: LatLng(35.69, 139.70),
+              source: 'Tokyo',
+              tags: {
+                'official': 'yes',
+                'amenity': 'smoking_area',
+                'opening_hours': 'Mo-Fr 07:00-20:00',
+              },
+            ),
           ),
         ),
       ),
-    ));
+    );
     expect(find.text('Open now · closes 20:00'), findsOneWidget);
   });
 }

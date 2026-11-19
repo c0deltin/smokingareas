@@ -282,6 +282,9 @@
   "nameHintSmoking": "e.g. \"Smoking corner next to FamilyMart\"",
   "nameHintToilet": "e.g. \"Toilet at the park entrance\"",
   "namePlace": "Name / place",
+  "nearby": "Nearby",
+  "nearbyEmpty": "Nothing within 2 km.",
+  "nearbyNoLocation": "Your location is not known yet.",
   "nearestName": "Nearest: {name}",
   "@nearestName": {
     "placeholders": {
