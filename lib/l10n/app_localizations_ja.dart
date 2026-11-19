@@ -294,6 +294,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get hasTrashCan => 'ゴミ箱あり';
 
   @override
+  String get hoursAlways => '24時間利用可';
+
+  @override
+  String hoursClosedOn(String days) {
+    return '休み：$days';
+  }
+
+  @override
+  String get hoursHolidays => '祝日';
+
+  @override
+  String get hoursNewYear => '年末年始';
+
+  @override
+  String hoursNextDay(String time) {
+    return '翌$time';
+  }
+
+  @override
   String get imprint => '運営者情報';
 
   @override
@@ -489,13 +508,37 @@ class AppLocalizationsJa extends AppLocalizations {
   String get note => 'メモ';
 
   @override
+  String get noteBabyChairTable => 'ベビーチェア・ベビーシート';
+
+  @override
+  String get noteChangingTable => 'ベビーシート';
+
+  @override
+  String get noteConstruction => '工事中のため休止中';
+
+  @override
+  String get noteHeatedOnly => '加熱式たばこ専用';
+
+  @override
   String get noteHintBin => '正確な場所や見つけ方など…';
 
   @override
   String get noteHintDefault => '利用時間、灰皿、利用条件など…';
 
   @override
+  String get noteMenOnly => '男性専用';
+
+  @override
   String get noteOptional => 'メモ（任意）';
+
+  @override
+  String get noteUnisex => '男女共用';
+
+  @override
+  String get noteWomenAccessible => '女子トイレ 誰でもトイレ兼用';
+
+  @override
+  String get noteWomenOnly => '女性専用';
 
   @override
   String get notifChannelNearby => '近くの喫煙所';
@@ -836,6 +879,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String toiletNearest(String name, String distance) {
     return 'トイレ：$name · $distance';
   }
+
+  @override
+  String get translate => '翻訳';
 
   @override
   String get tryAgain => 'もう一度試す';

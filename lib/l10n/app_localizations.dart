@@ -604,6 +604,36 @@ abstract class AppLocalizations {
   /// **'Has a trash can'**
   String get hasTrashCan;
 
+  /// No description provided for @hoursAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Open 24 hours'**
+  String get hoursAlways;
+
+  /// No description provided for @hoursClosedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed: {days}'**
+  String hoursClosedOn(String days);
+
+  /// No description provided for @hoursHolidays.
+  ///
+  /// In en, this message translates to:
+  /// **'public holidays'**
+  String get hoursHolidays;
+
+  /// No description provided for @hoursNewYear.
+  ///
+  /// In en, this message translates to:
+  /// **'New Year holidays (Dec 29 – Jan 3)'**
+  String get hoursNewYear;
+
+  /// No description provided for @hoursNextDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} (next day)'**
+  String hoursNextDay(String time);
+
   /// No description provided for @imprint.
   ///
   /// In en, this message translates to:
@@ -958,6 +988,30 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get note;
 
+  /// No description provided for @noteBabyChairTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Baby chair and changing table'**
+  String get noteBabyChairTable;
+
+  /// No description provided for @noteChangingTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing table'**
+  String get noteChangingTable;
+
+  /// No description provided for @noteConstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed for construction work'**
+  String get noteConstruction;
+
+  /// No description provided for @noteHeatedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Heated tobacco only'**
+  String get noteHeatedOnly;
+
   /// No description provided for @noteHintBin.
   ///
   /// In en, this message translates to:
@@ -970,11 +1024,35 @@ abstract class AppLocalizations {
   /// **'Opening hours, ashtray, access …'**
   String get noteHintDefault;
 
+  /// No description provided for @noteMenOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Men only'**
+  String get noteMenOnly;
+
   /// No description provided for @noteOptional.
   ///
   /// In en, this message translates to:
   /// **'Note (optional)'**
   String get noteOptional;
+
+  /// No description provided for @noteUnisex.
+  ///
+  /// In en, this message translates to:
+  /// **'Unisex'**
+  String get noteUnisex;
+
+  /// No description provided for @noteWomenAccessible.
+  ///
+  /// In en, this message translates to:
+  /// **'Women\'s toilet, also an accessible toilet'**
+  String get noteWomenAccessible;
+
+  /// No description provided for @noteWomenOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Women only'**
+  String get noteWomenOnly;
 
   /// No description provided for @notifChannelNearby.
   ///
@@ -1587,6 +1665,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Toilet: {name} · {distance}'**
   String toiletNearest(String name, String distance);
+
+  /// No description provided for @translate.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate'**
+  String get translate;
 
   /// No description provided for @tryAgain.
   ///
