@@ -111,6 +111,12 @@ Key design decisions – keep them:
   `lib/models/data_fingerprint.dart`); votes and closure reports remember
   the fingerprint they were made for. Verdicts for the current version hold
   across data updates; a changed source entry restarts the evaluation.
+- **Opening hours and notes** of the official lists stay in their
+  original Japanese in the data. `OpeningHours` (`lib/models/opening_hours.dart`,
+  pure, tested) reads the OSM syntax and the common Japanese wordings and
+  returns null for anything it does not understand for sure;
+  `lib/ui/hours_text.dart` shows them in the UI language (Japanese UI:
+  original text), else the original with a "Translate" button.
 - **Waze-like moderation** lives only in `ExistencePolicy` (pure, tested):
   latest vote per user, hidden at ≥ 3 "gone" and ≥ 2× the "exists" votes;
   votes for the current data version never expire, votes without one expire

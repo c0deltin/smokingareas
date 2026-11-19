@@ -309,6 +309,25 @@ class AppLocalizationsDe extends AppLocalizations {
   String get hasTrashCan => 'Mit Mülleimer';
 
   @override
+  String get hoursAlways => '24 Stunden geöffnet';
+
+  @override
+  String hoursClosedOn(String days) {
+    return 'Geschlossen: $days';
+  }
+
+  @override
+  String get hoursHolidays => 'Feiertage';
+
+  @override
+  String get hoursNewYear => 'Neujahrstage (29.12.–3.1.)';
+
+  @override
+  String hoursNextDay(String time) {
+    return '$time (Folgetag)';
+  }
+
+  @override
   String get imprint => 'Impressum';
 
   @override
@@ -525,13 +544,38 @@ class AppLocalizationsDe extends AppLocalizations {
   String get note => 'Hinweis';
 
   @override
+  String get noteBabyChairTable => 'Babysitz und Wickeltisch';
+
+  @override
+  String get noteChangingTable => 'Wickeltisch';
+
+  @override
+  String get noteConstruction => 'Wegen Bauarbeiten geschlossen';
+
+  @override
+  String get noteHeatedOnly => 'Nur Tabakerhitzer';
+
+  @override
   String get noteHintBin => 'Wo genau, wie man ihn findet …';
 
   @override
   String get noteHintDefault => 'Öffnungszeiten, Aschenbecher, Zugang …';
 
   @override
+  String get noteMenOnly => 'Nur für Männer';
+
+  @override
   String get noteOptional => 'Hinweis (optional)';
+
+  @override
+  String get noteUnisex => 'Für alle Geschlechter';
+
+  @override
+  String get noteWomenAccessible =>
+      'Damentoilette, zugleich barrierefreie Toilette';
+
+  @override
+  String get noteWomenOnly => 'Nur für Frauen';
 
   @override
   String get notifChannelNearby => 'Raucherbereich in der Nähe';
@@ -900,6 +944,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String toiletNearest(String name, String distance) {
     return 'Toilette: $name · $distance';
   }
+
+  @override
+  String get translate => 'Übersetzen';
 
   @override
   String get tryAgain => 'Erneut versuchen';

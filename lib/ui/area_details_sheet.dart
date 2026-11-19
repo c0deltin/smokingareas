@@ -9,6 +9,7 @@ import '../community/models.dart';
 import '../i18n.dart';
 import '../models/smoking_area.dart';
 import 'community_section.dart';
+import 'hours_text.dart';
 import 'moderation.dart';
 import 'spot_style.dart';
 
@@ -91,6 +92,7 @@ class AreaDetailsSheet extends StatelessWidget {
     final nameEn = area.tags['name:en'];
 
     final l = context.l10n;
+    final lang = Localizations.localeOf(context).languageCode;
     String yesNo(bool? v, [String? yes, String? no]) =>
         v == null ? l.unknown : (v ? (yes ?? l.yes) : (no ?? l.no));
 
@@ -137,10 +139,18 @@ class AreaDetailsSheet extends StatelessWidget {
       if (area.category != SpotCategory.bin)
         (Icons.payments_outlined, l.fee, yesNo(area.requiresFee)),
       if (area.openingHours != null)
-        (Icons.schedule, l.openingHours, area.openingHours!),
+        (
+          Icons.schedule,
+          l.openingHours,
+          hoursText(area.openingHours!, l, lang),
+        ),
       if (area.operator != null) (Icons.business, l.operator, area.operator!),
       if (area.description != null)
-        (Icons.info_outline, l.note, area.description!),
+        (
+          Icons.info_outline,
+          l.note,
+          noteText(area.description!, l, lang) ?? area.description!,
+        ),
       if (area.tags['community:by'] != null)
         (Icons.person_outline, l.reportedBy, area.tags['community:by']!),
       (Icons.storage, l.source,
@@ -215,9 +225,29 @@ class AreaDetailsSheet extends StatelessWidget {
                       child: Text(label, style: theme.textTheme.bodyMedium),
                     ),
                     Expanded(
-                      child: Text(value,
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(value,
+                              style: theme.textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600)),
+                          // Japanese text the app could not translate.
+                          if (lang != 'ja' &&
+                              (label == l.openingHours || label == l.note) &&
+                              isJapanese(value))
+                            TextButton.icon(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              icon: const Icon(Icons.translate, size: 18),
+                              label: Text(l.translate),
+                              onPressed: () => launchUrl(
+                                  translateUri(value, lang),
+                                  mode: LaunchMode.externalApplication),
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

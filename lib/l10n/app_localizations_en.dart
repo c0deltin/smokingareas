@@ -310,6 +310,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hasTrashCan => 'Has a trash can';
 
   @override
+  String get hoursAlways => 'Open 24 hours';
+
+  @override
+  String hoursClosedOn(String days) {
+    return 'Closed: $days';
+  }
+
+  @override
+  String get hoursHolidays => 'public holidays';
+
+  @override
+  String get hoursNewYear => 'New Year holidays (Dec 29 – Jan 3)';
+
+  @override
+  String hoursNextDay(String time) {
+    return '$time (next day)';
+  }
+
+  @override
   String get imprint => 'Imprint';
 
   @override
@@ -528,13 +547,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get note => 'Note';
 
   @override
+  String get noteBabyChairTable => 'Baby chair and changing table';
+
+  @override
+  String get noteChangingTable => 'Changing table';
+
+  @override
+  String get noteConstruction => 'Closed for construction work';
+
+  @override
+  String get noteHeatedOnly => 'Heated tobacco only';
+
+  @override
   String get noteHintBin => 'Where exactly, how to find it …';
 
   @override
   String get noteHintDefault => 'Opening hours, ashtray, access …';
 
   @override
+  String get noteMenOnly => 'Men only';
+
+  @override
   String get noteOptional => 'Note (optional)';
+
+  @override
+  String get noteUnisex => 'Unisex';
+
+  @override
+  String get noteWomenAccessible =>
+      'Women\'s toilet, also an accessible toilet';
+
+  @override
+  String get noteWomenOnly => 'Women only';
 
   @override
   String get notifChannelNearby => 'Smoking area nearby';
@@ -899,6 +943,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String toiletNearest(String name, String distance) {
     return 'Toilet: $name · $distance';
   }
+
+  @override
+  String get translate => 'Translate';
 
   @override
   String get tryAgain => 'Try again';

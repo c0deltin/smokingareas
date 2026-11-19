@@ -171,6 +171,25 @@
   "goneText": "If enough users report that this place is gone, it is removed from the map.",
   "goneTitle": "Gone?",
   "hasTrashCan": "Has a trash can",
+  "hoursAlways": "Open 24 hours",
+  "hoursClosedOn": "Closed: {days}",
+  "@hoursClosedOn": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "hoursHolidays": "public holidays",
+  "hoursNewYear": "New Year holidays (Dec 29 – Jan 3)",
+  "hoursNextDay": "{time} (next day)",
+  "@hoursNextDay": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "imprint": "Imprint",
   "inThisCity": "{count} in this city",
   "@inThisCity": {
@@ -272,9 +291,17 @@
   "notSignedIn": "Not signed in",
   "notSure": "Not sure",
   "note": "Note",
+  "noteBabyChairTable": "Baby chair and changing table",
+  "noteChangingTable": "Changing table",
+  "noteConstruction": "Closed for construction work",
+  "noteHeatedOnly": "Heated tobacco only",
   "noteHintBin": "Where exactly, how to find it …",
   "noteHintDefault": "Opening hours, ashtray, access …",
+  "noteMenOnly": "Men only",
   "noteOptional": "Note (optional)",
+  "noteUnisex": "Unisex",
+  "noteWomenAccessible": "Women's toilet, also an accessible toilet",
+  "noteWomenOnly": "Women only",
   "notifChannelNearby": "Smoking area nearby",
   "notifChannelNearbyDesc": "Notifies you when you come close to a smoking area.",
   "notifNearbyBody": "{name} – about {meters} m away. Tap to open the map.",
@@ -504,6 +531,7 @@
       }
     }
   },
+  "translate": "Translate",
   "tryAgain": "Try again",
   "turnAlertsOff": "Turn alerts off",
   "turnAlertsOn": "Turn alerts on",

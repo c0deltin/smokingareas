@@ -54,10 +54,10 @@ Agreed order (data first, then the server):
 
 - [ ] **Translations:** the UI is available in English, German and Japanese
   (device language, English fallback) – have the German and Japanese texts
-  checked by native speakers; more languages = one more ARB file. Some data
-  fields are Japanese only (e.g. opening hours, notes and addresses of the
-  official datasets) – translate or normalise them (opening hours into the
-  OSM `opening_hours` format, shown localised).
+  checked by native speakers; more languages = one more ARB file. Opening
+  hours (~92 % of the official entries) and frequent notes are shown in the
+  UI language; the rest (addresses, rare wordings such as お盆 closures or
+  seasonal hours) stays Japanese with a "Translate" button.
 
 - [ ] Native iOS look (Liquid Glass): native glass controls via platform
   views, or a separate SwiftUI app.
