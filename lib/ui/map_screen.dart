@@ -26,6 +26,7 @@ import 'legend_sheet.dart';
 import 'location_disclosure.dart';
 import 'my_spots_sheet.dart';
 import 'local_data_sheet.dart';
+import 'map_style.dart';
 import 'marker_icons.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
@@ -532,6 +533,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         children: [
           gm.GoogleMap(
             initialCameraPosition: _camera,
+            // Dark map in dark mode (follows the system setting).
+            style: mapStyleFor(theme.brightness),
             minMaxZoomPreference: const gm.MinMaxZoomPreference(5, 20),
             // Own location symbol (dot + direction cone) and own buttons.
             myLocationEnabled: false,
