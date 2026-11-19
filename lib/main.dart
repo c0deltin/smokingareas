@@ -14,6 +14,7 @@ import 'community/local_migration.dart';
 import 'community/outbox.dart';
 import 'community/photo_storage.dart';
 import 'community/server_backend.dart';
+import 'i18n.dart';
 import 'services/heading_service.dart';
 import 'services/osm_tiles.dart';
 import 'services/proximity_monitor.dart';
@@ -154,6 +155,11 @@ class SmokingAreasApp extends StatelessWidget {
     const seed = Color(0xFF2563EB); // app icon blue
     return MaterialApp(
       title: 'Ippuku',
+      // UI language = device language when supported, else English (the
+      // first supported locale).
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: resolveAppLocale,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: seed, useMaterial3: true),
       darkTheme: ThemeData(

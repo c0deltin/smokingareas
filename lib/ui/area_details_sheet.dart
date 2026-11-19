@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../community/community_service.dart';
 import '../community/models.dart';
+import '../i18n.dart';
 import '../models/smoking_area.dart';
 import 'community_section.dart';
 import 'moderation.dart';
@@ -89,62 +90,61 @@ class AreaDetailsSheet extends StatelessWidget {
     final nameJa = area.tags['name:ja'];
     final nameEn = area.tags['name:en'];
 
-    String yesNo(bool? v, String yes, String no) =>
-        v == null ? 'unknown' : (v ? yes : no);
+    final l = context.l10n;
+    String yesNo(bool? v, [String? yes, String? no]) =>
+        v == null ? l.unknown : (v ? (yes ?? l.yes) : (no ?? l.no));
 
     final rows = <(IconData, String, String)>[
       if (distance != null)
-        (Icons.near_me, 'Distance', formatDistance(distance)),
-      if (area.address != null) (Icons.place_outlined, 'Address', area.address!),
+        (Icons.near_me, l.distance, formatDistance(distance)),
+      if (area.address != null) (Icons.place_outlined, l.address, area.address!),
       if (area.isApproximate)
-        (Icons.gps_not_fixed, 'Position',
-            'approximate (from the address, ± approx. 50 m)'),
+        (Icons.gps_not_fixed, l.position, l.positionApprox),
       if (area.isSmoking && area.roomCount > 1)
-        (Icons.layers_outlined, 'Smoking rooms',
-            '${area.roomCount} in the same building'),
+        (Icons.layers_outlined, l.smokingRooms,
+            l.roomsInBuilding(area.roomCount)),
       if (area.isSmoking) ...[
-        (Icons.meeting_room_outlined, 'Type',
-            yesNo(area.isIndoor, 'Smoking room (indoors)', 'Outdoors')),
-        (Icons.roofing, 'Covered', yesNo(area.isCovered, 'yes', 'no')),
+        (Icons.meeting_room_outlined, l.type,
+            yesNo(area.isIndoor, l.smokingRoomIndoors, l.outdoors)),
+        (Icons.roofing, l.covered, yesNo(area.isCovered)),
       ],
       if (area.isToilet) ...[
-        (Icons.accessible, 'Wheelchair accessible',
-            yesNo(area.wheelchair, 'yes', 'no')),
-        (Icons.baby_changing_station, 'Baby changing',
-            yesNo(area.changingTable, 'yes', 'no')),
+        (Icons.accessible, l.wheelchairAccessible, yesNo(area.wheelchair)),
+        (Icons.baby_changing_station, l.babyChanging,
+            yesNo(area.changingTable)),
       ],
       if (area.category == SpotCategory.bin)
         (
           Icons.recycling,
-          'Accepts',
+          l.accepts,
           area.waste.isEmpty
-              ? 'unknown'
-              : [for (final t in WasteType.values) if (area.waste.contains(t)) t.label].join(', '),
+              ? l.unknown
+              : [
+                  for (final t in WasteType.values)
+                    if (area.waste.contains(t)) l.waste(t),
+                ].join(', '),
         ),
       if (area.isPublic != null || area.accessNote != null)
         (
           Icons.lock_open_outlined,
-          'Access',
+          l.access,
           [
             if (area.isPublic != null)
-              area.isPublic!
-                  ? 'public'
-                  : 'not public (ticket, entry fee or purchase needed)',
+              area.isPublic! ? l.accessPublic : l.accessNotPublic,
             if (area.accessNote != null) area.accessNote!,
           ].join(' – '),
         ),
       if (area.category != SpotCategory.bin)
-        (Icons.payments_outlined, 'Fee',
-            yesNo(area.requiresFee, 'yes', 'no')),
+        (Icons.payments_outlined, l.fee, yesNo(area.requiresFee)),
       if (area.openingHours != null)
-        (Icons.schedule, 'Opening hours', area.openingHours!),
-      if (area.operator != null) (Icons.business, 'Operator', area.operator!),
+        (Icons.schedule, l.openingHours, area.openingHours!),
+      if (area.operator != null) (Icons.business, l.operator, area.operator!),
       if (area.description != null)
-        (Icons.info_outline, 'Note', area.description!),
+        (Icons.info_outline, l.note, area.description!),
       if (area.tags['community:by'] != null)
-        (Icons.person_outline, 'Reported by', area.tags['community:by']!),
-      (Icons.storage, 'Source',
-          area.isOfficial ? '${area.source} (official)' : area.source),
+        (Icons.person_outline, l.reportedBy, area.tags['community:by']!),
+      (Icons.storage, l.source,
+          area.isOfficial ? l.sourceOfficial(area.source) : area.source),
     ];
 
     return SafeArea(
@@ -169,10 +169,10 @@ class AreaDetailsSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(area.title, style: theme.textTheme.titleLarge),
-                      if (nameJa != null && nameJa != area.title)
+                      Text(l.title(area), style: theme.textTheme.titleLarge),
+                      if (nameJa != null && nameJa != l.title(area))
                         Text(nameJa, style: theme.textTheme.bodyMedium),
-                      if (nameEn != null && nameEn != area.title)
+                      if (nameEn != null && nameEn != l.title(area))
                         Text(nameEn, style: theme.textTheme.bodyMedium),
                     ],
                   ),
@@ -184,7 +184,7 @@ class AreaDetailsSheet extends StatelessWidget {
                     target: ReportTarget.spot,
                     targetId: area.id,
                     authorId: area.tags['community:by_id'] ?? '',
-                    authorName: area.tags['community:by'] ?? 'this user',
+                    authorName: area.tags['community:by'] ?? l.thisUser,
                     onBlocked: () => Navigator.of(context).maybePop(),
                   ),
               ],
@@ -230,7 +230,7 @@ class AreaDetailsSheet extends StatelessWidget {
                     onPressed: () => launchUrl(_routeUri,
                         mode: LaunchMode.externalApplication),
                     icon: const Icon(Icons.directions_walk),
-                    label: const Text('Route'),
+                    label: Text(l.route),
                   ),
                 ),
                 if (_officialUri != null) ...[
@@ -240,7 +240,7 @@ class AreaDetailsSheet extends StatelessWidget {
                       onPressed: () => launchUrl(_officialUri!,
                           mode: LaunchMode.externalApplication),
                       icon: const Icon(Icons.account_balance_outlined),
-                      label: const Text('City'),
+                      label: Text(l.city),
                     ),
                   ),
                 ],
@@ -251,7 +251,7 @@ class AreaDetailsSheet extends StatelessWidget {
                       onPressed: () => launchUrl(_osmUri!,
                           mode: LaunchMode.externalApplication),
                       icon: const Icon(Icons.map_outlined),
-                      label: const Text('OSM'),
+                      label: Text(l.osm),
                     ),
                   ),
                 ],
@@ -264,9 +264,8 @@ class AreaDetailsSheet extends StatelessWidget {
                 onRemoved: () {
                   final messenger = ScaffoldMessenger.of(context);
                   Navigator.of(context).pop();
-                  messenger.showSnackBar(const SnackBar(
-                    content: Text('Thanks! The place was removed after '
-                        'community reports.'),
+                  messenger.showSnackBar(SnackBar(
+                    content: Text(l.removedAfterReports),
                   ));
                 },
               ),
@@ -276,9 +275,6 @@ class AreaDetailsSheet extends StatelessWidget {
     );
   }
 }
-
-String formatDate(DateTime d) =>
-    '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
 /// Red notice for temporarily closed spots.
 class ClosedBanner extends StatelessWidget {
@@ -303,7 +299,7 @@ class ClosedBanner extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Temporarily closed',
+            Text(context.l10n.temporarilyClosed,
                 style: theme.textTheme.titleSmall
                     ?.copyWith(color: theme.colorScheme.onErrorContainer)),
             if (note != null)
@@ -311,7 +307,8 @@ class ClosedBanner extends StatelessWidget {
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.onErrorContainer)),
             if (until != null)
-              Text('expected until ${formatDate(until)}',
+              Text(
+                  context.l10n.expectedUntil(formatDay(context, until)),
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.onErrorContainer)),
           ]),

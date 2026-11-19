@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../community/community_service.dart';
 import '../community/models.dart';
+import '../i18n.dart';
 import '../models/smoking_area.dart';
-import 'area_details_sheet.dart';
 import 'report_spot_sheet.dart';
 import 'sign_in_sheet.dart';
 import 'spot_style.dart';
@@ -52,20 +52,18 @@ class MySpotsView extends StatelessWidget {
           controller: scrollController,
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           children: [
-            Text('My spots', style: theme.textTheme.titleLarge),
+            Text(context.l10n.mySpots, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             if (!community.isSignedIn &&
                 community.signInProviders.isNotEmpty) ...[
-              const Text('Sign in to see and manage the places you '
-                  'reported.'),
+              Text(context.l10n.mySpotsSignIn),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () => showSignInSheet(context, community),
-                child: const Text('Sign in'),
+                child: Text(context.l10n.signIn),
               ),
             ] else if (spots.isEmpty)
-              const Text('You have not reported any places yet. Use the '
-                  '"Report a spot" button on the map.')
+              Text(context.l10n.mySpotsEmpty)
             else
               for (final s in spots)
                 _MySpotTile(spot: s, community: community, onShow: onShow),
@@ -89,17 +87,18 @@ class _MySpotTile extends StatelessWidget {
     final category =
         SpotCategory.tryParse(spot.category) ?? SpotCategory.smoking;
     final area = community.areaOf(spot);
+    final l = context.l10n;
     final details = <String>[
-      'Reported ${formatDate(spot.createdAt)}',
+      l.reportedOn(
+          formatDay(context, spot.createdAt)),
       if (area != null) ...[
         if (community.ratingFor(area).count > 0)
           '★ ${community.ratingFor(area).average.toStringAsFixed(1)}',
         if (community.photosFor(area).isNotEmpty)
-          '${community.photosFor(area).length} photo'
-              '${community.photosFor(area).length == 1 ? '' : 's'}',
-        if (community.isHidden(area)) 'removed by the community'
+          l.photoCount(community.photosFor(area).length),
+        if (community.isHidden(area)) l.removedByCommunity
         else if (community.annotate(area).isTemporarilyClosed)
-          'temporarily closed',
+          l.temporarilyClosedLower,
       ],
     ];
     return ListTile(
@@ -112,7 +111,7 @@ class _MySpotTile extends StatelessWidget {
       subtitle: Text(details.join(' · ')),
       onTap: area == null ? null : () => _show(context, area),
       trailing: PopupMenuButton<String>(
-        tooltip: 'More',
+        tooltip: l.more,
         onSelected: (v) => switch (v) {
           'show' => area == null ? null : _show(context, area),
           'edit' => _edit(context, category),
@@ -120,25 +119,25 @@ class _MySpotTile extends StatelessWidget {
         },
         itemBuilder: (_) => [
           if (area != null)
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'show',
               child: ListTile(
-                leading: Icon(Icons.map_outlined),
-                title: Text('Show on map'),
+                leading: const Icon(Icons.map_outlined),
+                title: Text(l.showOnMap),
               ),
             ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'edit',
             child: ListTile(
-              leading: Icon(Icons.edit_outlined),
-              title: Text('Edit'),
+              leading: const Icon(Icons.edit_outlined),
+              title: Text(l.edit),
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'delete',
             child: ListTile(
-              leading: Icon(Icons.delete_outline),
-              title: Text('Delete'),
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l.delete),
             ),
           ),
         ],
@@ -196,18 +195,18 @@ class _MySpotTile extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete "${spot.name}"?'),
-        content: const Text('The place is removed from the map for everyone.'),
+        title: Text(context.l10n.deleteSpotQuestion(spot.name)),
+        content: Text(context.l10n.deleteSpotText),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),

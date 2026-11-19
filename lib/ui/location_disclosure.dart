@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../i18n.dart';
+
 const _prefKey = 'location_disclosure_accepted';
 
 /// Prominent disclosure shown before the app asks for location access
@@ -29,26 +31,18 @@ class LocationDisclosureDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       icon: const Icon(Icons.location_on_outlined),
-      title: const Text('Use of your location'),
-      content: const SingleChildScrollView(
-        child: Text(
-          'Ippuku uses your location to show nearby smoking areas and '
-          'public toilets on the map.\n\n'
-          'If you turn on alerts, the app also uses your location in the '
-          'background – even when the app is closed or not in use – to '
-          'notify you when you are close to a designated smoking area.\n\n'
-          'Your location is processed only on your device. It is never sent '
-          'to us or shared with anyone. You can turn alerts off at any time.',
-        ),
+      title: Text(context.l10n.locationUseTitle),
+      content: SingleChildScrollView(
+        child: Text(context.l10n.locationUseText),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Not now'),
+          child: Text(context.l10n.notNow),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
-          child: const Text('Continue'),
+          child: Text(context.l10n.continueLabel),
         ),
       ],
     );

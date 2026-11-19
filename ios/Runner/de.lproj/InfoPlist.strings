@@ -1,0 +1,7 @@
+/* German permission texts (English ones are in Info.plist). */
+"CFBundleDisplayName" = "Ippuku";
+"NSCameraUsageDescription" = "Die Kamera wird genutzt, um Fotos von Raucherbereichen und Toiletten aufzunehmen, die du zur Karte hinzufügst.";
+"NSPhotoLibraryUsageDescription" = "Fotos aus deiner Mediathek können zu Raucherbereichen und Toiletten hinzugefügt werden.";
+"NSLocationWhenInUseUsageDescription" = "Dein Standort wird genutzt, um Raucherbereiche und Toiletten in der Nähe zu zeigen. Er verlässt nie dein Gerät.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Mit „Immer“ kann dich die App im Hintergrund benachrichtigen, wenn du in der Nähe eines ausgewiesenen Raucherbereichs bist (Radius in den Einstellungen). Dein Standort verlässt nie dein Gerät.";
+"NSLocationAlwaysUsageDescription" = "Mit „Immer“ kann dich die App im Hintergrund benachrichtigen, wenn du in der Nähe eines ausgewiesenen Raucherbereichs bist (Radius in den Einstellungen). Dein Standort verlässt nie dein Gerät.";

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/models/smoking_area.dart';
 import 'package:smoking_areas/ui/legend_sheet.dart';
 import 'package:smoking_areas/ui/spot_style.dart';
@@ -39,7 +40,9 @@ void main() {
 
   testWidgets('legend lists every symbol with a one-sentence explanation',
       (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: LegendView())));
+    await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,home: Scaffold(body: LegendView())));
 
     for (final text in [
       'Outdoor smoking area.',
@@ -59,7 +62,7 @@ void main() {
     }
 
     // Every explanation is a single sentence.
-    for (final (_, entries) in legendSections()) {
+    for (final (_, entries) in legendSections(lookupAppLocalizations(const Locale('en')))) {
       for (final e in entries) {
         expect('.'.allMatches(e.text).length,
             lessThanOrEqualTo(1),
@@ -69,7 +72,9 @@ void main() {
   });
 
   testWidgets('legend symbols are the real map markers', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: LegendView())));
+    await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,home: Scaffold(body: LegendView())));
     final markers =
         tester.widgetList<SpotMarker>(find.byType(SpotMarker, skipOffstage: false));
     expect(markers.map((m) => m.origin).toSet(), SpotOrigin.values.toSet());

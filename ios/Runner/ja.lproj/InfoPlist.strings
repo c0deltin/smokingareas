@@ -1,0 +1,7 @@
+/* Japanese permission texts (English ones are in Info.plist). */
+"CFBundleDisplayName" = "Ippuku";
+"NSCameraUsageDescription" = "地図に追加する喫煙所やトイレの写真を撮るためにカメラを使用します。";
+"NSPhotoLibraryUsageDescription" = "ライブラリの写真を喫煙所やトイレに追加できます。";
+"NSLocationWhenInUseUsageDescription" = "近くの喫煙所やトイレを表示するために位置情報を使用します。位置情報が端末の外に送られることはありません。";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "「常に許可」にすると、指定喫煙所に近づいたときにバックグラウンドでもお知らせできます（距離は設定で変更可能）。位置情報が端末の外に送られることはありません。";
+"NSLocationAlwaysUsageDescription" = "「常に許可」にすると、指定喫煙所に近づいたときにバックグラウンドでもお知らせできます（距離は設定で変更可能）。位置情報が端末の外に送られることはありません。";

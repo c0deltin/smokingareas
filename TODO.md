@@ -52,11 +52,12 @@ Agreed order (data first, then the server):
 
 ## Later
 
-- [ ] **Translations:** offer the app in several languages (UI strings via
-  Flutter localisation). Some data fields are Japanese only (e.g. opening
-  hours, notes and addresses of the official datasets) – translate or
-  normalise them (opening hours into the OSM `opening_hours` format, shown
-  localised) together with the UI.
+- [ ] **Translations:** the UI is available in English, German and Japanese
+  (device language, English fallback) – have the German and Japanese texts
+  checked by native speakers; more languages = one more ARB file. Some data
+  fields are Japanese only (e.g. opening hours, notes and addresses of the
+  official datasets) – translate or normalise them (opening hours into the
+  OSM `opening_hours` format, shown localised).
 
 - [ ] Native iOS look (Liquid Glass): native glass controls via platform
   views, or a separate SwiftUI app.

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/community/auth_service.dart';
 import 'package:smoking_areas/community/community_backend.dart';
 import 'package:smoking_areas/community/community_service.dart';
@@ -120,10 +121,12 @@ void main() {
     await tester.runAsync(() => service.reportSpot(
         position: const LatLng(35.69, 139.70), name: 'Behind the station'));
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(body: MySpotsView(community: service, onShow: (_) {})),
     ));
     expect(find.text('Behind the station'), findsOneWidget);
-    expect(find.textContaining('Reported 12.11.2026'), findsOneWidget);
+    expect(find.textContaining('Reported Nov 12, 2026'), findsOneWidget);
 
     await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
@@ -134,6 +137,8 @@ void main() {
 
   testWidgets('empty list explains how to report', (tester) async {
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(body: MySpotsView(community: service, onShow: (_) {})),
     ));
     expect(find.textContaining('not reported any places yet'), findsOneWidget);

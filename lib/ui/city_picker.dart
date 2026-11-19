@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../data/cities.dart';
 import '../data/districts.dart';
+import '../i18n.dart';
 import '../models/city.dart';
 
 /// What the user picked: a whole city, or a district within a city.
@@ -78,10 +79,10 @@ class _CityPickerState extends State<_CityPicker> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: TextField(
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Search city, district or prefecture',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: context.l10n.searchPlaceHint,
+              border: const OutlineInputBorder(),
             ),
             onChanged: (v) => setState(() => _query = v.trim()),
           ),
@@ -90,15 +91,15 @@ class _CityPickerState extends State<_CityPicker> {
           child: ListView(
             controller: widget.controller,
             children: [
-              if (districts.isNotEmpty) header('Popular districts'),
+              if (districts.isNotEmpty) header(context.l10n.popularDistricts),
               for (final d in districts)
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.place_outlined),
-                  title: Text(d.name),
+                  title: Text(_ja(context) ? d.nameJa : d.name),
                   subtitle: Text([
-                    d.nameJa,
-                    if (d.ward != null) '${d.ward} ward',
+                    _ja(context) ? d.name : d.nameJa,
+                    if (d.ward != null) context.l10n.wardName(d.ward!),
                     cityById(d.cityId)?.name.split(' ').first,
                   ].join(' · ')),
                   onTap: () {
@@ -112,12 +113,14 @@ class _CityPickerState extends State<_CityPicker> {
                     ));
                   },
                 ),
-              if (cities.isNotEmpty) header('Cities'),
+              if (cities.isNotEmpty) header(context.l10n.cities),
               for (final c in cities)
                 ListTile(
                   leading: const Icon(Icons.location_city),
-                  title: Text(c.name),
-                  subtitle: Text('${c.nameJa} · ${c.prefecture}'),
+                  // Japanese UI: the Japanese name first.
+                  title: Text(_ja(context) ? c.nameJa : c.name),
+                  subtitle: Text(
+                      '${_ja(context) ? c.name : c.nameJa} · ${c.prefecture}'),
                   trailing: c.id == widget.selected?.id
                       ? const Icon(Icons.check)
                       : null,
@@ -134,3 +137,7 @@ class _CityPickerState extends State<_CityPicker> {
     );
   }
 }
+
+/// Whether the UI is Japanese (place names are then shown in Japanese).
+bool _ja(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'ja';

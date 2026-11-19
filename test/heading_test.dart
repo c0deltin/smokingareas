@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_rotation_sensor/flutter_rotation_sensor.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/services/heading_math.dart';
 import 'package:smoking_areas/services/heading_service.dart';
 import 'package:smoking_areas/ui/user_location_marker.dart';
@@ -129,6 +130,8 @@ void main() {
       (tester) async {
     final service = HeadingService(orientationStream: const Stream.empty());
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Center(child: UserLocationMarker(heading: service)),
     ));
     bool hasCone() => tester

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/models/city.dart';
 import 'package:smoking_areas/models/smoking_area.dart';
 import 'package:smoking_areas/services/map_clustering.dart';
@@ -102,6 +103,8 @@ void main() {
 
   testWidgets('legend markers paint without overflow errors', (tester) async {
     await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Center(
         child: SpotMarker(category: SpotCategory.smoking, closed: true),
       ),

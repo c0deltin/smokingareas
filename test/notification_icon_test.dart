@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/services/notification_service.dart';
 
 void main() {
@@ -16,7 +18,8 @@ void main() {
   });
 
   test('alert title is plain text without the old emoji', () {
-    expect(NotificationService.nearbyTitle, 'Smoking area nearby');
+    expect(lookupAppLocalizations(const Locale('en')).notifNearbyTitle,
+        'Smoking area nearby');
   });
 
   test('alert payload carries id and position, old payloads still work', () {

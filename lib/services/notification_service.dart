@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:latlong2/latlong.dart';
 
+import '../i18n.dart';
 import '../models/smoking_area.dart';
 
 /// What a proximity alert points to: the spot id and its position (so the
@@ -51,7 +52,6 @@ class NotificationService {
   bool _initialized = false;
 
   static const _channelId = 'smoking_area_nearby';
-  static const _channelName = 'Smoking area nearby';
 
   /// Monochrome status bar icon (`res/drawable/ic_stat_ippuku.xml`) and the
   /// app's blue as accent; the launcher icon is a full-colour square and
@@ -59,8 +59,6 @@ class NotificationService {
   static const androidIcon = 'ic_stat_ippuku';
   static const accent = Color(0xFF2563EB);
 
-  /// Title of the proximity alert (the app name is shown by the system).
-  static const nearbyTitle = 'Smoking area nearby';
 
   /// Called with the payload ([NotificationTarget]) when the user taps a
   /// notification while the app is running.
@@ -119,23 +117,25 @@ class NotificationService {
   Future<void> showNearby(SmokingArea area, double distanceMeters) async {
     await init();
     final meters = distanceMeters.round();
+    // Device language (no widget context here); the system shows the app
+    // name above the title.
+    final l = deviceL10n();
     await _plugin.show(
       id: area.id.hashCode & 0x7fffffff,
-      title: nearbyTitle,
-      body: '${area.title} – about $meters m away. Tap to open the map.',
-      notificationDetails: const NotificationDetails(
+      title: l.notifNearbyTitle,
+      body: l.notifNearbyBody(l.title(area), meters),
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
-          _channelName,
-          channelDescription:
-              'Notifies you when you come close to a smoking area.',
+          l.notifChannelNearby,
+          channelDescription: l.notifChannelNearbyDesc,
           importance: Importance.high,
           priority: Priority.high,
           category: AndroidNotificationCategory.navigation,
           icon: androidIcon,
           color: accent,
         ),
-        iOS: DarwinNotificationDetails(
+        iOS: const DarwinNotificationDetails(
           presentAlert: true,
           presentBanner: true,
           presentSound: true,

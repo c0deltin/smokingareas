@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/cities.dart';
+import '../i18n.dart';
 import '../models/city.dart';
 import '../models/smoking_area.dart';
 import 'heading_service.dart';
@@ -233,10 +234,10 @@ class ProximityMonitor extends ChangeNotifier with WidgetsBindingObserver {
         // in the background (required on Android 8+).
         foregroundNotificationConfig: _alertsEnabled
             ? ForegroundNotificationConfig(
-                notificationTitle: 'Smoking area alerts on',
-                notificationText: 'You will be notified when a smoking area '
-                    'is within ${_alertRadius.round()} m.',
-                notificationChannelName: 'Location monitoring',
+                notificationTitle: deviceL10n().fgAlertsOnTitle,
+                notificationText:
+                    deviceL10n().fgAlertsOnText(_alertRadius.round()),
+                notificationChannelName: deviceL10n().fgChannel,
                 notificationIcon: const AndroidResource(
                     name: NotificationService.androidIcon),
                 color: NotificationService.accent,
