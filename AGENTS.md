@@ -87,6 +87,11 @@ Key design decisions – keep them:
   to report it (`content_reports`) or block its author; blocked users'
   content is hidden for the blocking user only (`CommunityService`). Keep
   this menu on any new kind of user content.
+- **Offline contributions:** votes, feature answers, closure reports,
+  ratings and reported spots made without a connection are shown at once
+  and kept in the `Outbox` (`lib/community/outbox.dart`, in order); they
+  are sent on the next refresh or contribution. Only network errors are
+  kept (`isOfflineError`); refusals by the server are shown as errors.
 - **Device-only data of earlier versions** is offered for upload once after
   sign-in (`LocalDataMigration`, resumable, latest rating/vote per place).
 - **OSM tag schema** for attributes (`indoor`, `covered`, `access`,

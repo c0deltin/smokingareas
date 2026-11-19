@@ -5,6 +5,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../community/auth_service.dart';
 import '../community/community_service.dart';
+import '../community/outbox.dart';
 import '../data/links.dart';
 
 /// Offers Sign in with Apple (iOS) / Google. Returns true when the user is
@@ -46,6 +47,14 @@ Future<bool> contribute(
   if (!await ensureSignedIn(context, community, reason: reason)) return false;
   try {
     await action();
+    return true;
+  } on SavedOffline {
+    // Kept on the device and shown already; sent when online again.
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No connection – saved on this device and sent '
+              'automatically later.')));
+    }
     return true;
   } catch (e) {
     if (context.mounted) {
