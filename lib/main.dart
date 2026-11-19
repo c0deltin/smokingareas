@@ -11,6 +11,7 @@ import 'community/auth_service.dart';
 import 'community/community_backend.dart';
 import 'community/community_service.dart';
 import 'community/local_migration.dart';
+import 'community/outbox.dart';
 import 'community/photo_storage.dart';
 import 'community/server_backend.dart';
 import 'services/heading_service.dart';
@@ -85,6 +86,8 @@ Future<void> main() async {
       backend: ServerCommunityBackend(client),
       photos: ServerPhotoStorage(client, getApplicationCacheDirectory),
       auth: auth,
+      // Contributions without a connection wait here and are sent later.
+      outbox: Outbox(getApplicationSupportDirectory),
     );
     // Network: do not delay the first frame.
     unawaited(community.init());

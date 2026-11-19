@@ -13,6 +13,7 @@ import 'existence_policy.dart';
 import 'feature_policy.dart';
 import 'local_migration.dart';
 import 'models.dart';
+import 'outbox.dart';
 import 'photo_storage.dart';
 
 /// Aggregated star rating of one spot.
@@ -39,6 +40,7 @@ class CommunityService extends ChangeNotifier {
     this.policy = const ExistencePolicy(),
     this.closurePolicy = const ClosurePolicy(),
     this.featurePolicy = const FeaturePolicy(),
+    this.outbox,
     DateTime Function()? clock,
   }) : _now = clock ?? DateTime.now;
 
@@ -49,6 +51,14 @@ class CommunityService extends ChangeNotifier {
   final ClosurePolicy closurePolicy;
   final FeaturePolicy featurePolicy;
   final DateTime Function() _now;
+
+  /// Keeps contributions made without a connection until they can be sent
+  /// (server backend only; null: errors are reported right away).
+  final Outbox? outbox;
+  int _queued = 0;
+
+  /// Contributions waiting for a connection.
+  int get queuedCount => _queued;
   static const _uuid = Uuid();
 
   List<UserProfile> _users = [];
@@ -72,6 +82,7 @@ class CommunityService extends ChangeNotifier {
   /// Loads all community data. With a server backend this needs the
   /// network; on failure the previous data stays and [loadError] is set.
   Future<void> init() async {
+    await flushOutbox();
     try {
       final results = await Future.wait([
         backend.users(),
@@ -89,6 +100,7 @@ class CommunityService extends ChangeNotifier {
       _votes = results[4] as List<ExistenceVote>;
       _closures = results[5] as List<ClosureReport>;
       _featureVotes = results[6] as List<FeatureVote>;
+      await _overlayOutbox();
       final me = auth.currentUser?.id;
       _blocked = me == null ? {} : {...await backend.blockedUsers(me)};
       loadError = null;
@@ -122,6 +134,100 @@ class CommunityService extends ChangeNotifier {
     _closuresBySpot = null;
     _featureVotesBySpot = null;
     notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------
+  // Offline outbox
+  // ---------------------------------------------------------------------
+
+  /// Sends [entry] with [call], or keeps it in the [outbox] when there is no
+  /// connection (or older entries are still waiting – the order matters,
+  /// e.g. a spot before its vote). Returns true when it was kept; other
+  /// errors are thrown and nothing is kept.
+  Future<bool> _send(OutboxEntry entry, Future<void> Function() call) async {
+    final box = outbox;
+    if (box == null) {
+      await call();
+      return false;
+    }
+    // Back online? Send what is waiting first (keeps the order).
+    if (_queued > 0) await flushOutbox();
+    if (_queued == 0) {
+      try {
+        await call();
+        return false;
+      } catch (e) {
+        if (!isOfflineError(e)) rethrow;
+      }
+    }
+    await box.add(entry);
+    _queued = (await box.entries()).length;
+    return true;
+  }
+
+  Future<void>? _flushing;
+
+  /// Sends what was kept offline, oldest first. Stops at the first missing
+  /// connection; entries the server refuses are dropped.
+  Future<void> flushOutbox() =>
+      _flushing ??= _flush().whenComplete(() => _flushing = null);
+
+  Future<void> _flush() async {
+    final box = outbox;
+    if (box == null) return;
+    for (final entry in await box.entries()) {
+      try {
+        await _deliver(entry);
+      } catch (e) {
+        if (isOfflineError(e)) break;
+        // Refused (e.g. signed out, rate limit): nothing to retry.
+      }
+      await box.removeFirst();
+    }
+    final left = (await box.entries()).length;
+    if (left != _queued) {
+      _queued = left;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _deliver(OutboxEntry e) => switch (e.kind) {
+        OutboxKind.spot => backend.addSpot(CommunitySpot.fromJson(e.data)),
+        OutboxKind.vote => backend.addVote(ExistenceVote.fromJson(e.data)),
+        OutboxKind.featureVote => switch (FeatureVote.fromJson(e.data)) {
+            final v? => backend.addFeatureVote(v),
+            null => Future.value(),
+          },
+        OutboxKind.closure =>
+          backend.addClosureReport(ClosureReport.fromJson(e.data)),
+        OutboxKind.review => backend.saveReview(SpotReview.fromJson(e.data)),
+      };
+
+  /// Shows contributions that are still waiting on top of the loaded data.
+  Future<void> _overlayOutbox() async {
+    final box = outbox;
+    if (box == null) return;
+    final entries = await box.entries();
+    _queued = entries.length;
+    for (final e in entries) {
+      switch (e.kind) {
+        case OutboxKind.spot:
+          final spot = CommunitySpot.fromJson(e.data);
+          if (!_spots.any((s) => s.id == spot.id)) _spots.add(spot);
+        case OutboxKind.vote:
+          _votes.add(ExistenceVote.fromJson(e.data));
+        case OutboxKind.featureVote:
+          final v = FeatureVote.fromJson(e.data);
+          if (v != null) _featureVotes.add(v);
+        case OutboxKind.closure:
+          _closures.add(ClosureReport.fromJson(e.data));
+        case OutboxKind.review:
+          final review = SpotReview.fromJson(e.data);
+          _reviews.removeWhere((r) =>
+              r.spotId == review.spotId && r.userId == review.userId);
+          _reviews.add(review);
+      }
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -319,13 +425,16 @@ class CommunityService extends ChangeNotifier {
       createdBy: userId,
       createdAt: now,
     );
-    await backend.addSpot(spot);
+    var queued =
+        await _send(OutboxEntry.spot(spot), () => backend.addSpot(spot));
     _spots.add(spot);
     // Reporting a spot counts as confirming that it exists.
-    await _addVote(spot.id, true, now);
+    queued = await _addVote(spot.id, true, now) || queued;
     _changed();
-    // The photo uploads in the background (shown as pending on the spot).
+    // The photo uploads in the background (shown as pending on the spot;
+    // without a connection it can be retried there).
     if (photo != null) _startUpload(spot.id, photo);
+    if (queued) throw const SavedOffline();
     return spot;
   }
 
@@ -446,12 +555,14 @@ class CommunityService extends ChangeNotifier {
       comment: comment?.trim().isEmpty ?? true ? null : comment!.trim(),
       createdAt: _now(),
     );
-    await backend.saveReview(review);
+    final queued = await _send(
+        OutboxEntry.review(review), () => backend.saveReview(review));
     _reviews.removeWhere(
       (r) => r.spotId == review.spotId && r.userId == review.userId,
     );
     _reviews.add(review);
     _changed();
+    if (queued) throw const SavedOffline();
   }
 
   // ---------------------------------------------------------------------
@@ -581,11 +692,14 @@ class CommunityService extends ChangeNotifier {
   }
 
   Future<void> vote(SmokingArea area, {required bool exists}) async {
-    await _addVote(area.id, exists, _now(), area.sourceFingerprint);
+    final queued =
+        await _addVote(area.id, exists, _now(), area.sourceFingerprint);
     _changed();
+    if (queued) throw const SavedOffline();
   }
 
-  Future<void> _addVote(
+  /// Returns true when the vote was kept offline.
+  Future<bool> _addVote(
     String spotId,
     bool exists,
     DateTime now, [
@@ -598,8 +712,10 @@ class CommunityService extends ChangeNotifier {
       createdAt: now,
       fingerprint: fingerprint,
     );
-    await backend.addVote(vote);
+    final queued =
+        await _send(OutboxEntry.vote(vote), () => backend.addVote(vote));
     _votes.add(vote);
+    return queued;
   }
 
   // ---------------------------------------------------------------------
@@ -644,9 +760,11 @@ class CommunityService extends ChangeNotifier {
       value: value,
       createdAt: _now(),
     );
-    await backend.addFeatureVote(vote);
+    final queued = await _send(
+        OutboxEntry.featureVote(vote), () => backend.addFeatureVote(vote));
     _featureVotes.add(vote);
     _changed();
+    if (queued) throw const SavedOffline();
   }
 
   // ---------------------------------------------------------------------
@@ -686,9 +804,11 @@ class CommunityService extends ChangeNotifier {
       createdAt: _now(),
       fingerprint: area.sourceFingerprint,
     );
-    await backend.addClosureReport(report);
+    final queued = await _send(
+        OutboxEntry.closure(report), () => backend.addClosureReport(report));
     _closures.add(report);
     _changed();
+    if (queued) throw const SavedOffline();
   }
 
   /// Applies community state to a map entry: feature answers (trash can)

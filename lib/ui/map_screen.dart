@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:latlong2/latlong.dart';
@@ -25,6 +26,7 @@ import 'legend_sheet.dart';
 import 'location_disclosure.dart';
 import 'my_spots_sheet.dart';
 import 'local_data_sheet.dart';
+import 'map_style.dart';
 import 'marker_icons.dart';
 import 'profile_sheet.dart';
 import 'report_spot_sheet.dart';
@@ -97,9 +99,14 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     _repo.addListener(_onRepoChanged);
     _community.addListener(_onCommunityChanged);
     WidgetsBinding.instance.addObserver(this);
-    NotificationService.instance.onTap = _openAreaById;
+    NotificationService.instance.onTap = _openFromNotification;
     _loadCity(_city);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _askPermissions());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // App started by tapping a proximity alert: show that smoking area.
+      final launch = await NotificationService.instance.launchPayload();
+      if (launch != null && mounted) await _openFromNotification(launch);
+      if (mounted) _askPermissions();
+    });
   }
 
   @override
@@ -387,9 +394,19 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         userPosition: _monitor.position, community: _community);
   }
 
-  void _openAreaById(String id) {
+  /// Opens the spot of a tapped proximity alert. Its data is loaded first
+  /// (the tile may not be in memory, e.g. after a cold start).
+  Future<void> _openFromNotification(String payload) async {
+    final target = NotificationTarget.parse(payload);
+    if (target == null) return;
+    final pos = target.position;
+    if (pos != null) {
+      _moveTo(pos, 18);
+      await _repo.ensureRegion(GeoBounds.around(pos, 1));
+    }
+    if (!mounted) return;
     for (final a in _repo.allLoaded) {
-      if (a.id == id) {
+      if (a.allIds.contains(target.id)) {
         _moveTo(a.position, 18);
         showAreaDetails(context, a,
             userPosition: _monitor.position, community: _community);
@@ -516,6 +533,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         children: [
           gm.GoogleMap(
             initialCameraPosition: _camera,
+            // Dark map in dark mode (follows the system setting).
+            style: mapStyleFor(theme.brightness),
             minMaxZoomPreference: const gm.MinMaxZoomPreference(5, 20),
             // Own location symbol (dot + direction cone) and own buttons.
             myLocationEnabled: false,
@@ -854,12 +873,20 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     return true;
   }
 
-  void _showInfo(BuildContext context) {
+  Future<void> _showInfo(BuildContext context) async {
+    String? version;
+    try {
+      version = (await PackageInfo.fromPlatform()).version;
+    } catch (_) {
+      // Shown without a version.
+    }
+    if (!context.mounted) return;
     showAboutDialog(
       context: context,
       applicationName: 'Ippuku',
-      applicationVersion: '1.0.0',
-      applicationIcon: const Icon(Icons.smoking_rooms, size: 40),
+      applicationVersion: version,
+      applicationIcon: Icon(Icons.location_on,
+          size: 40, color: Theme.of(context).colorScheme.primary),
       children: [
         const Text(
           'Shows public smoking areas (喫煙所, green) and public toilets '

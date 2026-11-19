@@ -1,9 +1,45 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show Color;
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'package:latlong2/latlong.dart';
+
 import '../models/smoking_area.dart';
+
+/// What a proximity alert points to: the spot id and its position (so the
+/// map can load the data there even when the app was not running).
+class NotificationTarget {
+  const NotificationTarget(this.id, [this.position]);
+
+  final String id;
+  final LatLng? position;
+
+  String encode() => jsonEncode({
+        'id': id,
+        if (position != null) 'lat': position!.latitude,
+        if (position != null) 'lon': position!.longitude,
+      });
+
+  /// Also reads the plain-id payloads of earlier app versions.
+  static NotificationTarget? parse(String? payload) {
+    if (payload == null || payload.isEmpty) return null;
+    try {
+      final j = jsonDecode(payload);
+      if (j is Map<String, dynamic> && j['id'] is String) {
+        final lat = (j['lat'] as num?)?.toDouble();
+        final lon = (j['lon'] as num?)?.toDouble();
+        return NotificationTarget(
+            j['id'] as String,
+            lat == null || lon == null ? null : LatLng(lat, lon));
+      }
+    } catch (_) {
+      // Not JSON: an id.
+    }
+    return NotificationTarget(payload);
+  }
+}
 
 /// Thin wrapper around flutter_local_notifications.
 class NotificationService {
@@ -26,8 +62,18 @@ class NotificationService {
   /// Title of the proximity alert (the app name is shown by the system).
   static const nearbyTitle = 'Smoking area nearby';
 
-  /// Called with the area id when the user taps a notification.
-  void Function(String areaId)? onTap;
+  /// Called with the payload ([NotificationTarget]) when the user taps a
+  /// notification while the app is running.
+  void Function(String payload)? onTap;
+
+  /// Payload of the notification that started the app (tapped while the app
+  /// was not running), or null.
+  Future<String?> launchPayload() async {
+    await init();
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    if (details?.didNotificationLaunchApp != true) return null;
+    return details?.notificationResponse?.payload;
+  }
 
   Future<void> init() async {
     if (_initialized) return;
@@ -95,7 +141,7 @@ class NotificationService {
           presentSound: true,
         ),
       ),
-      payload: area.id,
+      payload: NotificationTarget(area.id, area.position).encode(),
     );
   }
 }
