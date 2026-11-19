@@ -33,19 +33,22 @@ Agreed order (data first, then the server):
   (Shibuya, Minato, Shinagawa, Nakano), further cities.
 - [ ] Trash cans from OSM (`amenity=waste_basket`, maybe `amenity=recycling`
   next to vending machines) – check data volume of the weekly export first.
+- [ ] Japan-wide OSM export: the first runs ran out of time at the busy
+  public Overpass servers; boxes without data are queried first, so the
+  weekly runs complete it – check the log once (no missing boxes).
 
 ## App
 
-- [ ] Opening a notification while the app was terminated does not jump to
-  the smoking area yet (only works while the app is running).
 - [ ] Measure map performance on a device with all of Tokyo visible
   (markers are clustered per visible region, but every camera stop
   recomputes the clusters).
 - [ ] Google Maps: restrict the Android API key to the release SHA-1 (the
-  fixed signing key exists now); optional dark map style.
+  fixed signing key exists now).
 - [ ] Verify on a real device: Google sign-in (iOS + Android), OSM export incl. toilets, camera and
   gallery for photos, background location and proximity alerts (incl. the radius setting), direction cone
-  (compass accuracy, flat vs. upright, map rotation) – on Android and iOS.
+  (compass accuracy, flat vs. upright, map rotation) – on Android and iOS;
+  battery use with the adaptive tracking, first install of the Japan tiles,
+  offline contributions, trash-can badge and "Part of this smoking area?".
 
 ## Later
 
