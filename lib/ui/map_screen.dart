@@ -26,6 +26,7 @@ import 'legend_sheet.dart';
 import 'location_disclosure.dart';
 import 'my_spots_sheet.dart';
 import 'local_data_sheet.dart';
+import '../i18n.dart';
 import 'map_style.dart';
 import 'marker_icons.dart';
 import 'profile_sheet.dart';
@@ -325,7 +326,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         await _repo.reloadBundled();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Map data updated (${result.version}).'),
+            content: Text(context.l10n.mapDataUpdated('${result.version}')),
           ));
         }
       }
@@ -348,9 +349,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       if (data.errors.isNotEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(data.fromCache
-              ? 'Offline – showing saved data from '
-                  '${_formatDate(data.fetchedAt)}.'
-              : 'Some sources are unreachable.'),
+              ? context.l10n.offlineSavedData(formatDay(context, data.fetchedAt))
+              : context.l10n.someSourcesUnreachable),
         ));
       }
     } catch (e) {
@@ -436,13 +436,11 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(enable
-          ? 'Alerts on: you will be notified within ${_monitor.alertRadius.round()} m.'
-          : 'Alerts off.'),
+          ? context.l10n.alertsOnWithin(_monitor.alertRadius.round())
+          : context.l10n.alertsOff),
     ));
   }
 
-  String _formatDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
   @override
   Widget build(BuildContext context) {
@@ -457,7 +455,11 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: Text(_placeLabel ?? _city.name,
+                child: Text(
+                    _placeLabel ??
+                        (Localizations.localeOf(context).languageCode == 'ja'
+                            ? _city.nameJa
+                            : _city.name),
                     overflow: TextOverflow.ellipsis),
               ),
               const Icon(Icons.arrow_drop_down),
@@ -467,20 +469,20 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         actions: [
           IconButton(
             tooltip: _monitor.alertsEnabled
-                ? 'Turn alerts off'
-                : 'Turn alerts on',
+                ? context.l10n.turnAlertsOff
+                : context.l10n.turnAlertsOn,
             icon: Icon(_monitor.alertsEnabled
                 ? Icons.notifications_active
                 : Icons.notifications_off_outlined),
             onPressed: _toggleAlerts,
           ),
           IconButton(
-            tooltip: 'Reload',
+            tooltip: context.l10n.reload,
             icon: const Icon(Icons.refresh),
             onPressed: _loading ? null : _reload,
           ),
           PopupMenuButton<String>(
-            tooltip: 'Menu',
+            tooltip: context.l10n.menu,
             onSelected: (v) => switch (v) {
               'legend' => showLegendSheet(context),
               'settings' => showSettingsSheet(context, _monitor, _community),
@@ -489,40 +491,40 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
                   onShow: _showSpot),
               _ => _showInfo(context),
             },
-            itemBuilder: (_) => const [
+            itemBuilder: (_) => [
               PopupMenuItem(
                 value: 'my_spots',
                 child: ListTile(
-                  leading: Icon(Icons.place_outlined),
-                  title: Text('My spots'),
+                  leading: const Icon(Icons.place_outlined),
+                  title: Text(context.l10n.mySpots),
                 ),
               ),
               PopupMenuItem(
                 value: 'legend',
                 child: ListTile(
-                  leading: Icon(Icons.legend_toggle),
-                  title: Text('Legend'),
+                  leading: const Icon(Icons.legend_toggle),
+                  title: Text(context.l10n.legend),
                 ),
               ),
               PopupMenuItem(
                 value: 'settings',
                 child: ListTile(
-                  leading: Icon(Icons.settings_outlined),
-                  title: Text('Settings'),
+                  leading: const Icon(Icons.settings_outlined),
+                  title: Text(context.l10n.settings),
                 ),
               ),
               PopupMenuItem(
                 value: 'profile',
                 child: ListTile(
-                  leading: Icon(Icons.account_circle_outlined),
-                  title: Text('Profile'),
+                  leading: const Icon(Icons.account_circle_outlined),
+                  title: Text(context.l10n.profile),
                 ),
               ),
               PopupMenuItem(
                 value: 'info',
                 child: ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Info'),
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(context.l10n.info),
                 ),
               ),
             ],
@@ -570,7 +572,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
               onTap: () =>
                   launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
               child: Text(
-                'Data © OpenStreetMap contributors',
+                context.l10n.osmCopyright,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: Colors.black87,
                   backgroundColor: Colors.white70,
@@ -645,14 +647,14 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
               children: [
                 FloatingActionButton.small(
                   heroTag: 'report',
-                  tooltip: 'Report a spot',
+                  tooltip: context.l10n.reportASpot,
                   onPressed: _startReport,
                   child: const Icon(Icons.add_location_alt_outlined),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton(
                   heroTag: 'locate',
-                  tooltip: 'My location',
+                  tooltip: context.l10n.myLocation,
                   onPressed: _centerOnUser,
                   child: const Icon(Icons.my_location),
                 ),
@@ -667,7 +669,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
   Future<void> _startReport() async {
     if (!await ensureSignedIn(context, _community,
-            reason: 'Sign in to report new places.') ||
+            reason: context.l10n.signInToReport) ||
         !mounted) {
       return;
     }
@@ -701,8 +703,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
               padding: const EdgeInsets.all(12),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Text(
-                  'Report ${_reportCategory!.label.toLowerCase()}: move the map '
-                  'until the cross is exactly on the spot.',
+                  context.l10n.moveCrossHint(
+                      context.l10n.category(_reportCategory!)),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -710,14 +712,14 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => setState(() => _reportCategory = null),
-                      child: const Text('Cancel'),
+                      child: Text(context.l10n.cancel),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton(
                       onPressed: _confirmReportPosition,
-                      child: const Text('Report here'),
+                      child: Text(context.l10n.reportHere),
                     ),
                   ),
                 ]),
@@ -752,17 +754,17 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       final choice = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Already on the map?'),
-          content: Text('"${existing.title}" is ${nearestDist.round()} m away. '
-              'Is it the same place?'),
+          title: Text(context.l10n.alreadyOnMap),
+          content: Text(context.l10n.sameplaceQuestion(
+              context.l10n.title(existing), nearestDist.round())),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('No, report new'),
+              child: Text(context.l10n.noReportNew),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Yes, show it'),
+              child: Text(context.l10n.yesShowIt),
             ),
           ],
         ),
@@ -812,8 +814,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     setState(() => _reportCategory = null);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(input.photo != null
-          ? 'Thanks! Your spot is on the map – the photo is uploading.'
-          : 'Thanks! Your spot is now on the map.'),
+          ? context.l10n.thanksSpotPhotoUploading
+          : context.l10n.thanksSpotOnMap),
     ));
   }
 
@@ -837,22 +839,21 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   /// Asks whether the trash can belongs to [host]; if so, records it as a
   /// feature of [host]. Returns true when the report is done.
   Future<bool> _addBinToHost(SmokingArea host) async {
-    final kind = host.category.label.toLowerCase();
+    final l = context.l10n;
+    final name = l.title(host);
     final partOf = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Part of this $kind?'),
-        content: Text('"${host.title}" is right here. Is the trash can part '
-            'of it (e.g. an ashtray with a bin)? Then it is added to this '
-            '$kind instead of a new marker.'),
+        title: Text(l.partOfHostTitle),
+        content: Text(l.partOfHostText(name, l.category(host.category))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('No, separate'),
+            child: Text(l.noSeparate),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Yes, add to it'),
+            child: Text(l.yesAddToIt),
           ),
         ],
       ),
@@ -865,11 +866,11 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
             context,
             () => _community.voteFeature(host, SpotFeature.bin,
                 value: true)),
-        reason: 'Sign in to add details.');
+        reason: l.signInToAddDetails);
     if (!mounted || !saved) return saved;
     setState(() => _reportCategory = null);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Thanks! The $kind now shows a trash can.')));
+        content: Text(l.thanksHostHasBin(name))));
     return true;
   }
 
@@ -888,44 +889,22 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       applicationIcon: Icon(Icons.location_on,
           size: 40, color: Theme.of(context).colorScheme.primary),
       children: [
-        const Text(
-          'Shows public smoking areas (喫煙所, green) and public toilets '
-          '(公衆トイレ, blue) all over Japan, plus trash cans '
-          '(ゴミ箱, orange) reported by users. Many Japanese '
-          'cities ban smoking on the street and only allow it in designated '
-          'areas.\n\n'
-          'With alerts on you get a notification as soon as you come close '
-          'to a smoking area (radius configurable in Settings) – also while '
-          'the app runs in the background (not for toilets).\n',
-        ),
-        const Text('Data sources:',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(context.l10n.infoAbout),
+        Text(context.l10n.dataSources,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         for (final s in _repo.sources)
           Text('• ${s.displayName}: ${s.attribution}'),
         for (final s in _repo.sources.whereType<OfficialOpenDataSource>())
           FutureBuilder<String>(
             future: s.version(),
             builder: (context, snap) => snap.hasData
-                ? Text('Official data version: ${snap.data} – updated '
-                    'automatically, also via Reload.')
+                ? Text(context.l10n.officialDataVersion('${snap.data}'))
                 : const SizedBox.shrink(),
           ),
         const SizedBox(height: 8),
-        const Text(
-          'The legend (menu ⋮) explains all symbols. Official entries (gold '
-          'ring) come from lists published by cities and wards; if an OSM '
-          'entry is at the same place, both are merged into one marker. '
-          'Addresses published without coordinates were located with the GSI '
-          'address search and are marked as "approximate".',
-        ),
+        Text(context.l10n.infoLegendMerge),
         const SizedBox(height: 8),
-        const Text(
-          'Map: Google Maps. Spot data from OpenStreetMap: © OpenStreetMap '
-          'contributors (ODbL).\n'
-          'No guarantee of accuracy – you can fix missing or wrong entries '
-          'directly on openstreetmap.org (amenity=smoking_area, '
-          'amenity=toilets).',
-        ),
+        Text(context.l10n.infoMapCredits),
         const SizedBox(height: 8),
         const LegalLinks(),
       ],
@@ -972,8 +951,8 @@ class _StatusBanner extends StatelessWidget {
         Row(children: [
           const Icon(Icons.cloud_off),
           const SizedBox(width: 8),
-          const Expanded(child: Text('Could not load data.')),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          Expanded(child: Text(context.l10n.couldNotLoadData)),
+          TextButton(onPressed: onRetry, child: Text(context.l10n.retry)),
         ]),
         color: theme.colorScheme.errorContainer,
       );
@@ -989,12 +968,12 @@ class _StatusBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(state == LocationState.serviceDisabled
-                ? 'Location services are turned off.'
-                : 'Without location access there are no proximity alerts.'),
+                ? context.l10n.locationServicesOff
+                : context.l10n.noLocationNoAlerts),
           ),
           TextButton(
             onPressed: onFixPermissions,
-            child: const Text('Settings'),
+            child: Text(context.l10n.settings),
           ),
         ]),
         color: theme.colorScheme.tertiaryContainer,
@@ -1023,16 +1002,19 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   nearest == null
                       ? (count == null
-                          ? 'Loading smoking areas …'
-                          : '$count smoking areas in this city')
-                      : 'Nearest: ${nearest.area.title}',
+                          ? context.l10n.loadingSmokingAreas
+                          : context.l10n.smokingAreasInCity(count))
+                      : context.l10n.nearestName(context.l10n.title(nearest.area)),
                   style: theme.textTheme.titleSmall,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (nearest != null)
                   Text(
-                    '${formatDistance(nearest.distanceMeters)} away'
-                    '${count != null ? ' · $count in this city' : ''}',
+                    [
+                      context.l10n
+                          .distanceAway(formatDistance(nearest.distanceMeters)),
+                      if (count != null) context.l10n.inThisCity(count),
+                    ].join(' · '),
                     style: theme.textTheme.bodySmall,
                   ),
                 if (nearestToilet != null)
@@ -1044,8 +1026,9 @@ class _StatusBanner extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          'Toilet: ${nearestToilet.area.title} · '
-                          '${formatDistance(nearestToilet.distanceMeters)}',
+                          context.l10n.toiletNearest(
+                              context.l10n.title(nearestToilet.area),
+                              formatDistance(nearestToilet.distanceMeters)),
                           style: theme.textTheme.bodySmall,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1054,7 +1037,7 @@ class _StatusBanner extends StatelessWidget {
                   ),
                 if (state == LocationState.whileInUse && monitor.alertsEnabled)
                   Text(
-                    'Tip: allow "Always" for alerts in the background.',
+                    context.l10n.tipAllowAlways,
                     style: theme.textTheme.bodySmall,
                   ),
               ],

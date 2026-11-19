@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/community/auth_service.dart';
 import 'package:smoking_areas/community/closure_policy.dart';
 import 'package:smoking_areas/community/community_backend.dart';
@@ -168,10 +169,12 @@ void main() {
       },
     );
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(body: AreaDetailsSheet(area: closed)),
     ));
     expect(find.text('Temporarily closed'), findsOneWidget);
     expect(find.text('Bauarbeiten'), findsOneWidget);
-    expect(find.text('expected until 24.12.2026'), findsOneWidget);
+    expect(find.text('expected until Dec 24, 2026'), findsOneWidget);
   });
 }

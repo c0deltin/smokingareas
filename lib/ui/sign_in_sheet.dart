@@ -7,6 +7,7 @@ import '../community/auth_service.dart';
 import '../community/community_service.dart';
 import '../community/outbox.dart';
 import '../data/links.dart';
+import '../i18n.dart';
 
 /// Offers Sign in with Apple (iOS) / Google. Returns true when the user is
 /// signed in afterwards, false when they continue without an account.
@@ -42,50 +43,54 @@ Future<bool> contribute(
   BuildContext context,
   CommunityService community,
   Future<void> Function() action, {
-  String reason = 'Sign in to contribute.',
+  String? reason,
 }) async {
-  if (!await ensureSignedIn(context, community, reason: reason)) return false;
+  if (!await ensureSignedIn(context, community,
+      reason: reason ?? context.l10n.signInToContribute)) {
+    return false;
+  }
   try {
     await action();
     return true;
   } on SavedOffline {
     // Kept on the device and shown already; sent when online again.
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('No connection – saved on this device and sent '
-              'automatically later.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.l10n.savedOffline)));
     }
     return true;
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(contributionError(e))));
+          .showSnackBar(SnackBar(
+              content: Text(contributionError(e, context.l10n))));
     }
     return false;
   }
 }
 
-/// Short, user-facing text for a failed contribution.
-String contributionError(Object e) {
-  if (e is SignInRequired) return 'Please sign in first.';
+/// Short, user-facing text for a failed contribution ([l] defaults to
+/// English).
+String contributionError(Object e, [AppLocalizations? l]) {
+  final t = l ?? lookupAppLocalizations(const Locale('en'));
+  if (e is SignInRequired) return t.errSignInFirst;
   final text = e.toString();
-  if (text.contains('rate limit')) {
-    return 'Too many contributions in a short time – please try again later.';
-  }
+  if (text.contains('rate limit')) return t.errRateLimit;
   if (text.contains('SocketException') ||
       text.contains('ClientException') ||
       text.contains('TimeoutException')) {
-    return 'Could not save – please check your connection.';
+    return t.errConnection;
   }
   // Anything else: show the server's reason, shortened.
   final reason = text.length > 120 ? '${text.substring(0, 120)}…' : text;
-  return 'Could not save ($reason).';
+  return t.errCouldNotSave(reason);
 }
 
 /// Shows a small "Saving …" dialog while [action] runs (uploads can take a
 /// few seconds on mobile networks).
 Future<T> withProgress<T>(BuildContext context, Future<T> Function() action,
-    {String label = 'Saving …'}) async {
+    {String? label}) async {
+  final text = label ?? context.l10n.saving;
   final navigator = Navigator.of(context, rootNavigator: true);
   showDialog<void>(
     context: context,
@@ -97,7 +102,7 @@ Future<T> withProgress<T>(BuildContext context, Future<T> Function() action,
         content: Row(children: [
           const CircularProgressIndicator(),
           const SizedBox(width: 16),
-          Expanded(child: Text(label)),
+          Expanded(child: Text(text)),
         ]),
       ),
     ),
@@ -123,8 +128,7 @@ Future<void> maybeShowInitialSignIn(
   await p.setBool(key, true);
   if (!context.mounted) return;
   await showSignInSheet(context, community,
-      reason: 'Browse without an account, or sign in to rate, report and '
-          'add photos.');
+      reason: context.l10n.initialSignInReason);
 }
 
 class SignInView extends StatefulWidget {
@@ -154,7 +158,7 @@ class _SignInViewState extends State<SignInView> {
         return;
       }
     } catch (_) {
-      if (mounted) setState(() => _error = 'Sign-in failed. Please try again.');
+      if (mounted) setState(() => _error = context.l10n.signInFailed);
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -170,9 +174,9 @@ class _SignInViewState extends State<SignInView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Sign in', style: theme.textTheme.titleLarge),
+            Text(context.l10n.signIn, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
-            Text(widget.reason ?? 'Sign in to rate, report and add photos.'),
+            Text(widget.reason ?? context.l10n.signInDefaultReason),
             const SizedBox(height: 16),
             if (providers.contains(SignInProvider.apple)) ...[
               SizedBox(
@@ -197,7 +201,7 @@ class _SignInViewState extends State<SignInView> {
                   icon: const Text('G',
                       style: TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 18)),
-                  label: const Text('Sign in with Google'),
+                  label: Text(context.l10n.signInWithGoogle),
                 ),
               ),
             if (_busy)
@@ -214,12 +218,10 @@ class _SignInViewState extends State<SignInView> {
             const SizedBox(height: 8),
             TextButton(
               onPressed: _busy ? null : () => Navigator.pop(context, false),
-              child: const Text('Continue without account'),
+              child: Text(context.l10n.continueWithoutAccount),
             ),
             Text(
-              'Only your first name is shown with your contributions. '
-              'Your location never leaves your device. By signing in you '
-              'accept the terms of use.',
+              context.l10n.signInPrivacyNote,
               style: theme.textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
@@ -248,9 +250,9 @@ class LegalLinks extends StatelessWidget {
     return Wrap(
       alignment: WrapAlignment.center,
       children: [
-        link('Privacy policy', kPrivacyUrl),
-        link('Terms of use', kTermsUrl),
-        link('Imprint', kImprintUrl),
+        link(context.l10n.privacyPolicy, kPrivacyUrl),
+        link(context.l10n.termsOfUse, kTermsUrl),
+        link(context.l10n.imprint, kImprintUrl),
       ],
     );
   }

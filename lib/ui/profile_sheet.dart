@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../community/community_service.dart';
+import '../i18n.dart';
 import 'sign_in_sheet.dart';
 
 /// Account (server backend: sign in / out, rename, delete account) or, in
@@ -26,7 +27,7 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Profile', style: theme.textTheme.titleLarge),
+                Text(context.l10n.profile, style: theme.textTheme.titleLarge),
                 const SizedBox(height: 8),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -35,9 +36,9 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
                         .toUpperCase()),
                   ),
                   title: Text(current.displayName),
-                  subtitle: const Text('Active profile'),
+                  subtitle: Text(context.l10n.activeProfile),
                   trailing: IconButton(
-                    tooltip: 'Rename',
+                    tooltip: context.l10n.rename,
                     icon: const Icon(Icons.edit_outlined),
                     onPressed: () async {
                       final name = await _askName(context, current.displayName);
@@ -46,7 +47,7 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
                   ),
                 ),
                 const Divider(),
-                Text('Profiles on this device',
+                Text(context.l10n.profilesOnDevice,
                     style: theme.textTheme.titleSmall),
                 for (final u in community.users)
                   if (u.id != current.id)
@@ -56,7 +57,7 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
                       title: Text(u.displayName),
                       trailing: TextButton(
                         onPressed: () => community.switchUser(u.id),
-                        child: const Text('Switch'),
+                        child: Text(context.l10n.switchProfile),
                       ),
                     ),
                 TextButton.icon(
@@ -65,14 +66,11 @@ Future<void> showProfileSheet(BuildContext context, CommunityService community) 
                     if (name != null) await community.createUser(name);
                   },
                   icon: const Icon(Icons.person_add_alt),
-                  label: const Text('Create profile'),
+                  label: Text(context.l10n.createProfile),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Ratings, photos and reports are currently stored only on '
-                  'this device and assigned to the active profile. Several '
-                  'profiles let you try out e.g. that a spot disappears after '
-                  'three "gone" reports.',
+                  context.l10n.localProfilesNote,
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -89,7 +87,7 @@ Future<String?> _askName(BuildContext context, String initial) {
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Name'),
+      title: Text(context.l10n.name),
       content: TextField(
         controller: controller,
         autofocus: true,
@@ -100,11 +98,11 @@ Future<String?> _askName(BuildContext context, String initial) {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, controller.text),
-          child: const Text('OK'),
+          child: Text(context.l10n.ok),
         ),
       ],
     ),
@@ -127,15 +125,14 @@ class AccountView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Account', style: theme.textTheme.titleLarge),
+            Text(context.l10n.account, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             if (user == null) ...[
-              const Text('You are using the app without an account. Sign '
-                  'in with Apple or Google to rate, report and add photos.'),
+              Text(context.l10n.noAccountText),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () => showSignInSheet(context, community),
-                child: const Text('Sign in'),
+                child: Text(context.l10n.signIn),
               ),
             ] else ...[
               ListTile(
@@ -144,9 +141,9 @@ class AccountView extends StatelessWidget {
                   child: Text(user.displayName.characters.first.toUpperCase()),
                 ),
                 title: Text(user.displayName),
-                subtitle: const Text('Shown with your contributions'),
+                subtitle: Text(context.l10n.shownWithContributions),
                 trailing: IconButton(
-                  tooltip: 'Rename',
+                  tooltip: context.l10n.rename,
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () async {
                     final name = await _askName(context, user.displayName);
@@ -158,7 +155,8 @@ class AccountView extends StatelessWidget {
               ),
               if (community.blockedUsers.isNotEmpty) ...[
                 const Divider(),
-                Text('Blocked users', style: theme.textTheme.titleSmall),
+                Text(context.l10n.blockedUsers,
+                    style: theme.textTheme.titleSmall),
                 for (final id in community.blockedUsers)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -168,7 +166,7 @@ class AccountView extends StatelessWidget {
                     trailing: TextButton(
                       onPressed: () => contribute(
                           context, community, () => community.unblock(id)),
-                      child: const Text('Unblock'),
+                      child: Text(context.l10n.unblock),
                     ),
                   ),
               ],
@@ -176,7 +174,7 @@ class AccountView extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: community.signOut,
                 icon: const Icon(Icons.logout),
-                label: const Text('Sign out'),
+                label: Text(context.l10n.signOut),
               ),
               const SizedBox(height: 8),
               TextButton.icon(
@@ -184,7 +182,7 @@ class AccountView extends StatelessWidget {
                     foregroundColor: theme.colorScheme.error),
                 onPressed: () => _deleteAccount(context),
                 icon: const Icon(Icons.delete_forever_outlined),
-                label: const Text('Delete account'),
+                label: Text(context.l10n.deleteAccount),
               ),
             ],
           ],
@@ -197,35 +195,30 @@ class AccountView extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'Your account, ratings, photos, votes and closure reports are '
-          'deleted for good. Places you reported stay on the map without '
-          'your name.',
-        ),
+        title: Text(context.l10n.deleteAccountQuestion),
+        content: Text(context.l10n.deleteAccountText),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       await community.deleteAccount();
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Your account was deleted.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.accountDeleted)));
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(
-          content: Text('Could not delete the account – please try again.')));
+      messenger.showSnackBar(SnackBar(content: Text(l.accountDeleteFailed)));
     }
   }
 }

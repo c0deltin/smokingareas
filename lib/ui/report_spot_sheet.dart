@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
 import '../models/smoking_area.dart';
 import 'community_section.dart';
 import 'spot_style.dart';
@@ -48,14 +49,14 @@ Future<SpotCategory?> askSpotCategory(BuildContext context) {
     showDragHandle: true,
     builder: (context) => SafeArea(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 8),
-          child: Text('What do you want to report?'),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(context.l10n.whatToReport),
         ),
         for (final c in SpotCategory.values)
           ListTile(
             leading: Icon(categoryIcon(c), color: categoryColor(c)),
-            title: Text(c.label),
+            title: Text(context.l10n.category(c)),
             onTap: () => Navigator.pop(context, c),
           ),
       ]),
@@ -106,6 +107,18 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
   bool get _bin => widget.category == SpotCategory.bin;
   bool get _editing => widget.initial != null;
 
+  String _title(BuildContext context) {
+    final l = context.l10n;
+    return switch ((widget.category, _editing)) {
+      (SpotCategory.smoking, false) => l.reportTitleSmoking,
+      (SpotCategory.toilet, false) => l.reportTitleToilet,
+      (SpotCategory.bin, false) => l.reportTitleBin,
+      (SpotCategory.smoking, true) => l.editTitleSmoking,
+      (SpotCategory.toilet, true) => l.editTitleToilet,
+      (SpotCategory.bin, true) => l.editTitleBin,
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -141,23 +154,18 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-                _editing
-                    ? 'Edit ${widget.category.label.toLowerCase()}'
-                    : 'Report ${widget.category.label.toLowerCase()}',
-                style: theme.textTheme.titleLarge),
+            Text(_title(context), style: theme.textTheme.titleLarge),
             const SizedBox(height: 12),
             TextField(
               controller: _name,
               textCapitalization: TextCapitalization.sentences,
               maxLength: 80,
               decoration: InputDecoration(
-                labelText: 'Name / place',
+                labelText: context.l10n.namePlace,
                 hintText: switch (widget.category) {
-                  SpotCategory.toilet => 'e.g. "Toilet at the park entrance"',
-                  SpotCategory.bin => 'e.g. "Bins next to the vending machines"',
-                  SpotCategory.smoking =>
-                    'e.g. "Smoking corner next to FamilyMart"',
+                  SpotCategory.toilet => context.l10n.nameHintToilet,
+                  SpotCategory.bin => context.l10n.nameHintBin,
+                  SpotCategory.smoking => context.l10n.nameHintSmoking,
                 },
                 border: const OutlineInputBorder(),
               ),
@@ -167,23 +175,23 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 contentPadding: EdgeInsets.zero,
                 value: _wheelchair,
                 onChanged: (v) => setState(() => _wheelchair = v ?? false),
-                title: const Text('Wheelchair accessible'),
+                title: Text(context.l10n.wheelchairAccessible),
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _changingTable,
                 onChanged: (v) => setState(() => _changingTable = v ?? false),
-                title: const Text('Baby changing'),
+                title: Text(context.l10n.babyChanging),
               ),
             ],
             if (_bin) ...[
               const SizedBox(height: 8),
-              Text('Accepts', style: theme.textTheme.labelLarge),
+              Text(context.l10n.accepts, style: theme.textTheme.labelLarge),
               const SizedBox(height: 4),
               Wrap(spacing: 8, children: [
                 for (final t in WasteType.values)
                   FilterChip(
-                    label: Text(t.label),
+                    label: Text(context.l10n.waste(t)),
                     selected: _waste.contains(t),
                     onSelected: (on) => setState(
                         () => on ? _waste.add(t) : _waste.remove(t)),
@@ -192,13 +200,15 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
             ],
             if (_smoking) ...[
             const SizedBox(height: 8),
-            Text('Type', style: theme.textTheme.labelLarge),
+            Text(context.l10n.type, style: theme.textTheme.labelLarge),
             const SizedBox(height: 4),
             SegmentedButton<bool?>(
-              segments: const [
-                ButtonSegment(value: false, label: Text('Outdoors')),
-                ButtonSegment(value: true, label: Text('Smoking room')),
-                ButtonSegment(value: null, label: Text('Not sure')),
+              segments: [
+                ButtonSegment(
+                    value: false, label: Text(context.l10n.outdoors)),
+                ButtonSegment(
+                    value: true, label: Text(context.l10n.smokingRoom)),
+                ButtonSegment(value: null, label: Text(context.l10n.notSure)),
               ],
               selected: {_indoor},
               onSelectionChanged: (v) => setState(() => _indoor = v.first),
@@ -210,7 +220,7 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 value: _covered ?? false,
                 tristate: false,
                 onChanged: (v) => setState(() => _covered = v),
-                title: const Text('Covered'),
+                title: Text(context.l10n.covered),
               ),
             ],
             ],
@@ -219,23 +229,23 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 contentPadding: EdgeInsets.zero,
                 value: _hasBin,
                 onChanged: (v) => setState(() => _hasBin = v ?? false),
-                title: const Text('Has a trash can'),
+                title: Text(context.l10n.hasTrashCan),
               ),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               value: _public,
               onChanged: (v) => setState(() => _public = v ?? true),
-              title: const Text('Publicly accessible'),
-              subtitle: const Text('no ticket, entry fee or purchase needed'),
+              title: Text(context.l10n.publiclyAccessible),
+              subtitle: Text(context.l10n.publiclyAccessibleSub),
             ),
             if (!_public) ...[
               TextField(
                 controller: _accessNote,
                 maxLength: 120,
-                decoration: const InputDecoration(
-                  labelText: 'Access (optional)',
-                  hintText: 'e.g. station platform – ticket only, inside a museum',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: context.l10n.accessOptional,
+                  hintText: context.l10n.accessHint,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 8),
@@ -245,10 +255,10 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
               maxLines: 3,
               maxLength: 280,
               decoration: InputDecoration(
-                labelText: 'Note (optional)',
+                labelText: context.l10n.noteOptional,
                 hintText: _bin
-                    ? 'Where exactly, how to find it …'
-                    : 'Opening hours, ashtray, access …',
+                    ? context.l10n.noteHintBin
+                    : context.l10n.noteHintDefault,
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -260,7 +270,9 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                   if (file != null) setState(() => _photo = file);
                 },
                 icon: const Icon(Icons.add_a_photo_outlined),
-                label: Text(_photo == null ? 'Add photo' : 'Change photo'),
+                label: Text(_photo == null
+                    ? context.l10n.addPhoto
+                    : context.l10n.changePhoto),
               ),
               const SizedBox(width: 12),
               if (_photo != null)
@@ -291,12 +303,12 @@ class _ReportSpotFormState extends State<_ReportSpotForm> {
                 ),
               ),
               icon: Icon(_editing ? Icons.save_outlined : Icons.send),
-              label: Text(_editing ? 'Save' : 'Report'),
+              label: Text(
+                  _editing ? context.l10n.save : context.l10n.report),
             ),
             const SizedBox(height: 4),
             if (!_editing) Text(
-              'Reported spots are visible right away. If enough users report '
-              'that a spot does not exist, it is removed again.',
+              context.l10n.reportedVisibleNote,
               style: theme.textTheme.bodySmall,
             ),
           ],

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/models/smoking_area.dart';
 import 'package:smoking_areas/services/proximity_detector.dart';
 import 'package:smoking_areas/services/proximity_monitor.dart';
@@ -78,7 +79,9 @@ void main() {
     testWidgets('settings sheet shows and resets the radius', (tester) async {
       await tester.runAsync(() => monitor.setAlertRadius(80));
       await tester.pumpWidget(
-          MaterialApp(home: Scaffold(body: SettingsView(monitor: monitor))));
+          MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,home: Scaffold(body: SettingsView(monitor: monitor))));
       expect(find.text('Settings'), findsOneWidget);
       expect(find.text('80 m'), findsOneWidget);
       expect(find.byType(Slider), findsOneWidget);

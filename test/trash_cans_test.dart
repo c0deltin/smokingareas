@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/community/auth_service.dart';
 import 'package:smoking_areas/community/community_backend.dart';
 import 'package:smoking_areas/community/community_service.dart';
@@ -148,6 +149,8 @@ void main() {
 
   testWidgets('details show what a trash can accepts', (tester) async {
     await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: AreaDetailsSheet(
           area: SmokingArea(
@@ -172,6 +175,8 @@ void main() {
   testWidgets('report form asks what a trash can accepts', (tester) async {
     SpotReportInput? result;
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Builder(
         builder: (context) => TextButton(
           onPressed: () async =>

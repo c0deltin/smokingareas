@@ -183,9 +183,16 @@ Run `flutter analyze` and `flutter test` before every commit.
 
 ## Working rules
 
-- **Language:** everything is written in **English** – app UI, commit
-  messages, PR titles and descriptions, release notes, docs and code
-  comments (`test/ui_language_test.dart` guards the UI strings).
+- **Language:** code, comments, docs, commit messages, PRs and release
+  notes are **English**. The app UI is translated: texts live only in
+  `lib/l10n/app_<lang>.arb` (English = template and fallback; German and
+  Japanese), accessed via `context.l10n` (`lib/i18n.dart`; `deviceL10n()`
+  outside widgets, e.g. notifications). The app uses the device language
+  when supported, else English (`resolveAppLocale`). iOS permission texts:
+  `Info.plist` (English) + `ios/Runner/<lang>.lproj/InfoPlist.strings`.
+  `test/ui_language_test.dart` guards against hard-coded strings and
+  missing translations. Data sent to the server (default spot names,
+  report reasons) stays English.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/)
   (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `ci:`, `chore:`, optional
   scope such as `feat(community): …`). Commit small, coherent steps regularly.
@@ -195,7 +202,8 @@ Run `flutter analyze` and `flutter test` before every commit.
   parsing) free of Flutter/plugin dependencies so it stays testable. Inject
   directories, clocks and loaders (see existing tests) instead of using
   platform channels in tests.
-- **Strings:** user-facing text in English; keep it short.
+- **Strings:** new user-facing text goes into all ARB files (en, de, ja);
+  keep it short. Japanese/German texts should be checked by native speakers.
 - **Data sources:** only public, openly accessible sources. Respect licences
   and attribution (ODbL for OSM, CC BY for open data) and keep the info dialog
   and README source table up to date. No scraping behind logins, no bypassing

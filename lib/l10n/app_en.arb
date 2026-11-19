@@ -1,0 +1,567 @@
+{
+  "@@locale": "en",
+  "accepts": "Accepts",
+  "access": "Access",
+  "accessHint": "e.g. station platform – ticket only, inside a museum",
+  "accessNotPublic": "not public (ticket, entry fee or purchase needed)",
+  "accessOptional": "Access (optional)",
+  "accessPublic": "public",
+  "account": "Account",
+  "accountActions": "Account, sign out, delete account",
+  "accountDeleteFailed": "Could not delete the account – please try again.",
+  "accountDeleted": "Your account was deleted.",
+  "activeProfile": "Active profile",
+  "addPhoto": "Add photo",
+  "address": "Address",
+  "alertRadius": "Alert radius",
+  "alertRadiusHelp": "Small radius: alerts only right next to a smoking area. Large radius: earlier alerts, but more of them in dense areas. The blue circle around your location shows the radius.",
+  "alertsOff": "Alerts off.",
+  "alertsOnWithin": "Alerts on: you will be notified within {meters} m.",
+  "@alertsOnWithin": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "alreadyOnMap": "Already on the map?",
+  "appTitle": "Ippuku",
+  "asUser": "as {name}",
+  "@asUser": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "babyChanging": "Baby changing",
+  "binHereQuestion": "Is there a trash can here?",
+  "binNo": "None ({count})",
+  "@binNo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "binNone": "No trash can here.",
+  "binShown": "Shown with a trash can on the map.",
+  "binYes": "Trash can ({count})",
+  "@binYes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "block": "Block",
+  "blockExplain": "You will no longer see their places, ratings and photos. You can undo this in Settings → Account.",
+  "blockName": "Block {name}",
+  "@blockName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "blockNameQuestion": "Block {name}?",
+  "@blockNameQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "blockedUsers": "Blocked users",
+  "cancel": "Cancel",
+  "catBin": "Trash can",
+  "catBinPlural": "Trash cans",
+  "catSmoking": "Smoking area",
+  "catSmokingPlural": "Smoking areas",
+  "catToilet": "Public toilet",
+  "catToiletPlural": "Toilets",
+  "changePhoto": "Change photo",
+  "changeRating": "Change",
+  "chooseFromGallery": "Choose from gallery",
+  "cities": "Cities",
+  "city": "City",
+  "close": "Close",
+  "closedOfficially": "Closed according to the official list.",
+  "closureHint": "Blocked, construction, out of order? Report it – the report expires after 14 days or on the date you set.",
+  "closureInfo": "{closed, plural, =1{1 \"closed\" report} other{{closed} \"closed\" reports}}{reopened, plural, =0{} =1{, 1 \"reopened\"} other{, {reopened} \"reopened\"}}",
+  "@closureInfo": {
+    "placeholders": {
+      "closed": {
+        "type": "int"
+      },
+      "reopened": {
+        "type": "int"
+      }
+    }
+  },
+  "closureReasonHint": "e.g. construction, out of order, blocked",
+  "commentHint": "Comment (optional): clean, crowded, easy to find …",
+  "community": "Community",
+  "continueLabel": "Continue",
+  "continueWithoutAccount": "Continue without account",
+  "couldNotLoadData": "Could not load data.",
+  "covered": "Covered",
+  "createProfile": "Create profile",
+  "dataSources": "Data sources:",
+  "date": "Date",
+  "delete": "Delete",
+  "deleteAccount": "Delete account",
+  "deleteAccountQuestion": "Delete account?",
+  "deleteAccountText": "Your account, ratings, photos, votes and closure reports are deleted for good. Places you reported stay on the map without your name.",
+  "deleteSpotQuestion": "Delete \"{name}\"?",
+  "@deleteSpotQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteSpotText": "The place is removed from the map for everyone.",
+  "detailsOptional": "Details (optional)",
+  "discard": "Discard",
+  "distance": "Distance",
+  "distanceAway": "{distance} away",
+  "@distanceAway": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "edit": "Edit",
+  "editTitleBin": "Edit trash can",
+  "editTitleSmoking": "Edit smoking area",
+  "editTitleToilet": "Edit public toilet",
+  "endUnknown": "End unknown (expires after 14 days)",
+  "errConnection": "Could not save – please check your connection.",
+  "errCouldNotSave": "Could not save ({reason}).",
+  "@errCouldNotSave": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "errRateLimit": "Too many contributions in a short time – please try again later.",
+  "errSignInFirst": "Please sign in first.",
+  "expectedUntil": "expected until {date}",
+  "@expectedUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "fee": "Fee",
+  "fgAlertsOnText": "You will be notified when a smoking area is within {meters} m.",
+  "@fgAlertsOnText": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "fgAlertsOnTitle": "Smoking area alerts on",
+  "fgChannel": "Location monitoring",
+  "goneText": "If enough users report that this place is gone, it is removed from the map.",
+  "goneTitle": "Gone?",
+  "hasTrashCan": "Has a trash can",
+  "imprint": "Imprint",
+  "inThisCity": "{count} in this city",
+  "@inThisCity": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "info": "Info",
+  "infoAbout": "Shows public smoking areas (喫煙所, green) and public toilets (公衆トイレ, blue) all over Japan, plus trash cans (ゴミ箱, orange) reported by users. Many Japanese cities ban smoking on the street and only allow it in designated areas.\n\nWith alerts on you get a notification as soon as you come close to a smoking area (radius configurable in Settings) – also while the app runs in the background (not for toilets).\n",
+  "infoLegendMerge": "The legend (menu ⋮) explains all symbols. Official entries (gold ring) come from lists published by cities and wards; if an OSM entry is at the same place, both are merged into one marker. Addresses published without coordinates were located with the GSI address search and are marked as \"approximate\".",
+  "infoMapCredits": "Map: Google Maps. Spot data from OpenStreetMap: © OpenStreetMap contributors (ODbL).\nNo guarantee of accuracy – you can fix missing or wrong entries directly on openstreetmap.org (amenity=smoking_area, amenity=toilets).",
+  "initialSignInReason": "Browse without an account, or sign in to rate, report and add photos.",
+  "legAlertRadius": "Alert radius for nearby smoking areas.",
+  "legBin": "Trash can (reported by users).",
+  "legBinBadge": "Orange badge: has a trash can.",
+  "legCategory": "Category (fill colour)",
+  "legClosed": "Grey with pause badge: temporarily closed.",
+  "legClusterBin": "Several trash cans – tap to zoom in.",
+  "legClusterSmoking": "Several smoking areas – tap to zoom in.",
+  "legClusterToilet": "Several toilets – tap to zoom in.",
+  "legGold": "Gold: from an official list of the city or ward.",
+  "legIndoorSmoking": "Indoor smoking room.",
+  "legMap": "Map",
+  "legOrigin": "Origin (ring)",
+  "legOutdoorSmoking": "Outdoor smoking area.",
+  "legPink": "Pink: reported by a user.",
+  "legStatus": "Status",
+  "legToilet": "Public toilet.",
+  "legWhite": "White: entry from OpenStreetMap.",
+  "legYourLocation": "Your location – the cone shows the direction you are facing.",
+  "legend": "Legend",
+  "loadingSmokingAreas": "Loading smoking areas …",
+  "localDataRemoved": "Removed the contributions from this device.",
+  "localDataText": "{count, plural, =1{1 contribution was} other{{count} contributions were}} (places, ratings, photos, reports) saved only on this device. Upload {count, plural, =1{it} other{them}} to your account so everyone can see {count, plural, =1{it} other{them}}?",
+  "@localDataText": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localDataTitle": "Contributions on this device",
+  "localProfilesNote": "Ratings, photos and reports are currently stored only on this device and assigned to the active profile. Several profiles let you try out e.g. that a spot disappears after three \"gone\" reports.",
+  "locationServicesOff": "Location services are turned off.",
+  "locationUseText": "Ippuku uses your location to show nearby smoking areas and public toilets on the map.\n\nIf you turn on alerts, the app also uses your location in the background – even when the app is closed or not in use – to notify you when you are close to a designated smoking area.\n\nYour location is processed only on your device. It is never sent to us or shared with anyone. You can turn alerts off at any time.",
+  "locationUseTitle": "Use of your location",
+  "mapDataUpdated": "Map data updated ({version}).",
+  "@mapDataUpdated": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "menu": "Menu",
+  "meters": "{meters} m",
+  "@meters": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "more": "More",
+  "moveCrossHint": "{category}: move the map until the cross is exactly on the spot.",
+  "@moveCrossHint": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "myLocation": "My location",
+  "mySpots": "My spots",
+  "mySpotsEmpty": "You have not reported any places yet. Use the \"Report a spot\" button on the map.",
+  "mySpotsSignIn": "Sign in to see and manage the places you reported.",
+  "name": "Name",
+  "nameHintBin": "e.g. \"Bins next to the vending machines\"",
+  "nameHintSmoking": "e.g. \"Smoking corner next to FamilyMart\"",
+  "nameHintToilet": "e.g. \"Toilet at the park entrance\"",
+  "namePlace": "Name / place",
+  "nearestName": "Nearest: {name}",
+  "@nearestName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "no": "no",
+  "noAccountText": "You are using the app without an account. Sign in with Apple or Google to rate, report and add photos.",
+  "noLocationNoAlerts": "Without location access there are no proximity alerts.",
+  "noRatingsYet": "No ratings yet",
+  "noReportNew": "No, report new",
+  "noSeparate": "No, separate",
+  "notNow": "Not now",
+  "notSignedIn": "Not signed in",
+  "notSure": "Not sure",
+  "note": "Note",
+  "noteHintBin": "Where exactly, how to find it …",
+  "noteHintDefault": "Opening hours, ashtray, access …",
+  "noteOptional": "Note (optional)",
+  "notifChannelNearby": "Smoking area nearby",
+  "notifChannelNearbyDesc": "Notifies you when you come close to a smoking area.",
+  "notifNearbyBody": "{name} – about {meters} m away. Tap to open the map.",
+  "@notifNearbyBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "notifNearbyTitle": "Smoking area nearby",
+  "officialDataVersion": "Official data version: {version} – updated automatically, also via Reload.",
+  "@officialDataVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineSavedData": "Offline – showing saved data from {date}.",
+  "@offlineSavedData": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ok": "OK",
+  "openAgain": "Open again",
+  "openingHours": "Opening hours",
+  "operator": "Operator",
+  "osm": "OSM",
+  "osmCopyright": "Data © OpenStreetMap contributors",
+  "outdoors": "Outdoors",
+  "partOfHostText": "\"{name}\" ({category}) is right here. Is the trash can part of it (e.g. an ashtray with a bin)? Then it is added there instead of a new marker.",
+  "@partOfHostText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "partOfHostTitle": "Part of this place?",
+  "photo": "Photo",
+  "photoCount": "{count, plural, =1{1 photo} other{{count} photos}}",
+  "@photoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "photoUploadFailed": "The photo could not be uploaded.",
+  "popularDistricts": "Popular districts",
+  "position": "Position",
+  "positionApprox": "approximate (from the address, ± approx. 50 m)",
+  "privacyPolicy": "Privacy policy",
+  "profile": "Profile",
+  "profilesOnDevice": "Profiles on this device",
+  "publiclyAccessible": "Publicly accessible",
+  "publiclyAccessibleSub": "no ticket, entry fee or purchase needed",
+  "rate": "Rate",
+  "ratingSummary": "{average} ({count, plural, =1{1 rating} other{{count} ratings}})",
+  "@ratingSummary": {
+    "placeholders": {
+      "average": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reasonOffensive": "Offensive or inappropriate",
+  "reasonOptional": "Reason (optional)",
+  "reasonOther": "Other",
+  "reasonPersonalData": "Personal data of others",
+  "reasonSpam": "Spam or advertising",
+  "reasonWrong": "Wrong or misleading",
+  "reload": "Reload",
+  "remove": "Remove",
+  "removedAfterReports": "Thanks! The place was removed after community reports.",
+  "removedByCommunity": "removed by the community",
+  "rename": "Rename",
+  "report": "Report",
+  "reportASpot": "Report a spot",
+  "reportHere": "Report here",
+  "reportTitleBin": "Report trash can",
+  "reportTitleSmoking": "Report smoking area",
+  "reportTitleToilet": "Report public toilet",
+  "reportedBy": "Reported by",
+  "reportedGone": "{count, plural, =1{1 user reported} other{{count} users reported}} that this place is gone.",
+  "@reportedGone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportedOn": "Reported {date}",
+  "@reportedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reportedVisibleNote": "Reported spots are visible right away. If enough users report that a spot does not exist, it is removed again.",
+  "resetToMeters": "Reset to {meters} m",
+  "@resetToMeters": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "retry": "Retry",
+  "roomsInBuilding": "{count} in the same building",
+  "@roomsInBuilding": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "route": "Route",
+  "sameplaceQuestion": "\"{name}\" is {meters} m away. Is it the same place?",
+  "@sameplaceQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "save": "Save",
+  "savedOffline": "No connection – saved on this device and sent automatically later.",
+  "saving": "Saving …",
+  "searchPlaceHint": "Search city, district or prefecture",
+  "send": "Send",
+  "sending": "Sending …",
+  "settings": "Settings",
+  "showOnMap": "Show on map",
+  "shownWithContributions": "Shown with your contributions",
+  "signIn": "Sign in",
+  "signInDefaultReason": "Sign in to rate, report and add photos.",
+  "signInFailed": "Sign-in failed. Please try again.",
+  "signInPrivacyNote": "Only your first name is shown with your contributions. Your location never leaves your device. By signing in you accept the terms of use.",
+  "signInToAddDetails": "Sign in to add details.",
+  "signInToAddPhotos": "Sign in to add photos.",
+  "signInToBlock": "Sign in to block users.",
+  "signInToConfirm": "Sign in to confirm places.",
+  "signInToContribute": "Sign in to contribute.",
+  "signInToRate": "Sign in to rate places.",
+  "signInToReport": "Sign in to report new places.",
+  "signInToReportClosures": "Sign in to report closures.",
+  "signInToReportContent": "Sign in to report content.",
+  "signInToReportGone": "Sign in to report places that are gone.",
+  "signInWithGoogle": "Sign in with Google",
+  "signOut": "Sign out",
+  "signedInAs": "Signed in as {name}",
+  "@signedInAs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "smokingAreaAlerts": "Smoking area alerts",
+  "smokingAreaAlertsSub": "Notify me when I come close to a smoking area.",
+  "smokingAreasInCity": "{count} smoking areas in this city",
+  "@smokingAreasInCity": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "smokingRoom": "Smoking room",
+  "smokingRoomIndoors": "Smoking room (indoors)",
+  "smokingRooms": "Smoking rooms",
+  "someSourcesUnreachable": "Some sources are unreachable.",
+  "source": "Source",
+  "sourceOfficial": "{source} (official)",
+  "@sourceOfficial": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "stillThereQuestion": "Is this place still there?",
+  "switchProfile": "Switch",
+  "takePhoto": "Take photo",
+  "temporarilyClosed": "Temporarily closed",
+  "temporarilyClosedLower": "temporarily closed",
+  "termsOfUse": "Terms of use",
+  "thanksHostHasBin": "Thanks! \"{name}\" now shows a trash can.",
+  "@thanksHostHasBin": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "thanksReportReviewed": "Thanks – the report will be reviewed.",
+  "thanksSpotOnMap": "Thanks! Your spot is now on the map.",
+  "thanksSpotPhotoUploading": "Thanks! Your spot is on the map – the photo is uploading.",
+  "thisUser": "this user",
+  "tipAllowAlways": "Tip: allow \"Always\" for alerts in the background.",
+  "toiletNearest": "Toilet: {name} · {distance}",
+  "@toiletNearest": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "tryAgain": "Try again",
+  "turnAlertsOff": "Turn alerts off",
+  "turnAlertsOn": "Turn alerts on",
+  "type": "Type",
+  "unblock": "Unblock",
+  "unknown": "unknown",
+  "upload": "Upload",
+  "uploadFailedTap": "Failed – tap",
+  "uploadedPartly": "Uploaded {done}, {left} left – the rest is uploaded next time.",
+  "@uploadedPartly": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "uploadedThanks": "Uploaded {count, plural, =1{1 contribution} other{{count} contributions}}. Thanks!",
+  "@uploadedThanks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "uploading": "Uploading …",
+  "voteNo": "No ({count})",
+  "@voteNo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "voteYes": "Yes ({count})",
+  "@voteYes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wardName": "{ward} ward",
+  "@wardName": {
+    "placeholders": {
+      "ward": {
+        "type": "String"
+      }
+    }
+  },
+  "wasteBottles": "PET bottles",
+  "wasteCans": "Cans",
+  "wasteTrash": "General waste",
+  "whatToReport": "What do you want to report?",
+  "wheelchairAccessible": "Wheelchair accessible",
+  "yes": "yes",
+  "yesAddToIt": "Yes, add to it",
+  "yesShowIt": "Yes, show it"
+}

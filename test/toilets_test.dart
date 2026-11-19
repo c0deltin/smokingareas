@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/community/auth_service.dart';
 import 'package:smoking_areas/community/community_backend.dart';
 import 'package:smoking_areas/community/community_service.dart';
@@ -231,6 +232,8 @@ void main() {
       tags: const {'amenity': 'toilets', 'wheelchair': 'yes'},
     );
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(body: AreaDetailsSheet(area: toilet)),
     ));
     expect(find.text('Public toilet'), findsOneWidget);

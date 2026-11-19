@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smoking_areas/l10n/app_localizations.dart';
 import 'package:smoking_areas/community/auth_service.dart';
 import 'package:smoking_areas/community/community_backend.dart';
 import 'package:smoking_areas/community/community_service.dart';
@@ -94,6 +95,8 @@ void main() {
 
   Future<void> pumpButton(WidgetTester tester, Future<void> Function() onTap) =>
       tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(
@@ -143,6 +146,8 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     late BuildContext ctx;
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Builder(builder: (context) {
         ctx = context;
         return const Scaffold();
@@ -225,6 +230,8 @@ void main() {
         pending = svc.addPhoto(area, photo());
       });
       await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
             body: PendingPhotoThumb(pending: pending, community: svc)),
       ));

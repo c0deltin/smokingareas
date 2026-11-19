@@ -1,0 +1,7 @@
+# UI translations: lib/l10n/app_<lang>.arb -> AppLocalizations.
+# English is the template and the fallback for unsupported device languages.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

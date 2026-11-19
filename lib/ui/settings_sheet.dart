@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../community/community_service.dart';
+import '../i18n.dart';
 import '../services/proximity_monitor.dart';
 import 'location_disclosure.dart';
 import 'profile_sheet.dart';
@@ -43,7 +44,7 @@ class _SettingsViewState extends State<SettingsView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Settings', style: theme.textTheme.titleLarge),
+              Text(context.l10n.settings, style: theme.textTheme.titleLarge),
               const SizedBox(height: 8),
               if (widget.community case final community?)
                 ListenableBuilder(
@@ -54,11 +55,11 @@ class _SettingsViewState extends State<SettingsView> {
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.account_circle_outlined),
                       title: Text(user == null
-                          ? 'Not signed in'
-                          : 'Signed in as ${user.displayName}'),
+                          ? context.l10n.notSignedIn
+                          : context.l10n.signedInAs(user.displayName)),
                       subtitle: Text(user == null
-                          ? 'Sign in to rate, report and add photos.'
-                          : 'Account, sign out, delete account'),
+                          ? context.l10n.signInDefaultReason
+                          : context.l10n.accountActions),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => showProfileSheet(context, community),
                     );
@@ -66,9 +67,8 @@ class _SettingsViewState extends State<SettingsView> {
                 ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Smoking area alerts'),
-                subtitle: const Text(
-                    'Notify me when I come close to a smoking area.'),
+                title: Text(context.l10n.smokingAreaAlerts),
+                subtitle: Text(context.l10n.smokingAreaAlertsSub),
                 value: monitor.alertsEnabled,
                 onChanged: (on) async {
                   if (on && !await confirmLocationUse(context)) return;
@@ -77,8 +77,8 @@ class _SettingsViewState extends State<SettingsView> {
               ),
               const SizedBox(height: 8),
               Row(children: [
-                const Expanded(child: Text('Alert radius')),
-                Text('${_radius.round()} m',
+                Expanded(child: Text(context.l10n.alertRadius)),
+                Text(context.l10n.meters(_radius.round()),
                     style: theme.textTheme.titleMedium),
               ]),
               Slider(
@@ -89,17 +89,14 @@ class _SettingsViewState extends State<SettingsView> {
                         5)
                     .round(),
                 value: _radius,
-                label: '${_radius.round()} m',
+                label: context.l10n.meters(_radius.round()),
                 onChanged: monitor.alertsEnabled
                     ? (v) => setState(() => _radius = v)
                     : null,
                 onChangeEnd: monitor.setAlertRadius,
               ),
               Text(
-                'Small radius: alerts only right next to a smoking area. '
-                'Large radius: earlier alerts, but more of them in dense '
-                'areas. The blue circle around your location shows the '
-                'radius.',
+                context.l10n.alertRadiusHelp,
                 style: theme.textTheme.bodySmall,
               ),
               Align(
@@ -113,8 +110,8 @@ class _SettingsViewState extends State<SettingsView> {
                           monitor.setAlertRadius(
                               ProximityMonitor.defaultAlertRadius);
                         },
-                  child: Text(
-                      'Reset to ${ProximityMonitor.defaultAlertRadius.round()} m'),
+                  child: Text(context.l10n.resetToMeters(
+                      ProximityMonitor.defaultAlertRadius.round())),
                 ),
               ),
               const Divider(),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../community/community_service.dart';
 import '../community/local_migration.dart';
+import '../i18n.dart';
 
 bool _offeredThisSession = false;
 
@@ -23,34 +24,30 @@ Future<void> maybeOfferLocalUpload(BuildContext context,
   final choice = await showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Contributions on this device'),
-      content: Text(
-          '$count contribution${count == 1 ? ' was' : 's were'} (places, '
-          'ratings, photos, reports) saved only on this device. Upload '
-          '${count == 1 ? 'it' : 'them'} to your account so everyone can '
-          'see ${count == 1 ? 'it' : 'them'}?'),
+      title: Text(context.l10n.localDataTitle),
+      content: Text(context.l10n.localDataText(count)),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, 'discard'),
-          child: const Text('Discard'),
+          child: Text(context.l10n.discard),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Not now'),
+          child: Text(context.l10n.notNow),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, 'upload'),
-          child: const Text('Upload'),
+          child: Text(context.l10n.upload),
         ),
       ],
     ),
   );
   if (!context.mounted) return;
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   if (choice == 'discard') {
     await migration.discard();
-    messenger.showSnackBar(const SnackBar(
-        content: Text('Removed the contributions from this device.')));
+    messenger.showSnackBar(SnackBar(content: Text(l.localDataRemoved)));
     return;
   }
   if (choice != 'upload') return;
@@ -58,11 +55,11 @@ Future<void> maybeOfferLocalUpload(BuildContext context,
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => const AlertDialog(
+    builder: (_) => AlertDialog(
       content: Row(children: [
-        CircularProgressIndicator(),
-        SizedBox(width: 16),
-        Expanded(child: Text('Uploading …')),
+        const CircularProgressIndicator(),
+        const SizedBox(width: 16),
+        Expanded(child: Text(context.l10n.uploading)),
       ]),
     ),
   );
@@ -76,9 +73,7 @@ Future<void> maybeOfferLocalUpload(BuildContext context,
   Navigator.of(context, rootNavigator: true).pop();
   messenger.showSnackBar(SnackBar(
     content: Text(result.done
-        ? 'Uploaded ${result.uploaded} contribution'
-            '${result.uploaded == 1 ? '' : 's'}. Thanks!'
-        : 'Uploaded ${result.uploaded}, ${result.remaining} left – the rest '
-            'is uploaded next time.'),
+        ? l.uploadedThanks(result.uploaded)
+        : l.uploadedPartly(result.uploaded, result.remaining)),
   ));
 }

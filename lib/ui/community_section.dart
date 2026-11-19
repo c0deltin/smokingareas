@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../community/community_service.dart';
 import '../community/models.dart';
+import '../i18n.dart';
 import 'busy_action.dart';
 import 'moderation.dart';
 import 'sign_in_sheet.dart';
@@ -20,12 +21,12 @@ Future<File?> pickPhoto(BuildContext context) async {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
           leading: const Icon(Icons.photo_camera_outlined),
-          title: const Text('Take photo'),
+          title: Text(context.l10n.takePhoto),
           onTap: () => Navigator.pop(context, ImageSource.camera),
         ),
         ListTile(
           leading: const Icon(Icons.photo_library_outlined),
-          title: const Text('Choose from gallery'),
+          title: Text(context.l10n.chooseFromGallery),
           onTap: () => Navigator.pop(context, ImageSource.gallery),
         ),
       ]),
@@ -96,10 +97,10 @@ class CommunitySection extends StatelessWidget {
           children: [
             const Divider(height: 24),
             Row(children: [
-              Text('Community', style: theme.textTheme.titleMedium),
+              Text(context.l10n.community, style: theme.textTheme.titleMedium),
               const Spacer(),
               if (community.currentUser case final user?)
-                Text('as ${user.displayName}',
+                Text(context.l10n.asUser(user.displayName),
                     style: theme.textTheme.bodySmall),
             ]),
             const SizedBox(height: 8),
@@ -111,9 +112,9 @@ class CommunitySection extends StatelessWidget {
               Expanded(
                 child: Text(
                   rating.count == 0
-                      ? 'No ratings yet'
-                      : '${rating.average.toStringAsFixed(1)} '
-                          '(${rating.count} rating${rating.count == 1 ? '' : 's'})',
+                      ? context.l10n.noRatingsYet
+                      : context.l10n.ratingSummary(
+                          rating.average.toStringAsFixed(1), rating.count),
                 ),
               ),
               BusyAction(
@@ -123,7 +124,9 @@ class CommunitySection extends StatelessWidget {
                   icon: busy
                       ? const BusySpinner()
                       : const Icon(Icons.star_outline),
-                  label: Text(rating.mine == null ? 'Rate' : 'Change'),
+                  label: Text(rating.mine == null
+                      ? context.l10n.rate
+                      : context.l10n.changeRating),
                 ),
               ),
             ]),
@@ -152,7 +155,7 @@ class CommunitySection extends StatelessWidget {
 
             // --- existence votes (Waze-like) ----------------------------
             const SizedBox(height: 12),
-            Text('Is this ${area.category.label.toLowerCase()} still there?',
+            Text(context.l10n.stillThereQuestion,
                 style: theme.textTheme.bodyMedium),
             const SizedBox(height: 6),
             Row(children: [
@@ -162,13 +165,13 @@ class CommunitySection extends StatelessWidget {
                     selected: myVote == true,
                     busy: busy,
                     icon: Icons.check_circle_outline,
-                    label: 'Yes (${status.confirmations})',
+                    label: context.l10n.voteYes(status.confirmations),
                     color: Colors.green,
                     onPressed: () => contribute(
                         context,
                         community,
                         () => track(() => community.vote(area, exists: true)),
-                        reason: 'Sign in to confirm places.'),
+                        reason: context.l10n.signInToConfirm),
                   ),
                 ),
               ),
@@ -179,7 +182,7 @@ class CommunitySection extends StatelessWidget {
                     selected: myVote == false,
                     busy: busy,
                     icon: Icons.highlight_off,
-                    label: 'No (${status.removals})',
+                    label: context.l10n.voteNo(status.removals),
                     color: theme.colorScheme.error,
                     onPressed: () => _voteGone(context, track),
                   ),
@@ -190,9 +193,7 @@ class CommunitySection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '${status.removals} user${status.removals == 1 ? '' : 's'} '
-                  'reported that this '
-                  '${area.category.label.toLowerCase()} is gone.',
+                  context.l10n.reportedGone(status.removals),
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.error),
                 ),
@@ -212,7 +213,7 @@ class CommunitySection extends StatelessWidget {
   Future<void> _rate(
       BuildContext context, int? current, TrackBusy track) async {
     if (!await ensureSignedIn(context, community,
-            reason: 'Sign in to rate places.') ||
+            reason: context.l10n.signInToRate) ||
         !context.mounted) {
       return;
     }
@@ -230,7 +231,7 @@ class CommunitySection extends StatelessWidget {
 
   Future<void> _addPhoto(BuildContext context) async {
     if (!await ensureSignedIn(context, community,
-            reason: 'Sign in to add photos.') ||
+            reason: context.l10n.signInToAddPhotos) ||
         !context.mounted) {
       return;
     }
@@ -244,26 +245,23 @@ class CommunitySection extends StatelessWidget {
 
   Future<void> _voteGone(BuildContext context, TrackBusy track) async {
     if (!await ensureSignedIn(context, community,
-            reason: 'Sign in to report places that are gone.') ||
+            reason: context.l10n.signInToReportGone) ||
         !context.mounted) {
       return;
     }
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Gone?'),
-        content: const Text(
-          'If enough users report that this place is gone, it is removed '
-          'from the map.',
-        ),
+        title: Text(context.l10n.goneTitle),
+        content: Text(context.l10n.goneText),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Report'),
+            child: Text(context.l10n.report),
           ),
         ],
       ),
@@ -305,19 +303,19 @@ class _BinVote extends StatelessWidget {
                   () => track(() => community.voteFeature(
                       area, SpotFeature.bin,
                       value: value)),
-                  reason: 'Sign in to add details.'),
+                  reason: context.l10n.signInToAddDetails),
             ),
           ),
         );
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Is there a trash can here?', style: theme.textTheme.bodyMedium),
+      Text(context.l10n.binHereQuestion, style: theme.textTheme.bodyMedium),
       const SizedBox(height: 6),
       Row(children: [
-        button(true, 'Trash can (${status.yes})', categoryIcon(SpotCategory.bin),
-            binColor),
+        button(true, context.l10n.binYes(status.yes),
+            categoryIcon(SpotCategory.bin), binColor),
         const SizedBox(width: 8),
-        button(false, 'None (${status.no})', Icons.do_not_disturb_alt,
+        button(false, context.l10n.binNo(status.no), Icons.do_not_disturb_alt,
             theme.colorScheme.outline),
       ]),
       if (verdict != null)
@@ -325,8 +323,8 @@ class _BinVote extends StatelessWidget {
           padding: const EdgeInsets.only(top: 6),
           child: Text(
             verdict
-                ? 'Shown with a trash can on the map.'
-                : 'No trash can here.',
+                ? context.l10n.binShown
+                : context.l10n.binNone,
             style: theme.textTheme.bodySmall,
           ),
         ),
@@ -396,7 +394,7 @@ class _AddPhotoButton extends StatelessWidget {
               Icon(Icons.add_a_photo_outlined,
                   color: theme.colorScheme.primary),
               const SizedBox(height: 4),
-              Text('Photo', style: theme.textTheme.bodySmall),
+              Text(context.l10n.photo, style: theme.textTheme.bodySmall),
             ],
           ),
         ),
@@ -527,7 +525,7 @@ class _RatingDialogState extends State<_RatingDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Rate'),
+      title: Text(context.l10n.rate),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           for (var i = 1; i <= 5; i++)
@@ -542,22 +540,22 @@ class _RatingDialogState extends State<_RatingDialog> {
           controller: _comment,
           maxLength: 280,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Comment (optional): clean, crowded, easy to find …',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: context.l10n.commentHint,
+            border: const OutlineInputBorder(),
           ),
         ),
       ]),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: _stars == 0
               ? null
               : () => Navigator.pop(context, (_stars, _comment.text)),
-          child: const Text('Save'),
+          child: Text(context.l10n.save),
         ),
       ],
     );
@@ -577,11 +575,9 @@ class _ClosureControls extends StatelessWidget {
     // Closed by official data or by the community (live state).
     final closed = community.annotate(area).isTemporarilyClosed;
     final info = closed
-        ? '${status.closedReports} "closed" '
-            'report${status.closedReports == 1 ? '' : 's'}'
-            '${status.reopenedReports > 0 ? ', ${status.reopenedReports} "reopened"' : ''}'
-        : 'Blocked, construction, out of order? Report it – the report '
-            'expires after 14 days or on the date you set.';
+        ? context.l10n
+            .closureInfo(status.closedReports, status.reopenedReports)
+        : context.l10n.closureHint;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(
@@ -595,24 +591,24 @@ class _ClosureControls extends StatelessWidget {
                             community,
                             () => track(() =>
                                 community.reportClosure(area, closed: false)),
-                            reason: 'Sign in to report closures.'),
+                            reason: context.l10n.signInToReportClosures),
                     icon: busy
                         ? const BusySpinner()
                         : const Icon(Icons.play_circle_outline),
-                    label: const Text('Open again'),
+                    label: Text(context.l10n.openAgain),
                   )
                 : OutlinedButton.icon(
                     onPressed: busy ? null : () => _reportClosed(context, track),
                     icon: busy
                         ? const BusySpinner()
                         : const Icon(Icons.pause_circle_outline),
-                    label: const Text('Temporarily closed'),
+                    label: Text(context.l10n.temporarilyClosed),
                   ),
           ),
         ),
       ]),
       if (closed && status.closedReports == 0 && area.isOfficial)
-        Text('Closed according to the official list.',
+        Text(context.l10n.closedOfficially,
             style: theme.textTheme.bodySmall)
       else
         Text(info, style: theme.textTheme.bodySmall),
@@ -621,7 +617,7 @@ class _ClosureControls extends StatelessWidget {
 
   Future<void> _reportClosed(BuildContext context, TrackBusy track) async {
     if (!await ensureSignedIn(context, community,
-            reason: 'Sign in to report closures.') ||
+            reason: context.l10n.signInToReportClosures) ||
         !context.mounted) {
       return;
     }
@@ -658,22 +654,22 @@ class _ClosureDialogState extends State<_ClosureDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Temporarily closed'),
+      title: Text(context.l10n.temporarilyClosed),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         TextField(
           controller: _note,
           maxLength: 120,
-          decoration: const InputDecoration(
-            labelText: 'Reason (optional)',
-            hintText: 'e.g. construction, out of order, blocked',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: context.l10n.reasonOptional,
+            hintText: context.l10n.closureReasonHint,
+            border: const OutlineInputBorder(),
           ),
         ),
         Row(children: [
           Expanded(
             child: Text(_until == null
-                ? 'End unknown (expires after 14 days)'
-                : 'expected until ${_until!.day}.${_until!.month}.${_until!.year}'),
+                ? context.l10n.endUnknown
+                : context.l10n.expectedUntil(formatDay(context, _until!))),
           ),
           TextButton(
             onPressed: () async {
@@ -686,18 +682,18 @@ class _ClosureDialogState extends State<_ClosureDialog> {
               );
               if (picked != null) setState(() => _until = picked);
             },
-            child: const Text('Date'),
+            child: Text(context.l10n.date),
           ),
         ]),
       ]),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, (_note.text, _until)),
-          child: const Text('Report'),
+          child: Text(context.l10n.report),
         ),
       ],
     );
@@ -741,13 +737,14 @@ class PendingPhotoThumb extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () => _failedMenu(context),
-                  child: const Column(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, color: Colors.white),
-                      SizedBox(height: 4),
-                      Text('Failed – tap',
-                          style: TextStyle(color: Colors.white, fontSize: 11)),
+                      const Icon(Icons.error_outline, color: Colors.white),
+                      const SizedBox(height: 4),
+                      Text(context.l10n.uploadFailedTap,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 11)),
                     ],
                   ),
                 ),
@@ -765,17 +762,17 @@ class PendingPhotoThumb extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: const Icon(Icons.error_outline),
-            title: const Text('The photo could not be uploaded.'),
-            subtitle: Text(contributionError(pending.error!)),
+            title: Text(context.l10n.photoUploadFailed),
+            subtitle: Text(contributionError(pending.error!, context.l10n)),
           ),
           ListTile(
             leading: const Icon(Icons.refresh),
-            title: const Text('Try again'),
+            title: Text(context.l10n.tryAgain),
             onTap: () => Navigator.pop(context, 'retry'),
           ),
           ListTile(
             leading: const Icon(Icons.delete_outline),
-            title: const Text('Remove'),
+            title: Text(context.l10n.remove),
             onTap: () => Navigator.pop(context, 'remove'),
           ),
         ]),

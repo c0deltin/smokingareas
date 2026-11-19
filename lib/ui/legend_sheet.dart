@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
 import '../models/smoking_area.dart';
 import 'spot_style.dart';
 import 'user_location_marker.dart';
@@ -14,58 +15,61 @@ class LegendEntry {
 
 /// All map symbols, grouped. Built from the same widgets the map uses, so
 /// the legend cannot get out of date.
-List<(String, List<LegendEntry>)> legendSections() => [
+List<(String, List<LegendEntry>)> legendSections(AppLocalizations l) => [
       (
-        'Category (fill colour)',
-        const [
-          LegendEntry(SpotMarker(category: SpotCategory.smoking),
-              'Outdoor smoking area.'),
-          LegendEntry(SpotMarker(category: SpotCategory.smoking, indoor: true),
-              'Indoor smoking room.'),
-          LegendEntry(SpotMarker(category: SpotCategory.toilet),
-              'Public toilet.'),
-          LegendEntry(
-              SpotMarker(
-                  category: SpotCategory.bin, origin: SpotOrigin.community),
-              'Trash can (reported by users).'),
-        ],
-      ),
-      (
-        'Origin (ring)',
-        const [
-          LegendEntry(SpotMarker(category: SpotCategory.smoking),
-              'White: entry from OpenStreetMap.'),
-          LegendEntry(
-              SpotMarker(
-                  category: SpotCategory.smoking, origin: SpotOrigin.official),
-              'Gold: from an official list of the city or ward.'),
-          LegendEntry(
-              SpotMarker(
-                  category: SpotCategory.smoking, origin: SpotOrigin.community),
-              'Pink: reported by a user.'),
-        ],
-      ),
-      (
-        'Status',
-        const [
-          LegendEntry(SpotMarker(category: SpotCategory.toilet, closed: true),
-              'Grey with pause badge: temporarily closed.'),
-          LegendEntry(SpotMarker(category: SpotCategory.smoking, bin: true),
-              'Orange badge: has a trash can.'),
-        ],
-      ),
-      (
-        'Map',
+        l.legCategory,
         [
-          const LegendEntry(
-              ClusterBubble(category: SpotCategory.smoking, count: 12),
-              'Several smoking areas – tap to zoom in.'),
-          const LegendEntry(
-              ClusterBubble(category: SpotCategory.toilet, count: 8),
-              'Several toilets – tap to zoom in.'),
-          const LegendEntry(
-              ClusterBubble(category: SpotCategory.bin, count: 5),
-              'Several trash cans – tap to zoom in.'),
+          LegendEntry(const SpotMarker(category: SpotCategory.smoking),
+              l.legOutdoorSmoking),
+          LegendEntry(
+              const SpotMarker(category: SpotCategory.smoking, indoor: true),
+              l.legIndoorSmoking),
+          LegendEntry(
+              const SpotMarker(category: SpotCategory.toilet), l.legToilet),
+          LegendEntry(
+              const SpotMarker(
+                  category: SpotCategory.bin, origin: SpotOrigin.community),
+              l.legBin),
+        ],
+      ),
+      (
+        l.legOrigin,
+        [
+          LegendEntry(
+              const SpotMarker(category: SpotCategory.smoking), l.legWhite),
+          LegendEntry(
+              const SpotMarker(
+                  category: SpotCategory.smoking, origin: SpotOrigin.official),
+              l.legGold),
+          LegendEntry(
+              const SpotMarker(
+                  category: SpotCategory.smoking, origin: SpotOrigin.community),
+              l.legPink),
+        ],
+      ),
+      (
+        l.legStatus,
+        [
+          LegendEntry(
+              const SpotMarker(category: SpotCategory.toilet, closed: true),
+              l.legClosed),
+          LegendEntry(
+              const SpotMarker(category: SpotCategory.smoking, bin: true),
+              l.legBinBadge),
+        ],
+      ),
+      (
+        l.legMap,
+        [
+          LegendEntry(
+              const ClusterBubble(category: SpotCategory.smoking, count: 12),
+              l.legClusterSmoking),
+          LegendEntry(
+              const ClusterBubble(category: SpotCategory.toilet, count: 8),
+              l.legClusterToilet),
+          LegendEntry(
+              const ClusterBubble(category: SpotCategory.bin, count: 5),
+              l.legClusterBin),
           LegendEntry(
             SizedBox(
               width: 44,
@@ -84,7 +88,7 @@ List<(String, List<LegendEntry>)> legendSections() => [
                 ),
               ),
             ),
-            'Your location – the cone shows the direction you are facing.',
+            l.legYourLocation,
           ),
           LegendEntry(
             Container(
@@ -96,7 +100,7 @@ List<(String, List<LegendEntry>)> legendSections() => [
                 border: Border.all(color: Colors.blue, width: 1.5),
               ),
             ),
-            'Alert radius for nearby smoking areas.',
+            l.legAlertRadius,
           ),
         ],
       ),
@@ -127,8 +131,8 @@ class LegendView extends StatelessWidget {
       controller: controller,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Text('Legend', style: theme.textTheme.titleLarge),
-        for (final (title, entries) in legendSections()) ...[
+        Text(context.l10n.legend, style: theme.textTheme.titleLarge),
+        for (final (title, entries) in legendSections(context.l10n)) ...[
           Padding(
             padding: const EdgeInsets.only(top: 16, bottom: 4),
             child: Text(title,
